@@ -370,6 +370,25 @@ function setupDateBox(id) {
 let flushing = false, flushTimer = null, syncProblem = "";
 const syncLink = () => load(K.link, "");
 
+// Tell apart "no internet" from "the link reached Google but not your sheet's script"
+async function readReply(res) {
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!data || typeof data.ok !== "boolean") throw Object.assign(new Error("not-script"), { fromSheet: true });
+  if (!data.ok) throw Object.assign(new Error(data.error || "refused"), { fromSheet: true });
+  return data;
+}
+function problemOf(err) {
+  if (err && err.fromSheet) return err.message;
+  // Once the link has worked, a failed request just means weak signal; before that it may be a setup problem
+  return navigator.onLine === false || load(K.last, 0) ? "network" : "unreachable";
+}
+const PROBLEMS = {
+  "bad key": "Your sheet didn't accept the key at the end of the link. Tap “Change sync link” and paste it again.",
+  "not-script": "This link reaches Google but not your sheet's sync script. Copy the Web app URL from Apps Script → Deploy → Manage deployments (it ends in /exec), add ?key=… and paste it again.",
+  "unreachable": "Couldn't reach your sheet. In Apps Script → Deploy → Manage deployments, check that “Who has access” is set to Anyone.",
+};
+
 function queue(op, kind, rec) {
   outbox = outbox.filter((o) => !(o.kind === kind && o.id === rec.id));   // only the latest change per entry matters
   outbox.push({ seq: Date.now() + Math.random(), op, kind, id: rec.id, rec: op === "put" ? rec : null });
@@ -396,15 +415,14 @@ async function flush() {
       headers: { "Content-Type": "text/plain;charset=utf-8" },   // plain text keeps the request simple for Google
       body: JSON.stringify({ ops: batch.map((o) => (o.op === "del" ? { op: "del", kind: o.kind, id: o.id } : { op: "put", kind: o.kind, row: sheetRow(o.kind, o.rec) })) }),
     });
-    const data = await res.json();
-    if (!data.ok) throw Object.assign(new Error(data.error || "refused"), { fromSheet: true });
+    const data = await readReply(res);
     const sent = new Set(batch.map((o) => o.seq));
     outbox = outbox.filter((o) => !sent.has(o.seq));
     keep(K.out, outbox); keep(K.last, Date.now());
     if (data.sheetUrl) keep(K.sheet, data.sheetUrl);
     syncProblem = "";
   } catch (err) {
-    syncProblem = err.fromSheet ? err.message : "network";
+    syncProblem = problemOf(err);
   }
   flushing = false; updateSyncUI();
   if (outbox.length && !syncProblem) scheduleFlush(300);
@@ -414,8 +432,7 @@ async function pullFromSheet(quiet) {
   if (!syncLink()) return false;
   try {
     const res = await fetch(syncLink(), { redirect: "follow" });
-    const data = await res.json();
-    if (!data.ok) throw Object.assign(new Error(data.error || "refused"), { fromSheet: true });
+    const data = await readReply(res);
     if (data.sheetUrl) keep(K.sheet, data.sheetUrl);
     const deleting = new Set(outbox.filter((o) => o.op === "del").map((o) => o.id));
     const haveE = new Set(expenses.map((e) => e.id)), haveL = new Set(loans.map((l) => l.id));
@@ -430,7 +447,7 @@ async function pullFromSheet(quiet) {
     if (!quiet || newE.length || newL.length) showToast("Brought in " + newE.length + " payments and " + newL.length + " loan entries from your sheet.");
     return true;
   } catch (err) {
-    syncProblem = err.fromSheet ? err.message : "network";
+    syncProblem = problemOf(err);
     updateSyncUI();
     return false;
   }
@@ -452,8 +469,7 @@ function updateSyncUI() {
   const n = outbox.length, last = load(K.last, 0);
   let msg = "", cls = "", dot = "";
   if (!linked) { msg = n ? n + " changes saved on this phone, ready to back up once you connect." : ""; dot = ""; }
-  else if (syncProblem === "bad key") { msg = "The sheet didn't accept the sync link's key. Tap “Change sync link” and paste it again."; cls = dot = "err"; }
-  else if (syncProblem && syncProblem !== "network") { msg = "Your sheet reported a problem: " + syncProblem; cls = dot = "err"; }
+  else if (syncProblem && syncProblem !== "network") { msg = PROBLEMS[syncProblem] || "Your sheet reported a problem: " + syncProblem; cls = dot = "err"; }
   else if (flushing) { msg = "Backing up " + n + (n === 1 ? " change…" : " changes…"); cls = dot = "wait"; }
   else if (n) { msg = n + (n === 1 ? " change is" : " changes are") + " saved on this phone and will back up when you have signal."; cls = dot = "wait"; }
   else { msg = "Everything is backed up" + (last ? " · last synced " + ago(last) : "") + "."; cls = dot = "ok"; }
@@ -478,7 +494,7 @@ $("changeLinkBtn").onclick = () => { $("syncLinkInput").value = syncLink(); keep
 $("syncNowBtn").onclick = () => { syncProblem = ""; flush(); };
 $("pullBtn").onclick = () => pullFromSheet(false);
 
-window.addEventListener("online", () => { syncProblem = syncProblem === "network" ? "" : syncProblem; flush(); });
+window.addEventListener("online", () => { if (syncProblem === "network" || syncProblem === "unreachable") syncProblem = ""; flush(); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { flush(); updateSyncUI(); } });
 setInterval(() => { if (!document.hidden) flush(); }, 60000);
 
