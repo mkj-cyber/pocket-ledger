@@ -237,6 +237,12 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .5); }
 .sheet .err { color: var(--bad); font-size: 13px; font-weight: 600; min-height: 17px; }
 .sheet .bigbal { font-family: var(--display); font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sheet .linkbtn { align-self: flex-start; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--key); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { height: 38px; border-radius: 9px; font-weight: 700; font-size: 13.5px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+.field.big { font-family: var(--display); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; padding-block: 8px; }
+.qinfo { font-size: 12.5px; color: var(--muted); background: var(--key); border-radius: 10px; padding: 8px 10px; line-height: 1.4; overflow-wrap: anywhere; }
+.qinfo.warn { color: var(--accent); }
 select.field { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
 
 /* ---- Backup card ---- */
@@ -293,7 +299,7 @@ nav.tabs {
         <input class="when" id="when" type="date" aria-label="Date of payment">
       </div>
       <datalist id="noteList"></datalist>
-      <div class="hint" id="catHint">Tap a category to save</div>
+      <div class="hintrow"><span class="hint" id="catHint">Tap a category to save</span><button type="button" id="fullFormBtn">Full form</button></div>
       <div class="cats" id="cats"></div>
       <div class="subpanel" id="subPanel" hidden>
         <div class="subhead"><button type="button" id="subBack" aria-label="Back to categories">‹</button><span class="dot" id="subDot"></span><span id="subTitle"></span></div>
@@ -344,6 +350,17 @@ nav.tabs {
           <button class="linkbtn" id="changeLinkBtn" type="button" hidden>Change sync link</button>
         </div>
       </div>
+
+      <div class="datacard" id="remindCard">
+        <h3>Reminders &amp; shortcuts</h3>
+        <p>A daily evening nudge if you might have missed a payment. Android decides the exact time, so treat it as a backup.</p>
+        <div class="btnrow">
+          <button class="btn primary" id="remindBtn" type="button">Turn on reminder</button>
+          <button class="btn" id="testNotifBtn" type="button">Send a test</button>
+        </div>
+        <div class="syncstate" id="remindState"></div>
+        <p><b>Shortcuts:</b> long-press the Pocket Ledger icon for Quick entry, Log payment, Lend money and This week. Drag one onto your home screen to give it its own icon.<br><b>From an SMS or receipt:</b> tap Share → Pocket Ledger and the amount is filled in for you.</p>
+      </div>
     </section>
 
     <!-- ================= LENT ================= -->
@@ -379,6 +396,32 @@ nav.tabs {
   </nav>
 </div>
 <div class="toast" id="toast" hidden><span id="toastMsg"></span><button id="toastBtn" type="button">Undo</button></div>
+
+<!-- Quick entry: every detail on one screen (opened from the home-screen shortcut and from Share) -->
+<dialog class="sheet" id="quickSheet">
+  <div class="stack">
+    <div class="head"><h3>Quick entry</h3><button class="close" type="button" data-close aria-label="Close">✕</button></div>
+    <div class="qinfo" id="qInfo" hidden></div>
+    <div class="seg" role="group" aria-label="What is this?">
+      <button type="button" data-kind="pay" aria-pressed="true">Payment</button>
+      <button type="button" data-kind="lent" aria-pressed="false">I lent</button>
+      <button type="button" data-kind="repaid" aria-pressed="false">Paid back</button>
+    </div>
+    <label>Amount<input class="field big" id="qAmount" type="text" inputmode="decimal" autocomplete="off" placeholder="₹0"></label>
+    <div class="two" id="qCatRow">
+      <label>Category<select class="field" id="qCat"></select></label>
+      <label>Type<select class="field" id="qSub"></select></label>
+    </div>
+    <div id="qFriendRow" class="stack" hidden>
+      <label>Friend<select class="field" id="qFriend"></select></label>
+      <label id="qNewFriendRow" hidden>New friend's name<input class="field" id="qNewFriend" type="text" maxlength="30" autocomplete="off"></label>
+    </div>
+    <label>Note<input class="field" id="qNote" type="text" maxlength="80" autocomplete="off" list="noteList" placeholder="What for? (optional)"></label>
+    <label>Date<input class="field" id="qDate" type="date"></label>
+    <div class="err" id="qErr"></div>
+    <div class="btnrow"><button class="btn" id="qSaveMore" type="button">Save &amp; add another</button><button class="btn primary" id="qSave" type="button">Save</button></div>
+  </div>
+</dialog>
 
 <!-- Edit a payment -->
 <dialog class="sheet" id="editSheet">
@@ -906,8 +949,8 @@ armConfirm($("fsDelete"), "Remove profile", () => {
 
 /* ---------- edit a payment ---------- */
 let edCurrent = null;
-function fillSubs(main, sub) {
-  const s = $("edSub"); s.innerHTML = "";
+function fillSubs(main, sub, s = $("edSub")) {
+  s.innerHTML = "";
   const c = CATS.find((x) => x.name === main);
   s.append(new Option("General", ""));
   (c ? c.subs : []).forEach((n) => s.append(new Option(n, n)));
@@ -1257,7 +1300,178 @@ function renderHeader() {
   $("sofar").innerHTML = "";
   $("sofar").append("Today ", el("b", "", fmt(sumIn(expenses, +t0, +t0 + DAY))), "  ·  " + cur.short + " ", el("b", "", fmt(sumIn(expenses, cur.start, cur.end))));
 }
-function renderAll() { renderHeader(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); }
+function renderAll() { renderHeader(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
+
+/* ======================================================================
+   Quick entry: every detail on one screen
+   ====================================================================== */
+let qKind = "pay";
+function setQKind(kind) {
+  qKind = kind;
+  document.querySelectorAll("#quickSheet .seg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.kind === kind));
+  $("qCatRow").hidden = kind !== "pay"; $("qFriendRow").hidden = kind === "pay";
+  $("qSave").textContent = kind === "pay" ? "Save payment" : kind === "lent" ? "Save loan" : "Save payback";
+}
+function fillQFriends(pick) {
+  const s = $("qFriend"); s.innerHTML = "";
+  allFriends().forEach((f) => s.append(new Option(f.name, f.name)));
+  s.append(new Option("+ New friend…", "__new"));
+  s.value = pick && allFriends().some((f) => f.name === pick) ? pick : allFriends().length ? allFriends()[0].name : "__new";
+  $("qNewFriendRow").hidden = s.value !== "__new";
+}
+function openQuick(pre = {}) {
+  setQKind(pre.kind || "pay");
+  $("qAmount").value = pre.amount ? String(pre.amount) : "";
+  const cs = $("qCat"); cs.innerHTML = "";
+  cs.append(new Option("Pick a category", ""));
+  CATS.forEach((c) => cs.append(new Option(c.name, c.name)));
+  cs.value = pre.cat ? mainOf(pre.cat) : ""; fillSubs(cs.value, subOf(pre.cat), $("qSub"));
+  fillQFriends(selFriend); $("qNewFriend").value = "";
+  $("qNote").value = pre.note || "";
+  $("qDate").max = isoDay(new Date()); $("qDate").value = isoDay(new Date(pre.ts || Date.now()));
+  $("qInfo").hidden = !pre.info; $("qInfo").textContent = pre.info || ""; $("qInfo").classList.toggle("warn", !!pre.warn);
+  $("qErr").textContent = "";
+  $("quickSheet").showModal();
+}
+document.querySelectorAll("#quickSheet .seg button").forEach((b) => (b.onclick = () => setQKind(b.dataset.kind)));
+$("qCat").onchange = () => fillSubs($("qCat").value, "", $("qSub"));
+$("qFriend").onchange = () => { $("qNewFriendRow").hidden = $("qFriend").value !== "__new"; if (!$("qNewFriendRow").hidden) $("qNewFriend").focus(); };
+function quickSave(another) {
+  const amount = parseAmount($("qAmount").value);
+  if (!(amount > 0)) { $("qErr").textContent = "Type an amount above zero."; $("qAmount").focus(); return; }
+  const day = $("qDate").value || isoDay(new Date());
+  const ts = day >= isoDay(new Date()) ? Date.now() : moveToDay(Date.now(), day);
+  const note = $("qNote").value.trim();
+  let msg, undo;
+  if (qKind === "pay") {
+    if (!$("qCat").value) { $("qErr").textContent = "Pick a category."; return; }
+    const cat = $("qCat").value + ($("qSub").value ? ": " + $("qSub").value : "");
+    const e = { id: newId("e"), amount, cat, note, ts };
+    putExpense(e);
+    msg = "Saved " + fmt(amount) + " · " + catLabel(cat) + pastLabel(ts); undo = () => { delExpense(e.id); showToast("Removed"); };
+  } else {
+    let name = $("qFriend").value;
+    if (name === "__new") {
+      name = $("qNewFriend").value.trim().replace(/\s+/g, " ");
+      if (!name) { $("qErr").textContent = "Type your friend's name."; $("qNewFriend").focus(); return; }
+      const existing = allFriends().find((f) => f.name.toLowerCase() === name.toLowerCase());
+      if (existing) name = existing.name;
+      else putFriend({ id: newId("f"), name, phone: "", monthly: 0, day: 0, note: "" });
+    }
+    const l = { id: newId("l"), friend: name, amount, type: qKind, note, ts };
+    putLoan(l); selFriend = name;
+    msg = (qKind === "lent" ? "Lent " : "Got back ") + fmt(amount) + " · " + name + pastLabel(ts); undo = () => { delLoan(l.id); showToast("Removed"); };
+  }
+  showToast(msg, undo);
+  if (another) {   // keep the type, friend/category and date; clear the rest
+    $("qAmount").value = ""; $("qNote").value = ""; $("qErr").textContent = ""; $("qInfo").hidden = true;
+    if (qKind !== "pay") fillQFriends(selFriend);
+    $("qAmount").focus();
+  } else $("quickSheet").close();
+}
+$("qSave").onclick = () => quickSave(false);
+$("qSaveMore").onclick = () => quickSave(true);
+$("fullFormBtn").onclick = () => openQuick({ amount: parseAmount(amountStr) || "", note: $("note").value.trim() });
+
+/* ======================================================================
+   Share → Pocket Ledger: read the amount (and who / when) from shared text
+   such as a bank SMS or a payment app's receipt text
+   ====================================================================== */
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+function parseShared(text) {
+  const t = String(text || "").replace(/\s+/g, " ").trim();
+  const out = { amount: 0, note: "", ts: 0, credit: false };
+  const num = (s) => parseFloat(s.replace(/,/g, ""));
+  const hits = [];
+  const re = /(?:₹|\brs\.?|\binr)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi;
+  let m;
+  while ((m = re.exec(t))) hits.push({ v: num(m[1]), i: m.index });
+  if (!hits.length) { const p = t.match(/\b(?:paid|debited|spent|sent)\b\D{0,15}([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i); if (p) hits.push({ v: num(p[1]), i: p.index }); }
+  // prefer the amount that sits next to "debited / paid / spent…", not the balance at the end
+  const near = hits.find((h) => /debit|paid|spent|sent|transfer|withdrawn|purchase|payment/i.test(t.slice(Math.max(0, h.i - 30), h.i + 45)) && !/bal|balance|limit|lmt/i.test(t.slice(Math.max(0, h.i - 12), h.i)));
+  const pick = near || hits.find((h) => !/bal|balance|limit|lmt/i.test(t.slice(Math.max(0, h.i - 12), h.i))) || hits[0];
+  if (pick && pick.v > 0) out.amount = Math.round(pick.v * 100) / 100;
+  out.credit = /\b(credited|received)\b/i.test(t) && !/\b(debited|paid|spent|sent)\b/i.test(t);
+  // who it went to
+  const vpa = t.match(/\bVPA\s+([A-Za-z0-9._-]+)@/i);
+  const who = t.match(/\b(?:paid to|sent to|to|at|towards)\s+([A-Za-z][A-Za-z0-9&.' -]{1,30}?)(?=\s+(?:on|via|using|from|ref|upi|txn|avl|is|was|has|for)\b|[.,;:]|$)/i);
+  if (vpa) out.note = vpa[1];
+  else if (who && !/^(vpa|your|you|a\/?c|ac|account|card|the|bank)\b/i.test(who[1])) out.note = who[1].trim();
+  // when (dd-mm-yy, dd/mm/yyyy, dd-Mon-yy, yyyy-mm-dd)
+  let d = null;
+  const iso = t.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
+  const dmy = t.match(/\b(\d{1,2})[-/ ](\d{1,2}|[A-Za-z]{3})[a-z]*[-/ ,]+(\d{2,4})\b/);
+  if (iso) d = new Date(+iso[1], +iso[2] - 1, +iso[3]);
+  else if (dmy) {
+    const mon = /\d/.test(dmy[2]) ? +dmy[2] - 1 : MONTHS.indexOf(dmy[2].toLowerCase().slice(0, 3));
+    const yr = dmy[3].length === 2 ? 2000 + +dmy[3] : +dmy[3];
+    if (mon >= 0 && mon < 12) d = new Date(yr, mon, +dmy[1]);
+  }
+  if (d && !isNaN(d) && +d <= Date.now() && Date.now() - d < 90 * DAY && dayKey(+d) !== dayKey(Date.now())) out.ts = moveToDay(Date.now(), isoDay(d));
+  return out;
+}
+function openFromShare(text) {
+  const p = parseShared(text);
+  const snippet = text.length > 110 ? text.slice(0, 110) + "…" : text;
+  let info;
+  if (!p.amount) info = "Couldn't find an amount in what you shared, so type it in. Shared: “" + snippet + "”";
+  else if (p.credit) info = "This looks like money you received, not spent. Check before saving. Shared: “" + snippet + "”";
+  else info = "Filled in from what you shared. Pick a category and save.";
+  openQuick({ amount: p.amount || "", note: p.note, ts: p.ts || Date.now(), info, warn: !p.amount || p.credit });
+}
+
+/* ======================================================================
+   Daily evening reminder (best effort: Android decides when web apps may run)
+   The service worker reads a small state file to decide whether to nudge.
+   ====================================================================== */
+const REM = "pl-remind";
+let stateTimer = null;
+function writeState() {
+  clearTimeout(stateTimer);
+  stateTimer = setTimeout(async () => {
+    if (!("caches" in window)) return;
+    try {
+      const c = await caches.open("pl-state"), old = await c.match("./state"), prev = old ? await old.json() : {};
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      const todaySum = sumIn(expenses, +t0, +t0 + DAY);
+      const latest = expenses.filter((e) => e.ts <= Date.now()).reduce((m, e) => Math.max(m, e.ts), 0);
+      const s = { ...prev, remind: load(REM, false), lastLogDay: latest ? dayKey(latest) : "", todayTotal: fmt(todaySum) };
+      await c.put("./state", new Response(JSON.stringify(s), { headers: { "Content-Type": "application/json" } }));
+    } catch {}
+  }, 500);
+}
+function setRem(msg, cls) { $("remindState").textContent = msg; $("remindState").className = "syncstate" + (cls ? " " + cls : ""); }
+function updateRemUI() {
+  const on = load(REM, false);
+  $("remindBtn").textContent = on ? "Turn off reminder" : "Turn on reminder";
+  $("remindBtn").className = on ? "btn" : "btn primary";
+  if (on) setRem("Reminder is on. It comes in the evening (after 5 pm) at a time Android picks, at most once a day.", "ok");
+  else if (!$("remindState").classList.contains("err")) setRem("");
+}
+async function reminderOn() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return setRem("This browser can't show notifications for web apps.", "err");
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") return setRem("Notifications are blocked. Allow them in Android Settings → Apps → Pocket Ledger → Notifications, then try again.", "err");
+  const reg = await navigator.serviceWorker.ready;
+  if (!reg.periodicSync) return setRem("Notifications are allowed, but this browser can't wake web apps in the background, so a daily reminder isn't possible here. Shortcuts and Share still work.", "err");
+  try { await reg.periodicSync.register("pl-daily", { minInterval: 12 * 3600e3 }); }
+  catch { return setRem("Android only allows background reminders for installed apps. Install Pocket Ledger to your home screen, open it from there, and try again.", "err"); }
+  keep(REM, true); writeState(); updateRemUI();
+  reg.showNotification("Daily reminder is on", { body: "Pocket Ledger will nudge you in the evening if you might have missed a payment.", icon: "icon-192.png", badge: "icon-192.png", tag: "pl-test" });
+}
+async function reminderOff() {
+  keep(REM, false); writeState();
+  try { const reg = await navigator.serviceWorker.ready; if (reg.periodicSync) await reg.periodicSync.unregister("pl-daily"); } catch {}
+  setRem(""); updateRemUI();
+}
+$("remindBtn").onclick = () => (load(REM, false) ? reminderOff() : reminderOn());
+$("testNotifBtn").onclick = async () => {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return setRem("This browser can't show notifications for web apps.", "err");
+  if ((await Notification.requestPermission()) !== "granted") return setRem("Notifications are blocked. Allow them in Android Settings → Apps → Pocket Ledger → Notifications.", "err");
+  const reg = await navigator.serviceWorker.ready;
+  reg.showNotification("Did you pay for anything today?", { body: "Tap to log it in Pocket Ledger before you forget.", icon: "icon-192.png", badge: "icon-192.png", tag: "pl-test", data: { url: "./?go=quick" } });
+  setRem("Test sent. Tap the notification to check it opens Quick entry.", "ok");
+};
 
 /* ---------- tabs, month nav ---------- */
 function showTab(which) {
@@ -1299,6 +1513,20 @@ function readHash() {
 }
 window.addEventListener("hashchange", readHash);
 
+// Opened from an app-icon shortcut (?go=…), Share (?text=…), or a reminder notification
+function readLaunch() {
+  const q = new URLSearchParams(location.search);
+  const shared = [q.get("title"), q.get("text"), q.get("url")].filter(Boolean).join(" ").trim();
+  const go = q.get("go");
+  if (!shared && !go) return;
+  try { history.replaceState(null, "", location.pathname); } catch {}
+  if (shared) { showTab("log"); openFromShare(shared); return; }
+  if (go === "quick") { showTab("log"); openQuick(); }
+  else if (go === "lent") { renderLoans(); showTab("lent"); $("lendAmt").focus(); }
+  else if (go === "week") openSpending();
+  else showTab("log");
+}
+
 /* ---------- install + offline support ---------- */
 let installEvent = null;
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvent = e; $("installBtn").hidden = false; });
@@ -1320,7 +1548,9 @@ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().
 setupDateBox("when");
 setupDateBox("lendWhen");
 renderAll();
+updateRemUI();
 readHash();
+readLaunch();
 flush();
 // Friend profiles wait for a newer sheet script; check its version now and then so they go as soon as it's updated
 if (outbox.some((o) => !sendable(o)) && syncLink() && navigator.onLine) pullFromSheet(true);
