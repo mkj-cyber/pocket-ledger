@@ -433,44 +433,112 @@ nav.tabs {
 .linkbtn, .sechead button, .hintrow button, .setrow.tap, .chip.add { color: var(--fg); font-weight: 600; }
 .ring .val { stroke: var(--fg); }
 .ring span { font-size: 11px; }
+
+/* ======================================================================
+   Calm home + "What is the amount?" prompt (v6)
+   ====================================================================== */
+:root { --bg: #EFEFEF; --round: 22px; --kbd: #D3D5DB; --key: #FFFFFF; --keyshadow: rgba(0, 0, 0, .28); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --kbd: #1C1C1C; --key: #3A3A3C; --keyshadow: rgba(0, 0, 0, .6); } }
+:root[data-theme="dark"] { --kbd: #1C1C1C; --key: #3A3A3C; --keyshadow: rgba(0, 0, 0, .6); }
+.navbar .brand { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.large { font-size: 32px; font-weight: 700; }
+.total { font-weight: 600; font-size: 38px; }
+.week .big { font-weight: 600; }
+.card { border-radius: var(--round); }
+
+/* glance cards */
+.glance { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.gcard { background: var(--card); border-radius: var(--round); padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; transition: transform .12s; }
+.gcard:active { transform: scale(.98); }
+.gcard span { font-size: 14px; color: var(--fg2); font-weight: 500; }
+.gcard b { font-size: 30px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+#logScreen { gap: 14px; }
+#logScreen .sechead { margin-top: 4px; }
+.logbtn {
+  position: sticky; bottom: 12px; z-index: 2; margin-top: auto; height: 54px; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+}
+.logbtn .i { font-size: 20px; }
+.logbtn:active { transform: scale(.98); }
+
+/* the prompt: a floating card over a dimmed screen, keyboard docked below */
+dialog.prompt {
+  position: fixed; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; margin: 0; padding: 0; border: 0;
+  background: transparent; color: var(--fg); overflow: hidden; display: none; flex-direction: column;
+}
+dialog.prompt[open] { display: flex; }
+dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: fadeIn .25s; }
+.pcard {
+  width: calc(100% - 32px); max-width: 420px; margin: calc(env(safe-area-inset-top, 0px) + 14vh) auto 0; padding: 16px; border-radius: 26px;
+  background: var(--sheet); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); display: flex; flex-direction: column; gap: 12px; animation: popIn .28s cubic-bezier(.2, .9, .25, 1);
+  max-height: calc(100% - 14vh - 24px); overflow-y: auto;
+}
+#stepCat.pcard { margin-top: calc(env(safe-area-inset-top, 0px) + 6vh); }
+@keyframes popIn { from { opacity: 0; transform: scale(.94); } }
+.ptitle { font-size: 16px; font-weight: 500; padding: 2px 4px 0; }
+.pfield { position: relative; background: var(--sheetcard); border-radius: 16px; min-height: 64px; display: grid; place-items: center; }
+.pfield .amount { min-height: 0; padding: 0; }
+.pfield .amount .val { font-size: 32px; font-weight: 600; letter-spacing: -.02em; }
+.pfield .amount .cur { font-size: 22px; font-weight: 500; }
+.pfield .amount.empty .val { color: var(--fg3); }
+.pclear { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; background: var(--fg3); color: var(--sheetcard); display: grid; place-items: center; font-size: 12px; }
+.pcard .banner { margin: -4px 0 0; min-height: 0; color: var(--red); }
+.pcard .banner:empty { display: none; }
+.pbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pbtn { height: 48px; border-radius: 999px; background: var(--fill); color: var(--fg); font-weight: 600; font-size: 16px; width: 100%; }
+.pbtn.primary { background: var(--accent); color: var(--accent-ink); }
+.pbtn:active { opacity: .75; }
+.phead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pback { display: inline-flex; align-items: center; gap: 4px; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 4px; }
+.pback .i { font-size: 18px; color: var(--fg2); }
+.plinks { display: flex; gap: 14px; }
+.plinks button { font-size: 14px; font-weight: 600; color: var(--fg2); }
+.pcard .note, .pcard .when { background: var(--sheetcard); }
+.pcard .cats { gap: 12px 6px; }
+.pcard .cat .tile { background: var(--sheetcard); width: 50px; height: 50px; border-radius: 14px; font-size: 24px; }
+.pcard .subs .chip { background: var(--sheetcard); }
+.pcard .subhead button { background: var(--sheetcard); }
+
+/* iPhone-style number pad */
+.kbd {
+  margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; background: var(--kbd);
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px)); animation: kbdUp .3s cubic-bezier(.2, .9, .25, 1);
+}
+@keyframes kbdUp { from { transform: translateY(100%); } }
+.kbd .key {
+  height: 48px; border-radius: 7px; background: var(--key); box-shadow: 0 1px 0 var(--keyshadow); color: var(--fg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 25px; font-weight: 400; line-height: 1;
+}
+.kbd .key small { font-size: 9.5px; font-weight: 600; letter-spacing: .14em; margin-top: 2px; min-height: 10px; }
+.kbd .key.flat { background: transparent; box-shadow: none; }
+.kbd .key:active { background: var(--fg3); }
+.kbd .key.flat:active { background: var(--key); }
 </style>
 </head>
 <body>
 <div class="app">
   <main id="main">
-    <!-- ================= LOG ================= -->
+    <!-- ================= HOME ================= -->
     <section class="screen" id="logScreen">
       <div class="navbar">
         <div class="brand"><span class="syncdot" id="syncDot" title="Backup status"></span>Pocket Ledger</div>
-        <span class="preview-pill" id="previewPill" hidden>Preview · sample data</span>
+        <span class="preview-pill" id="previewPill" hidden>Preview</span>
         <div class="acts">
-          <button class="navbtn" type="button" id="quickNavBtn" aria-label="Quick entry"><svg class="i"><use href="#i-plus"/></svg></button>
+          <button class="navbtn" type="button" id="quickNavBtn" aria-label="Log an expense"><svg class="i"><use href="#i-plus"/></svg></button>
           <button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button>
         </div>
       </div>
-      <div class="card hero">
-        <div><div class="lbl">Today</div><div class="big" id="heroToday">₹0</div></div>
-        <div class="side"><div><div class="lbl" id="heroMonthLbl">This month</div><b id="heroMonth">₹0</b></div>
-          <div class="ring" id="heroRing" title=""><svg viewBox="0 0 60 60"><circle class="track" cx="30" cy="30" r="25"/><circle class="val" cx="30" cy="30" r="25" stroke-dasharray="157.1" stroke-dashoffset="157.1"/></svg><span id="heroRingPct">0%</span></div>
-        </div>
-        <div class="digest" id="heroDigest" hidden></div>
+      <!-- three glance cards, like home-screen widgets -->
+      <div class="glance">
+        <button class="gcard" type="button" id="gWeek"><span>This Week</span><b id="gWeekVal">₹0</b></button>
+        <button class="gcard" type="button" id="gMonth"><span>This Month</span><b id="gMonthVal">₹0</b></button>
+        <button class="gcard" type="button" id="gYear"><span>This Year</span><b id="gYearVal">₹0</b></button>
       </div>
-      <div id="logCards" class="stack" style="display:flex;flex-direction:column;gap:8px"></div>
-      <div class="amount empty" id="amount" aria-live="polite"><span class="cur">₹</span><span class="val" id="amountVal">0</span></div>
-      <div class="banner" id="banner"></div>
+      <div id="logCards" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="quick" id="quickRow" hidden></div>
-      <div class="noterow">
-        <input class="note" id="note" type="text" maxlength="80" placeholder="What for? (optional)" autocomplete="off" enterkeyhint="done" list="noteList">
-        <input class="when" id="when" type="date" aria-label="Date of payment">
-      </div>
-      <datalist id="noteList"></datalist>
-      <div class="hintrow"><span class="hint" id="catHint">Tap a category to save</span><button type="button" id="fullFormBtn">Full form</button></div>
-      <div class="cats" id="cats"></div>
-      <div class="subpanel" id="subPanel" hidden>
-        <div class="subhead"><button type="button" id="subBack" aria-label="Back to categories"><svg class="i"><use href="#i-back"/></svg></button><span class="tile" id="subDot"></span><span id="subTitle"></span></div>
-        <div class="subs" id="subs"></div>
-      </div>
-      <div class="pad" id="pad"></div>
+      <div class="sechead"><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
+      <div class="card flush" id="recentList"></div>
+      <button class="logbtn" type="button" id="logBtn"><svg class="i"><use href="#i-plus"/></svg>Log expense</button>
     </section>
 
     <!-- ================= SPENDING ================= -->
@@ -538,12 +606,44 @@ nav.tabs {
   </main>
 
   <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tabLog" aria-selected="true"><svg class="i"><use href="#i-tab-log"/></svg>Log</button>
+    <button class="tab" role="tab" id="tabLog" aria-selected="true"><svg class="i"><use href="#i-house"/></svg>Home</button>
     <button class="tab" role="tab" id="tabSum" aria-selected="false"><svg class="i"><use href="#i-tab-pie"/></svg>Spending</button>
     <button class="tab" role="tab" id="tabLent" aria-selected="false"><svg class="i"><use href="#i-tab-people"/></svg>Lent</button>
   </nav>
 </div>
 <div class="toast" id="toast" hidden><span class="ok" id="toastIcon"><svg class="i"><use href="#i-check"/></svg></span><span id="toastMsg"></span><button id="toastBtn" type="button">Undo</button></div>
+
+<!-- Log an expense: step 1 asks "What is the amount?", step 2 "What was it for?" -->
+<dialog class="prompt" id="addSheet">
+  <div class="pcard" id="stepAmount">
+    <div class="ptitle">What is the amount?</div>
+    <div class="pfield">
+      <div class="amount empty" id="amount" aria-live="polite"><span class="cur">₹</span><span class="val" id="amountVal">0</span></div>
+      <button class="pclear" type="button" id="clearAmt" aria-label="Clear amount"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="banner" id="banner"></div>
+    <div class="pbtns"><button class="pbtn" type="button" id="addCancel">Cancel</button><button class="pbtn primary" type="button" id="addDone">Done</button></div>
+  </div>
+  <div class="pcard" id="stepCat" hidden>
+    <div class="phead">
+      <button class="pback" type="button" id="stepBack" aria-label="Change the amount"><svg class="i"><use href="#i-back"/></svg><span id="stepAmt">₹0</span></button>
+      <div class="plinks"><button type="button" id="loanInstead">It was a loan</button><button type="button" id="fullFormBtn">More details</button></div>
+    </div>
+    <div class="ptitle" id="catHint">What was it for?</div>
+    <div class="noterow">
+      <input class="note" id="note" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done" list="noteList">
+      <input class="when" id="when" type="date" aria-label="Date of payment">
+    </div>
+    <div class="cats" id="cats"></div>
+    <div class="subpanel" id="subPanel" hidden>
+      <div class="subhead"><button type="button" id="subBack" aria-label="Back to categories"><svg class="i"><use href="#i-back"/></svg></button><span class="tile" id="subDot"></span><span id="subTitle"></span></div>
+      <div class="subs" id="subs"></div>
+    </div>
+    <button class="pbtn" type="button" id="catCancel" style="margin-top:4px">Cancel</button>
+  </div>
+  <div class="kbd" id="pad"></div>
+</dialog>
+<datalist id="noteList"></datalist>
 
 <!-- Quick entry: every detail on one screen (opened from the home-screen shortcut and from Share) -->
 <dialog class="sheet" id="quickSheet">
@@ -1371,10 +1471,11 @@ function press(k) {
 }
 
 const BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11v14H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>';
+const KEY_LETTERS = { 2: "ABC", 3: "DEF", 4: "GHI", 5: "JKL", 6: "MNO", 7: "PQRS", 8: "TUV", 9: "WXYZ" };   // as on the iPhone number pad
 ["1","2","3","4","5","6","7","8","9",".","0","back"].forEach((k) => {
-  const b = el("button", "key"); b.type = "button";
+  const b = el("button", "key" + (k === "." || k === "back" ? " flat" : "")); b.type = "button";
   if (k === "back") { b.innerHTML = BACK_SVG; b.setAttribute("aria-label", "Delete digit (hold to clear)"); }
-  else b.textContent = k;
+  else { b.append(document.createTextNode(k)); if (/\d/.test(k)) b.append(el("small", "", KEY_LETTERS[k] || "")); b.setAttribute("aria-label", k === "." ? "Decimal point" : k); }
   b.addEventListener("click", () => press(k));
   if (k === "back") {
     let t; b.addEventListener("pointerdown", () => { t = setTimeout(() => setAmount(""), 550); });
@@ -1391,15 +1492,41 @@ CATS.forEach((c) => {
   $("cats").appendChild(b);
 });
 function openSubs(c) {
-  $("cats").hidden = true; $("subPanel").hidden = false; $("catHint").textContent = "Pick the type to save";
+  $("cats").hidden = true; $("subPanel").hidden = false; $("catHint").textContent = "Which one?";
   $("subTitle").textContent = c.name;
   const t = $("subDot"); t.innerHTML = ""; t.style.setProperty("--cc", "var(" + c.c + ")"); t.append(ico(c.icon));
   const box = $("subs"); box.innerHTML = "";
   c.subs.forEach((s) => { const b = el("button", "chip"); b.type = "button"; b.append(tile(c.name + ": " + s, "sm"), document.createTextNode(s)); b.onclick = () => save(c.name + ": " + s); box.appendChild(b); });
   const g = el("button", "chip general", c.name + " (general)"); g.type = "button"; g.onclick = () => save(c.name); box.appendChild(g);
 }
-function closeSubs() { $("cats").hidden = false; $("subPanel").hidden = true; $("catHint").textContent = "Tap a category to save"; }
+function closeSubs() { $("cats").hidden = false; $("subPanel").hidden = true; $("catHint").textContent = "What was it for?"; }
 $("subBack").onclick = closeSubs;
+
+/* ---------- Log an expense: "What is the amount?" → "What was it for?" ---------- */
+function addStep(n) {
+  $("stepAmount").hidden = n !== 1; $("pad").hidden = n !== 1; $("stepCat").hidden = n !== 2;
+  $("stepAmt").textContent = fmt(parseAmount(amountStr) || 0);
+  closeSubs();
+}
+function openAdd(pre = {}) {
+  setAmount(pre.amount ? String(pre.amount) : ""); $("banner").textContent = "";
+  $("note").value = pre.note || "";
+  $("when").value = isoDay(new Date(pre.ts || Date.now())); $("when").dispatchEvent(new Event("change"));   // each new entry starts at today unless shared text said otherwise
+  addStep(pre.amount && pre.step === 2 ? 2 : 1);
+  if (!$("addSheet").open) $("addSheet").showModal();
+  if (document.activeElement) document.activeElement.blur();   // no focus ring or pop-up keyboard on open
+}
+function closeAdd() { if ($("addSheet").open) $("addSheet").close(); setAmount(""); $("banner").textContent = ""; }
+$("addDone").onclick = () => {
+  if (!(parseAmount(amountStr) > 0)) { const a = $("amount"); a.classList.remove("shake"); void a.offsetWidth; a.classList.add("shake"); $("banner").textContent = "Type the amount first"; return; }
+  buzz(); addStep(2);
+};
+$("addCancel").onclick = closeAdd;
+$("catCancel").onclick = closeAdd;
+$("clearAmt").onclick = () => setAmount("");
+$("stepBack").onclick = () => addStep(1);
+$("loanInstead").onclick = () => { const a = amountStr; closeAdd(); $("lendAmt").value = a; renderLoans(); showTab("lent"); };
+$("addSheet").addEventListener("cancel", () => setAmount(""));   // the phone's back button closes it
 
 function save(cat) {
   const amount = parseAmount(amountStr);
@@ -1412,6 +1539,7 @@ function save(cat) {
   putExpense(e);
   setAmount(""); $("note").value = ""; $("note").blur(); $("banner").textContent = "";
   closeSubs();
+  if ($("addSheet").open) $("addSheet").close();
   showToast("Saved " + fmt(amount) + " · " + catLabel(cat) + pastLabel(e.ts), () => { delExpense(e.id); showToast("Removed"); });
 }
 
@@ -1456,7 +1584,7 @@ function weekDigest() {
   const by = {};
   expenses.forEach((e) => { if (e.ts >= lastStart && e.ts < ws) by[mainOf(e.cat)] = (by[mainOf(e.cat)] || 0) + e.amount; });
   const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
-  const c = el("div", "dg"), t = el("div", "t");
+  const c = el("div", "strip"), t = el("div", "t");
   let change = "";
   if (before) { const p = Math.round((100 * (last - before)) / before); change = p === 0 ? "same as the week before" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs the week before"; }
   t.append(el("div", "", "Last week you spent " + fmt(last)), el("small", "", (change ? change + " · " : "") + "most on " + top[0] + " " + fmt(top[1])));
@@ -1471,7 +1599,7 @@ function weekDigest() {
 function renderLogCards() {
   const box = $("logCards"); box.innerHTML = "";
   lendingDue().forEach((f) => box.appendChild(dueCard(f, true)));
-  const d = weekDigest(), hd = $("heroDigest"); hd.innerHTML = ""; hd.hidden = !d; if (d) hd.appendChild(d);
+  const d = weekDigest(); if (d) box.appendChild(d);
 }
 
 /* ======================================================================
@@ -1664,43 +1792,50 @@ function renderSpending() {
     head.append(el("span", "", g.k === todayK ? "Today" : g.k === dayKey(Date.now() - DAY) ? "Yesterday" : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })),
       el("span", "", fmt(g.items.reduce((s, x) => s + x.amount, 0))));
     const card = el("div", "card flush");
-    g.items.forEach((e) => {
-      const sw = el("div", "swipe");
-      const ed = el("button", "act edit"), de = el("button", "act del");
-      ed.type = de.type = "button";
-      ed.append(el("span"), document.createTextNode("Edit")); ed.firstChild.append(ico("pencil")); ed.setAttribute("aria-label", "Edit");
-      de.append(el("span"), document.createTextNode("Delete")); de.firstChild.append(ico("trash")); de.setAttribute("aria-label", "Delete");
-      const it = el("button", "row"); it.type = "button";
-      const t = el("div", "t");
-      t.append(el("div", "", e.note || catLabel(e.cat) || UNCAT),
-        el("small", "", (e.note ? (e.cat ? mainOf(e.cat) + (subOf(e.cat) ? " · " + subOf(e.cat) : "") : UNCAT) + " · " : (subOf(e.cat) ? mainOf(e.cat) + " · " : "")) + new Date(e.ts).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })));
-      it.append(tile(e.cat), t, el("span", "amt", fmt(e.amount)));
-      it.onclick = () => openEdit(e);
-      sw.append(ed, de, it);
-      makeSwipe(sw, it, () => openEdit(e), () => { delExpense(e.id); showToast("Deleted " + fmt(e.amount) + " · " + catLabel(e.cat), () => { putExpense(e); showToast("Restored"); }); });
-      card.append(sw);
-    });
+    g.items.forEach((e) => card.append(payRow(e, "time")));
     wrapDay.append(head, card);
     list.append(wrapDay);
   });
 }
 
-function renderHeader() {
-  const cur = monthRange(0), prev = monthRange(-1), t0 = new Date(); t0.setHours(0, 0, 0, 0);
-  const month = sumIn(expenses, cur.start, cur.end), last = sumIn(expenses, prev.start, prev.end);
-  countTo($("heroToday"), sumIn(expenses, +t0, +t0 + DAY));
-  countTo($("heroMonth"), month);
-  $("heroMonthLbl").textContent = cur.label;
-  // ring: this month so far, as a share of last month's whole total
-  const pct = last ? Math.round((100 * month) / last) : 0;
-  const C = 157.1, ring = $("heroRing").querySelector(".val");
-  ring.setAttribute("stroke-dashoffset", String(C - (C * Math.min(100, pct)) / 100));
-  ring.style.stroke = pct > 100 ? "var(--red)" : "";
-  $("heroRingPct").textContent = last ? pct + "%" : "–";
-  $("heroRing").title = last ? pct + "% of " + prev.label + "'s total (" + fmt(last) + ")" : "Nothing logged last month";
-  $("heroRing").setAttribute("aria-label", $("heroRing").title);
+// One payment row: icon square, title + detail, amount. Tap to edit; swipe left to delete, right to edit.
+function payRow(e, when) {
+  const sw = el("div", "swipe");
+  const ed = el("button", "act edit"), de = el("button", "act del");
+  ed.type = de.type = "button";
+  ed.append(el("span"), document.createTextNode("Edit")); ed.firstChild.append(ico("pencil")); ed.setAttribute("aria-label", "Edit");
+  de.append(el("span"), document.createTextNode("Delete")); de.firstChild.append(ico("trash")); de.setAttribute("aria-label", "Delete");
+  const it = el("button", "row"); it.type = "button";
+  const t = el("div", "t"), d = new Date(e.ts);
+  const whenText = when === "date"
+    ? (dayKey(e.ts) === dayKey(Date.now()) ? "Today" : dayKey(e.ts) === dayKey(Date.now() - DAY) ? "Yesterday" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }))
+    : d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  t.append(el("div", "", e.note || catLabel(e.cat) || UNCAT),
+    el("small", "", (e.note ? (e.cat ? mainOf(e.cat) + (subOf(e.cat) ? " · " + subOf(e.cat) : "") : UNCAT) + " · " : (subOf(e.cat) ? mainOf(e.cat) + " · " : "")) + whenText));
+  it.append(tile(e.cat), t, el("span", "amt", fmt(e.amount)));
+  it.onclick = () => openEdit(e);
+  sw.append(ed, de, it);
+  makeSwipe(sw, it, () => openEdit(e), () => { delExpense(e.id); showToast("Deleted " + fmt(e.amount) + " · " + catLabel(e.cat), () => { putExpense(e); showToast("Restored"); }); });
+  return sw;
 }
-function renderAll() { renderHeader(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
+
+// Home: the five most recent payments
+function renderRecent() {
+  const box = $("recentList"); box.innerHTML = "";
+  const recent = expenses.filter((e) => e.ts <= Date.now() + 60e3).slice(0, 5);
+  if (!recent.length) box.append(emptyState("tab-log", "No payments yet", "Tap Log expense, type the amount and pick what it was for."));
+  recent.forEach((e) => box.append(payRow(e, "date")));
+  $("seeAllBtn").hidden = !recent.length;
+}
+
+// Home: This Week / This Month / This Year, like a stack of widgets
+function renderHeader() {
+  const now = Date.now(), cur = monthRange(0), y0 = +new Date(new Date().getFullYear(), 0, 1);
+  countTo($("gWeekVal"), sumIn(expenses, weekStart(now), now + 60e3));
+  countTo($("gMonthVal"), sumIn(expenses, cur.start, cur.end));
+  countTo($("gYearVal"), sumIn(expenses, y0, now + 60e3));
+}
+function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
 
 /* ======================================================================
    Quick entry: every detail on one screen
@@ -1771,7 +1906,7 @@ function quickSave(another) {
 }
 $("qSave").onclick = () => quickSave(false);
 $("qSaveMore").onclick = () => quickSave(true);
-$("fullFormBtn").onclick = () => openQuick({ amount: parseAmount(amountStr) || "", note: $("note").value.trim() });
+$("fullFormBtn").onclick = () => { const pre = { amount: parseAmount(amountStr) || "", note: $("note").value.trim() }; closeAdd(); openQuick(pre); };
 
 /* ======================================================================
    Share → Pocket Ledger: read the amount (and who / when) from shared text
@@ -1911,7 +2046,10 @@ const stepMonth = (d) => { const n = monthOffset + d; if (n > 0 || n < -60) retu
 $("prevM").onclick = () => stepMonth(-1);
 $("nextM").onclick = () => stepMonth(1);
 $("note").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
-$("quickNavBtn").onclick = () => openQuick();
+$("quickNavBtn").onclick = () => openAdd();
+$("logBtn").onclick = () => openAdd();
+$("seeAllBtn").onclick = openSpending;
+["gWeek", "gMonth", "gYear"].forEach((id) => ($(id).onclick = openSpending));
 document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); $("setSheet").showModal(); }));
 
 // Swipe the month card left/right to change month
@@ -1959,11 +2097,7 @@ function showToast(msg, action, isError, label) {
 function readHash() {
   const m = location.hash.match(/^#(?:log-)?(\d{1,7}(?:\.\d{1,2})?)$/);
   if (!m) return;
-  showTab("log"); setAmount(m[1]);
-  const b = $("banner"); b.textContent = "You just paid " + fmt(m[1]) + ". Pick a category, or ";
-  const toLoan = el("button", "", "log it as a loan"); toLoan.type = "button";
-  toLoan.onclick = () => { $("lendAmt").value = amountStr; setAmount(""); b.textContent = ""; renderLoans(); showTab("lent"); };
-  b.appendChild(toLoan);
+  showTab("log"); openAdd({ amount: m[1], step: 2 });
   try { history.replaceState(null, "", location.pathname); } catch {}
 }
 window.addEventListener("hashchange", readHash);
@@ -1979,6 +2113,7 @@ function readLaunch() {
   if (go === "quick") { showTab("log"); openQuick(); }
   else if (go === "lent") { renderLoans(); showTab("lent"); $("lendAmt").focus(); }
   else if (go === "week") openSpending();
+  else if (go === "add" || go === "log") { showTab("log"); openAdd(); }
   else showTab("log");
 }
 
