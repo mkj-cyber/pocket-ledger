@@ -2125,14 +2125,21 @@ $("installBtn").onclick = async () => { if (!installEvent) return; installEvent.
 window.addEventListener("appinstalled", () => { $("installBtn").hidden = true; });
 
 if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("sw.js").then((reg) => {
-    reg.addEventListener("updatefound", () => {
-      const w = reg.installing;
-      w && w.addEventListener("statechange", () => {
-        if (w.state === "activated" && navigator.serviceWorker.controller) showToast("A new version of Pocket Ledger is ready.", () => location.reload(), false, "Reload");
-      });
-    });
+  // Updates: check whenever the app comes back to the screen (Android often resumes it instead of restarting),
+  // and once a new version has taken over, reload into it — unless you're in the middle of an entry.
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+    const check = () => { if (navigator.onLine) reg.update().catch(() => {}); };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) check(); });
+    setInterval(() => { if (!document.hidden) check(); }, 30 * 60e3);
   }).catch(() => {});
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloading) return;   // first install: nothing to refresh
+    const busy = [...document.querySelectorAll("dialog")].some((d) => d.open) || amountStr || $("lendAmt").value;
+    if (busy) showToast("A new version of Pocket Ledger is ready.", () => { reloading = true; location.reload(); }, false, "Reload");
+    else { reloading = true; location.reload(); }
+  });
 }
 if (!PREVIEW && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // ask the phone not to clear this app's data
 
