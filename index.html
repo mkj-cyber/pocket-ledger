@@ -562,6 +562,30 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 .chip.tpl { box-shadow: inset 0 0 0 1.5px var(--fg); }
 .tplrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .tplrow small { color: var(--fg2); font-size: 13px; }
+
+/* ======================================================================
+   Home refinements (v9): one summary card, readable greys, status in words
+   ====================================================================== */
+:root { --fg2: #6B6B6B; }   /* 4.5:1+ on the light grey ground and on white cards (WCAG AA) */
+.summary { width: 100%; align-items: center; text-align: center; padding: 22px 16px 18px; gap: 4px; transition: transform .12s; }
+.summary:active { transform: scale(.985); }
+.summary .slabel { font-size: 14px; color: var(--fg2); font-weight: 500; }
+.summary .sbig { font-size: 40px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.summary .sdelta { font-size: 14px; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.summary .ssplit { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-top: 14px; padding-top: 14px; border-top: .5px solid var(--sep); }
+.summary .ssplit > span { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.summary .ssplit > span + span { border-left: .5px solid var(--sep); }
+.summary .ssplit small { font-size: 13px; color: var(--fg2); }
+.summary .ssplit b { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.statuspill { margin-left: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--card); color: var(--fg); white-space: nowrap; }
+.statuspill.err { background: var(--red); color: #fff; }
+.ppicks { display: flex; flex-direction: column; gap: 8px; border-top: .5px solid var(--sep); padding-top: 12px; margin-top: 2px; }
+.ptitle.sm { font-size: 13px; color: var(--fg2); padding: 0 4px; }
+.ppicks .quick { margin-inline: -16px; padding-inline: 16px; }
+.ppicks .chip { background: var(--sheetcard); }
+.chip.tpl.add { box-shadow: inset 0 0 0 1.5px var(--fg3); color: var(--fg); padding-left: 12px; }
+#logScreen .logbtn { margin-top: 6px; }
+#recentList { margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -570,19 +594,23 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
     <!-- ================= HOME ================= -->
     <section class="screen" id="logScreen">
       <div class="navbar">
-        <div class="brand"><span class="syncdot" id="syncDot" title="Backup status"></span>Pocket Ledger</div>
+        <div class="brand"><span class="syncdot" id="syncDot" title="Backup status" hidden></span>Pocket Ledger</div>
         <span class="preview-pill" id="previewPill" hidden>Preview</span>
+        <button class="statuspill" type="button" id="syncPill" data-settings hidden></button>
         <div class="acts">
-          <button class="navbtn" type="button" id="quickNavBtn" aria-label="Log an expense"><svg class="i"><use href="#i-plus"/></svg></button>
           <button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button>
         </div>
       </div>
-      <!-- three glance cards, like home-screen widgets -->
-      <div class="glance">
-        <button class="gcard" type="button" id="gWeek"><span>This Week</span><b id="gWeekVal">₹0</b></button>
-        <button class="gcard" type="button" id="gMonth"><span>This Month</span><b id="gMonthVal">₹0</b></button>
-        <button class="gcard" type="button" id="gYear"><span>This Year</span><b id="gYearVal">₹0</b></button>
-      </div>
+      <!-- one summary card: this month (with how it compares), then this week and this year -->
+      <button class="card summary" type="button" id="gMonth">
+        <span class="slabel" id="gMonthLbl">This Month</span>
+        <b class="sbig" id="gMonthVal">₹0</b>
+        <span class="sdelta" id="gDelta"></span>
+        <span class="ssplit">
+          <span id="gWeek"><small>This Week</small><b id="gWeekVal">₹0</b></span>
+          <span id="gYear"><small>This Year</small><b id="gYearVal">₹0</b></span>
+        </span>
+      </button>
       <div id="logCards" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="quick" id="quickRow" hidden></div>
       <div class="sechead"><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
@@ -700,6 +728,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
     </div>
     <div class="banner" id="banner"></div>
     <div class="pbtns"><button class="pbtn" type="button" id="addCancel">Cancel</button><button class="pbtn primary" type="button" id="addDone">Done</button></div>
+    <div class="ppicks" id="promptPicksWrap" hidden><span class="ptitle sm">Or tap a recent one</span><div class="quick" id="promptPicks"></div></div>
   </div>
   <div class="pcard" id="stepCat" hidden>
     <div class="phead">
@@ -1225,6 +1254,12 @@ function updateSyncUI() {
   else { msg = "Everything is backed up" + (last ? " · last synced " + ago(last) : "") + "."; cls = dot = "ok"; }
   $("syncState").textContent = msg; $("syncState").className = "syncstate" + (cls ? " " + cls : "");
   $("syncDot").className = "syncdot" + (dot ? " " + dot : "");
+  let ptxt = "";   // shown next to the app name only when something needs attention
+  if (dot === "err") ptxt = "Backup problem";
+  else if (linked && n) ptxt = n + " to back up";
+  else if (!linked && outbox.length) ptxt = "Not backed up";
+  $("syncPill").textContent = ptxt; $("syncPill").hidden = !ptxt || PREVIEW; $("syncPill").classList.toggle("err", dot === "err");
+  $("syncPill").setAttribute("aria-label", (ptxt || "Backed up") + ". Open backup settings");
   $("syncDot").title = msg || "Not backed up to a Google Sheet yet";
 }
 
@@ -1622,6 +1657,7 @@ function addStep(n) {
 function openAdd(pre = {}) {
   pendingTpl = pre.tpl || null;   // a template without a fixed amount: ask only for the amount, then save
   $("stepAmount").querySelector(".ptitle").textContent = pendingTpl ? "How much for " + pendingTpl.note + "?" : "What is the amount?";
+  $("promptPicksWrap").hidden = !!pendingTpl || !$("promptPicks").children.length;
   setAmount(pre.amount ? String(pre.amount) : ""); $("banner").textContent = "";
   $("note").value = pre.note || "";
   $("when").value = isoDay(new Date(pre.ts || Date.now())); $("when").dispatchEvent(new Event("change"));   // each new entry starts at today unless shared text said otherwise
@@ -1673,7 +1709,8 @@ function renderQuick() {
   const same = (t, q) => t.amount === q.amount && t.cat === q.cat && (t.note || "") === (q.note || "");
   const picks = quickPicks().filter((q) => !templates.some((t) => same(t, q))), row = $("quickRow"); row.innerHTML = "";
   row.hidden = false;
-  // your templates first (hold one to edit it), then repeats the app noticed, then "+ Template"
+  // Home shows only your templates (hold one to edit it) and "+ Template";
+  // repeats the app noticed appear inside the "What is the amount?" prompt instead
   templates.forEach((t) => {
     const b = el("button", "chip tpl"); b.type = "button";
     b.append(tile(t.cat, "sm")); if (t.amount) b.append(el("b", "", fmt(t.amount))); b.append(el("span", "", t.note || catLabel(t.cat)));
@@ -1685,20 +1722,22 @@ function renderQuick() {
     b.addEventListener("contextmenu", (e) => { e.preventDefault(); openTemplate(t); });
     row.appendChild(b);
   });
-  const addTpl = el("button", "chip add"); addTpl.type = "button"; addTpl.append(ico("plus"), el("span", "", "Template"));
+  const addTpl = el("button", "chip tpl add"); addTpl.type = "button"; addTpl.append(ico("plus"), el("span", "", templates.length ? "Template" : "Add a template"));
   addTpl.onclick = () => openTemplate(null);
+  row.appendChild(addTpl);
+  const pp = $("promptPicks"); pp.innerHTML = "";
+  $("promptPicksWrap").hidden = !picks.length;
   picks.forEach((q) => {
     const b = el("button", "chip"); b.type = "button";
     b.append(tile(q.cat, "sm"), el("b", "", fmt(q.amount)), el("span", "", q.note || catLabel(q.cat)));
     b.title = "Save " + fmt(q.amount) + " · " + catLabel(q.cat) + " now";
     b.onclick = () => {
-      const e = { id: newId("e"), amount: q.amount, cat: q.cat, note: q.note, ts: tsFrom("when") };
-      putExpense(e);
-      showToast("Saved " + fmt(q.amount) + " · " + (q.note || catLabel(q.cat)) + pastLabel(e.ts), () => { delExpense(e.id); showToast("Removed"); });
+      const e = { id: newId("e"), amount: q.amount, cat: q.cat, note: q.note, ts: Date.now() };
+      putExpense(e); closeAdd();
+      showToast("Saved " + fmt(q.amount) + " · " + (q.note || catLabel(q.cat)), () => { delExpense(e.id); showToast("Removed"); });
     };
-    row.appendChild(b);
+    pp.appendChild(b);
   });
-  row.appendChild(addTpl);
   // note suggestions: notes you've used, most frequent first
   const counts = {};
   expenses.forEach((e) => { if (e.note) counts[e.note] = (counts[e.note] || 0) + 1; });
@@ -1962,10 +2001,20 @@ function renderRecent() {
 
 // Home: This Week / This Month / This Year, like a stack of widgets
 function renderHeader() {
-  const now = Date.now(), cur = monthRange(0), y0 = +new Date(new Date().getFullYear(), 0, 1);
+  const now = Date.now(), cur = monthRange(0), prev = monthRange(-1), y0 = +new Date(new Date().getFullYear(), 0, 1);
+  const month = sumIn(expenses, cur.start, cur.end);
   countTo($("gWeekVal"), sumIn(expenses, weekStart(now), now + 60e3));
-  countTo($("gMonthVal"), sumIn(expenses, cur.start, cur.end));
+  countTo($("gMonthVal"), month);
   countTo($("gYearVal"), sumIn(expenses, y0, now + 60e3));
+  $("gMonthLbl").textContent = cur.label;
+  // compare like with like: the 1st to today, against the same days last month
+  const days = new Date().getDate(), pEnd = Math.min(prev.end, prev.start + days * DAY), before = sumIn(expenses, prev.start, pEnd);
+  const d = $("gDelta");
+  if (!before) d.textContent = month ? "Nothing to compare with last month yet" : "Nothing logged yet this month";
+  else {
+    const p = Math.round((100 * (month - before)) / before);
+    d.textContent = (p === 0 ? "Same as" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs") + " the same days in " + prev.label;
+  }
 }
 function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
 
@@ -2384,10 +2433,9 @@ const stepMonth = (d) => { const n = monthOffset + d; if (n > 0 || n < -60) retu
 $("prevM").onclick = () => stepMonth(-1);
 $("nextM").onclick = () => stepMonth(1);
 $("note").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
-$("quickNavBtn").onclick = () => openAdd();
 $("logBtn").onclick = () => openAdd();
 $("seeAllBtn").onclick = openSpending;
-["gWeek", "gMonth", "gYear"].forEach((id) => ($(id).onclick = openSpending));
+$("gMonth").onclick = openSpending;
 document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); renderTplList(); $("setSheet").showModal(); }));
 
 // Swipe the month card left/right to change month
