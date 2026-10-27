@@ -589,7 +589,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" inert>
   <main id="main">
     <!-- ================= HOME ================= -->
     <section class="screen" id="logScreen">
@@ -1089,12 +1089,65 @@ const K = { ex: P + "expenses", ln: P + "loans", fr: P + "friends", out: P + "ou
   sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent",
   views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter" };
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
-const keep = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-let expenses = load(K.ex, []);   // [{id, amount, cat, note, ts}] newest first
-let loans = load(K.ln, []);      // [{id, friend, amount, type: "lent" | "repaid", note, ts}] newest first
-let friends = load(K.fr, []);    // [{id, name, phone, monthly, day, note, updated}]
-let outbox = load(K.out, []);    // [{seq, op: "put" | "del", kind: "e" | "l" | "f", id, rec}]
+/* ---------- IndexedDB for the lists that keep growing ----------
+   Payments, loans, friends and the sync outbox live in IndexedDB (no practical size limit).
+   Small settings stay in localStorage. On the first start after this change the lists are
+   copied over from localStorage and checked; the old copy is left untouched as a backup. */
+const BIG = new Set([K.ex, K.ln, K.fr, K.out]);
+const FALLBACK = P + "idb-fallback";   // lists that couldn't be written to IndexedDB and were saved the old way
+let idb = null, storeReady = false;
+const keep = (k, v) => {
+  if (BIG.has(k)) {
+    if (!storeReady) return;   // never write a list before it has been loaded (protects the backup copy)
+    if (idb) { idbPut(k, v); return; }
+  }
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+};
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(P + "db", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error("blocked"));
+  });
+}
+function idbReq(mode, fn) {
+  return new Promise((res, rej) => {
+    const tx = idb.transaction("kv", mode), r = fn(tx.objectStore("kv"));
+    tx.oncomplete = () => res(r && r.result); tx.onerror = tx.onabort = () => rej(tx.error);
+  });
+}
+const idbGet = (k) => idbReq("readonly", (s) => s.get(k));
+function idbPut(k, v) {
+  return idbReq("readwrite", (s) => s.put(v, k)).catch(() => {
+    // couldn't write to IndexedDB: save this list the old way so nothing is lost, and copy it back next start
+    try { localStorage.setItem(k, JSON.stringify(v)); keepFallback(k); } catch {}
+  });
+}
+function keepFallback(k) { const f = load(FALLBACK, []); if (!f.includes(k)) { f.push(k); localStorage.setItem(FALLBACK, JSON.stringify(f)); } }
+async function openStore() {
+  try {
+    if (!("indexedDB" in window)) throw new Error("no IndexedDB");
+    idb = await idbOpen();
+    if (!(await idbGet("__migrated"))) {
+      for (const k of BIG) { const v = load(k, null); if (v) await idbReq("readwrite", (s) => s.put(v, k)); }
+      for (const k of BIG) { const v = load(k, null); if (v && JSON.stringify(await idbGet(k)) !== JSON.stringify(v)) throw new Error("copy check failed"); }
+      await idbReq("readwrite", (s) => s.put(Date.now(), "__migrated"));
+    }
+    for (const k of load(FALLBACK, [])) { const v = load(k, null); if (v) await idbReq("readwrite", (s) => s.put(v, k)); }
+    localStorage.removeItem(FALLBACK);
+    expenses = (await idbGet(K.ex)) || []; loans = (await idbGet(K.ln)) || []; friends = (await idbGet(K.fr)) || []; outbox = (await idbGet(K.out)) || [];
+  } catch {
+    idb = null;   // IndexedDB unavailable: carry on with the old storage
+    expenses = load(K.ex, []); loans = load(K.ln, []); friends = load(K.fr, []); outbox = load(K.out, []);
+  }
+  storeReady = true;
+}
+
+let expenses = [];   // [{id, amount, cat, note, ts}] newest first
+let loans = [];      // [{id, friend, amount, type: "lent" | "repaid", note, ts}] newest first
+let friends = [];    // [{id, name, phone, monthly, day, note, updated}]
+let outbox = [];     // [{seq, op: "put" | "del", kind: "e" | "l" | "f", id, rec}]
 
 const byNewest = (a, b) => b.ts - a.ts;
 function putExpense(e) { expenses = [e, ...expenses.filter((x) => x.id !== e.id)].sort(byNewest); keep(K.ex, expenses); queue("put", "e", e); renderAll(); }
@@ -1304,7 +1357,7 @@ $("excelBtn").onclick = async () => {
   const stamp = isoDay(new Date());
   const H1 = ["Date", "Time", "Month", "Amount", "Category", "Type", "Note"], H2 = ["Date", "Time", "Month", "Friend", "Type", "Amount", "Note"];
   try {
-    if (!window.XLSX) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+    if (!window.XLSX) await loadScript("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js")   // official SheetJS build (newest);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([H1, ...ex]), "Expenses");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([H2, ...ln]), "Lending");
@@ -2529,11 +2582,15 @@ if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") 
 }
 if (!PREVIEW && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // ask the phone not to clear this app's data
 
+// Start: load the saved lists first, then draw the app (the app ignores taps until this is done)
+(async () => {
+await openStore();
+
 // Preview link only: made-up sample data so every screen has something to show; sync stays off
 if (PREVIEW) {
   $("previewPill").hidden = false;
   $("connectBox").innerHTML = '<span class="sub">This is a preview with sample data. Sync is switched off here, so it can\'t touch your real Google Sheet.</span>';
-  if (!load(K.ex, []).length) {
+  if (!expenses.length) {
     const now = Date.now(), cats = [["Food: Eating out", 420, "Biryani"], ["Food: Snacks & chai", 20, "chai"], ["Groceries: Supermarket", 1250, "DMart"],
       ["Transport: Auto & cab", 140, "Uber"], ["Bills: Electricity", 1340, ""], ["Bills: Mobile recharge", 299, "Jio"], ["Shopping: Clothes", 1899, "Shoes"],
       ["Fun: Subscriptions", 199, "Netflix"], ["Health: Medicines", 260, ""], ["Transport: Fuel", 500, ""], ["Food: Snacks & chai", 20, "chai"]];
@@ -2543,15 +2600,15 @@ if (PREVIEW) {
       ex.push({ id: "s" + m + "_" + i, amount: Math.round(c[1] * (0.7 + ((i * 7 + m * 3) % 9) / 10)), cat: c[0], note: c[2], ts: now - m * 30 * DAY - i * 2.1 * DAY - 3600e3 });
     }
     ex.push({ id: "c1", amount: 20, cat: "Food: Snacks & chai", note: "chai", ts: now - 1800e3 });
-    keep(K.ex, ex.sort((a, b) => b.ts - a.ts)); expenses = load(K.ex, []);
-    keep(K.ln, [
+    expenses = ex.sort((a, b) => b.ts - a.ts); keep(K.ex, expenses);
+    loans = [
       { id: "l1", friend: "Rahul", amount: 5000, type: "lent", note: "Monthly", ts: now - 52 * DAY },
       { id: "l2", friend: "Rahul", amount: 2000, type: "repaid", note: "", ts: now - 40 * DAY },
       { id: "l3", friend: "Priya", amount: 3000, type: "lent", note: "Rent help", ts: now - 33 * DAY },
       { id: "l4", friend: "Priya", amount: 1000, type: "repaid", note: "", ts: now - 5 * DAY },
-    ].sort((a, b) => b.ts - a.ts)); loans = load(K.ln, []);
-    keep(K.fr, [{ id: "f1", name: "Rahul", phone: "", monthly: 5000, day: 1, note: "", updated: now }, { id: "f2", name: "Priya", phone: "", monthly: 0, day: 0, note: "", updated: now }]);
-    friends = load(K.fr, []);
+    ].sort((a, b) => b.ts - a.ts); keep(K.ln, loans);
+    friends = [{ id: "f1", name: "Rahul", phone: "", monthly: 5000, day: 1, note: "", updated: now }, { id: "f2", name: "Priya", phone: "", monthly: 0, day: 0, note: "", updated: now }];
+    keep(K.fr, friends);
   }
 }
 
@@ -2560,11 +2617,13 @@ setupDateBox("when");
 setupDateBox("lendWhen");
 renderAll();
 updateRemUI();
+document.querySelector(".app").inert = false;
 readHash();
 readLaunch();
 flush();
 // Friend profiles wait for a newer sheet script; check its version now and then so they go as soon as it's updated
 if (outbox.some((o) => !sendable(o)) && syncLink() && navigator.onLine) pullFromSheet(true);
+})();
 </script>
 </body>
 </html>
