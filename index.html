@@ -513,6 +513,55 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 .kbd .key.flat { background: transparent; box-shadow: none; }
 .kbd .key:active { background: var(--fg3); }
 .kbd .key.flat:active { background: var(--key); }
+
+/* ======================================================================
+   Notion-inspired views: Calendar, List with filters + saved views, Templates (v8)
+   ====================================================================== */
+.viewseg { margin-top: -4px; }
+#calView, #listView { display: flex; flex-direction: column; gap: 14px; }
+#listView { gap: 12px; }
+.cal { padding: 14px 12px; gap: 8px; }
+.calhead, .calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.calhead span { text-align: center; font-size: 12px; color: var(--fg2); font-weight: 500; }
+.calday {
+  aspect-ratio: 1 / 1.08; max-width: 100%; border-radius: 10px; background: var(--fill); display: flex; flex-direction: column;
+  justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; position: relative; min-width: 0;
+}
+.calday .n { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.calday .v { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; width: 100%; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+.calday.blank { background: transparent; }
+.calday.future { opacity: .4; }
+.calday.lv1 { background: color-mix(in srgb, var(--fg) 14%, var(--card)); }
+.calday.lv2 { background: color-mix(in srgb, var(--fg) 32%, var(--card)); }
+.calday.lv3 { background: color-mix(in srgb, var(--fg) 58%, var(--card)); color: var(--card); }
+.calday.lv4 { background: var(--fg); color: var(--card); }
+.calday.today .n { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
+.calday[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--fg); }
+.calday.lv4[aria-pressed="true"], .calday.lv3[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--fg), inset 0 0 0 4px var(--card); }
+.callegend { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 11.5px; color: var(--fg2); padding-top: 2px; }
+.callegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.callegend .lv1 { background: color-mix(in srgb, var(--fg) 14%, var(--card)); }
+.callegend .lv2 { background: color-mix(in srgb, var(--fg) 32%, var(--card)); }
+.callegend .lv3 { background: color-mix(in srgb, var(--fg) 58%, var(--card)); }
+.callegend .lv4 { background: var(--fg); }
+.callegend span:first-child { margin-right: 2px; }
+.callegend span:last-child { margin-left: 2px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.viewtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+.viewtabs::-webkit-scrollbar { display: none; }
+.viewtabs .chip { flex: none; }
+.fchip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; background: var(--card); font-size: 14px; font-weight: 500; color: var(--fg); }
+.fchip.on { background: var(--accent); color: var(--accent-ink); }
+.fchip .i { font-size: 12px; opacity: .6; }
+.fchip.save { color: var(--fg2); background: none; box-shadow: inset 0 0 0 1px var(--fg3); }
+.search { background: var(--card); padding-left: 14px; }
+.resultsum { display: flex; justify-content: space-between; padding: 0 4px; font-size: 14px; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.resultsum b { color: var(--fg); font-weight: 600; }
+.setrow .check { font-size: 18px; color: var(--fg); }
+.chip.tpl { box-shadow: inset 0 0 0 1.5px var(--fg); }
+.tplrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tplrow small { color: var(--fg2); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -547,11 +596,38 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
         <div class="acts"><button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button></div>
       </div>
       <h1 class="large">Spending</h1>
-      <div class="monthbar">
+      <div class="seg viewseg" id="viewSeg" role="group" aria-label="View">
+        <button type="button" data-view="overview" aria-pressed="true">Overview</button>
+        <button type="button" data-view="calendar" aria-pressed="false">Calendar</button>
+        <button type="button" data-view="list" aria-pressed="false">List</button>
+      </div>
+      <div class="monthbar" id="monthBar">
         <button class="nav" id="prevM" aria-label="Previous month"><svg class="i"><use href="#i-back"/></svg></button>
         <h2 id="monthName">October</h2>
         <button class="nav" id="nextM" aria-label="Next month"><svg class="i"><use href="#i-chev"/></svg></button>
       </div>
+
+      <!-- Calendar view: each day of the month with what you spent -->
+      <div id="calView" class="view" hidden>
+        <div class="card cal">
+          <div class="calhead"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+          <div class="calgrid" id="calGrid"></div>
+          <div class="callegend"><span>Less</span><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i><span>More</span></div>
+        </div>
+        <div class="sechead"><span id="calDayTitle">Today</span><span id="calDayTotal"></span></div>
+        <div class="card flush" id="calDayList"></div>
+      </div>
+
+      <!-- List view: search, filters and saved views -->
+      <div id="listView" class="view" hidden>
+        <div class="chips viewtabs" id="savedViews"></div>
+        <input class="note search" id="searchBox" type="search" placeholder="Search notes and categories" autocomplete="off" enterkeyhint="search">
+        <div class="chips" id="filterChips"></div>
+        <div class="resultsum" id="resultSum"></div>
+        <div id="resultList" style="display:flex;flex-direction:column;gap:14px"></div>
+      </div>
+
+      <div id="ovView" class="view" style="display:flex;flex-direction:column;gap:14px">
       <div class="card" id="sumHero">
         <div class="total" id="mTotal">₹0</div>
         <div class="sub" id="mSub"></div>
@@ -570,6 +646,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
       </div>
       <div class="sechead"><span>Payments</span><span style="text-transform:none">Swipe to edit or delete</span></div>
       <div id="list" class="stack" style="display:flex;flex-direction:column;gap:14px"></div>
+      </div>
     </section>
 
     <!-- ================= LENT ================= -->
@@ -685,6 +762,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
     <label>Note<input class="field" id="edNote" type="text" maxlength="80" autocomplete="off" list="noteList"></label>
     <label>Date<input class="field" id="edDate" type="date"></label>
     <div class="err" id="edErr"></div>
+    <button class="linkbtn" id="edTpl" type="button" style="align-self:flex-start;padding-left:2px">Save as a template</button>
     <div class="btnrow"><button class="btn danger" id="edDelete" type="button">Delete</button><button class="btn primary" id="edSave" type="button">Save changes</button></div>
   </div>
 </dialog>
@@ -726,6 +804,32 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
   </div>
 </dialog>
 
+<!-- Pick one option (filters, saving a view) -->
+<dialog class="sheet" id="pickSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3 id="pickTitle">Choose</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div id="pickExtra" class="stack" hidden></div>
+    <div class="group"><div class="cardin" id="pickList"></div></div>
+  </div>
+</dialog>
+
+<!-- Template: a saved entry you can log with one tap -->
+<dialog class="sheet" id="tplSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3 id="tplTitle">New template</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <label>Name<input class="field" id="tplNote" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Rent, Gym, Chai"></label>
+    <label>Amount (leave empty if it changes)<input class="field big" id="tplAmount" type="text" inputmode="decimal" autocomplete="off" placeholder="₹ —"></label>
+    <div class="two">
+      <label>Category<select class="field" id="tplCat"></select></label>
+      <label>Type<select class="field" id="tplSub"></select></label>
+    </div>
+    <div class="err" id="tplErr"></div>
+    <div class="btnrow"><button class="btn danger" id="tplDelete" type="button">Delete</button><button class="btn primary" id="tplSave" type="button">Save template</button></div>
+  </div>
+</dialog>
+
 <!-- Settings -->
 <dialog class="sheet" id="setSheet">
   <div class="grab"></div>
@@ -763,6 +867,12 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
         <button class="setrow tap" id="changeLinkBtn" type="button" hidden>Change sync link</button>
       </div>
       <div class="syncstate" id="syncState"></div>
+    </div>
+
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Templates</div>
+      <div class="cardin" id="tplList"></div>
+      <div class="foot">One-tap entries for things you pay often. Templates are kept on this phone.</div>
     </div>
 
     <div class="group">
@@ -947,7 +1057,8 @@ function emptyState(icon, title, text) {
 /* ---------- saved on the phone ---------- */
 const P = PREVIEW ? "pv-" : "pl-";
 const K = { ex: P + "expenses", ln: P + "loans", fr: P + "friends", out: P + "outbox", link: P + "sync-link", last: P + "last-sync",
-  sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent" };
+  sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent",
+  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter" };
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 const keep = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
@@ -1509,6 +1620,8 @@ function addStep(n) {
   closeSubs();
 }
 function openAdd(pre = {}) {
+  pendingTpl = pre.tpl || null;   // a template without a fixed amount: ask only for the amount, then save
+  $("stepAmount").querySelector(".ptitle").textContent = pendingTpl ? "How much for " + pendingTpl.note + "?" : "What is the amount?";
   setAmount(pre.amount ? String(pre.amount) : ""); $("banner").textContent = "";
   $("note").value = pre.note || "";
   $("when").value = isoDay(new Date(pre.ts || Date.now())); $("when").dispatchEvent(new Event("change"));   // each new entry starts at today unless shared text said otherwise
@@ -1516,10 +1629,12 @@ function openAdd(pre = {}) {
   if (!$("addSheet").open) $("addSheet").showModal();
   if (document.activeElement) document.activeElement.blur();   // no focus ring or pop-up keyboard on open
 }
-function closeAdd() { if ($("addSheet").open) $("addSheet").close(); setAmount(""); $("banner").textContent = ""; }
+function closeAdd() { if ($("addSheet").open) $("addSheet").close(); setAmount(""); $("banner").textContent = ""; pendingTpl = null; }
 $("addDone").onclick = () => {
   if (!(parseAmount(amountStr) > 0)) { const a = $("amount"); a.classList.remove("shake"); void a.offsetWidth; a.classList.add("shake"); $("banner").textContent = "Type the amount first"; return; }
-  buzz(); addStep(2);
+  buzz();
+  if (pendingTpl) { const t = pendingTpl; pendingTpl = null; $("note").value = t.note || ""; save(t.cat); return; }
+  addStep(2);
 };
 $("addCancel").onclick = closeAdd;
 $("catCancel").onclick = closeAdd;
@@ -1555,8 +1670,23 @@ function quickPicks() {
   return Object.values(seen).filter((q) => q.n >= 2).sort((a, b) => b.n - a.n || b.last - a.last).slice(0, 6);
 }
 function renderQuick() {
-  const picks = quickPicks(), row = $("quickRow"); row.innerHTML = "";
-  row.hidden = !picks.length;
+  const same = (t, q) => t.amount === q.amount && t.cat === q.cat && (t.note || "") === (q.note || "");
+  const picks = quickPicks().filter((q) => !templates.some((t) => same(t, q))), row = $("quickRow"); row.innerHTML = "";
+  row.hidden = false;
+  // your templates first (hold one to edit it), then repeats the app noticed, then "+ Template"
+  templates.forEach((t) => {
+    const b = el("button", "chip tpl"); b.type = "button";
+    b.append(tile(t.cat, "sm")); if (t.amount) b.append(el("b", "", fmt(t.amount))); b.append(el("span", "", t.note || catLabel(t.cat)));
+    b.title = t.amount ? "Save " + fmt(t.amount) + " · " + t.note + " now" : "Log " + t.note + " (asks for the amount)";
+    b.onclick = () => useTemplate(t);
+    let h; b.addEventListener("pointerdown", () => { h = setTimeout(() => { b.dataset.held = "1"; openTemplate(t); }, 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(h)));
+    b.addEventListener("click", (e) => { if (b.dataset.held) { delete b.dataset.held; e.stopImmediatePropagation(); } }, true);
+    b.addEventListener("contextmenu", (e) => { e.preventDefault(); openTemplate(t); });
+    row.appendChild(b);
+  });
+  const addTpl = el("button", "chip add"); addTpl.type = "button"; addTpl.append(ico("plus"), el("span", "", "Template"));
+  addTpl.onclick = () => openTemplate(null);
   picks.forEach((q) => {
     const b = el("button", "chip"); b.type = "button";
     b.append(tile(q.cat, "sm"), el("b", "", fmt(q.amount)), el("span", "", q.note || catLabel(q.cat)));
@@ -1568,6 +1698,7 @@ function renderQuick() {
     };
     row.appendChild(b);
   });
+  row.appendChild(addTpl);
   // note suggestions: notes you've used, most frequent first
   const counts = {};
   expenses.forEach((e) => { if (e.note) counts[e.note] = (counts[e.note] || 0) + 1; });
@@ -1780,6 +1911,7 @@ function renderSpending() {
     ? inMonth.length + (inMonth.length === 1 ? " payment" : " payments") + " · about " + fmt(Math.round(total / r.days)) + " a day"
     : "Nothing logged";
   renderWeek(); renderTrend(); renderCompare(r);   // (the donut is left out of the monochrome design)
+  renderCalendar(r); renderListView();
 
   const list = $("list"); list.innerHTML = "";
   if (!inMonth.length) { const c = el("div", "card"); c.append(emptyState("tab-log", "No payments here yet", "Go to Log, type the amount and tap a category. It shows up here right away.")); list.append(c); }
@@ -2031,6 +2163,212 @@ Object.entries(ACCENTS).forEach(([name, [light]]) => {
 document.querySelectorAll("#themeSeg button").forEach((b) => (b.onclick = () => { keep(K.theme, b.dataset.themeChoice); applyTheme(); }));
 darkQuery.addEventListener("change", applyTheme);
 
+/* ======================================================================
+   Views on Spending (inspired by Notion): Overview, Calendar, List
+   ====================================================================== */
+let spendView = "overview", calSel = null;
+function setView(v) {
+  spendView = v;
+  document.querySelectorAll("#viewSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === v));
+  $("ovView").hidden = v !== "overview"; $("calView").hidden = v !== "calendar"; $("listView").hidden = v !== "list";
+  $("monthBar").hidden = v === "list";   // the List view has its own period filter
+  renderSpending();
+}
+document.querySelectorAll("#viewSeg button").forEach((b) => (b.onclick = () => { buzz(); setView(b.dataset.view); }));
+
+/* ---------- Calendar: each day of the month, shaded by how much you spent ---------- */
+function renderCalendar(r) {
+  const grid = $("calGrid"); grid.innerHTML = "";
+  const first = new Date(r.start), lead = (first.getDay() + 6) % 7, days = Math.round((r.end - r.start) / DAY);
+  const vals = [];
+  for (let d = 0; d < days; d++) vals.push(sumIn(expenses, r.start + d * DAY, r.start + (d + 1) * DAY));
+  const max = Math.max(...vals, 0), todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+  if (calSel == null || calSel < r.start || calSel >= r.end) {   // default: today, or the latest day with spending in that month
+    calSel = monthOffset === 0 ? todayStart : r.start + (Math.max(0, vals.map((v, i) => (v ? i : -1)).reduce((a, b) => Math.max(a, b), 0))) * DAY;
+  }
+  for (let i = 0; i < lead; i++) grid.append(el("span", "calday blank"));
+  vals.forEach((v, d) => {
+    const t = new Date(first.getFullYear(), first.getMonth(), d + 1).getTime();
+    const lv = !v ? 0 : max ? Math.min(4, 1 + Math.floor((3.999 * v) / max)) : 0;
+    const b = el("button", "calday" + (lv ? " lv" + lv : "") + (t === todayStart ? " today" : "") + (t > todayStart ? " future" : ""));
+    b.type = "button"; b.setAttribute("aria-pressed", t === calSel);
+    b.setAttribute("aria-label", new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "long" }) + ": " + fmt(v));
+    b.append(el("span", "n", String(d + 1)), el("span", "v", v ? fmtShort(v) : ""));
+    b.onclick = () => { calSel = t; renderCalendar(r); };
+    grid.append(b);
+  });
+  // the chosen day's payments
+  const items = expenses.filter((e) => e.ts >= calSel && e.ts < calSel + DAY);
+  $("calDayTitle").textContent = calSel === todayStart ? "Today" : new Date(calSel).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" });
+  $("calDayTotal").textContent = items.length ? fmt(items.reduce((s, e) => s + e.amount, 0)) : "";
+  const list = $("calDayList"); list.innerHTML = "";
+  if (!items.length) list.append(emptyState("tab-log", "Nothing spent", calSel > todayStart ? "This day hasn't happened yet." : "No payments logged on this day."));
+  items.forEach((e) => list.append(payRow(e, "time")));
+}
+
+/* ---------- List: search, filters and saved views ---------- */
+const DEFAULT_FILTER = { period: "month", cat: "", min: 0, sort: "new", q: "" };
+let filt = { ...DEFAULT_FILTER, ...load(K.filt, {}) };
+let savedViews = load(K.views, []);   // [{id, name, f}]
+const PERIODS = { month: "This month", week: "This week", last30: "Last 30 days", year: "This year", all: "All time" };
+const SORTS = { new: "Newest first", old: "Oldest first", high: "Highest amount", low: "Lowest amount" };
+const MINS = [0, 100, 500, 1000, 5000];
+function periodRange(p) {
+  const now = Date.now(), d = new Date();
+  if (p === "week") return [weekStart(now), now + 60e3];
+  if (p === "last30") return [now - 30 * DAY, now + 60e3];
+  if (p === "year") return [+new Date(d.getFullYear(), 0, 1), now + 60e3];
+  if (p === "all") return [0, Infinity];
+  const r = monthRange(0); return [r.start, r.end];
+}
+function filtered(f = filt) {
+  const [a, b] = periodRange(f.period), q = (f.q || "").trim().toLowerCase();
+  const out = expenses.filter((e) => e.ts >= a && e.ts < b && (!f.cat || mainOf(e.cat) === f.cat) && e.amount >= (f.min || 0) &&
+    (!q || (e.note || "").toLowerCase().includes(q) || String(e.cat || "").toLowerCase().includes(q)));
+  const by = { new: (x, y) => y.ts - x.ts, old: (x, y) => x.ts - y.ts, high: (x, y) => y.amount - x.amount || y.ts - x.ts, low: (x, y) => x.amount - y.amount || y.ts - x.ts };
+  return out.sort(by[f.sort] || by.new);
+}
+const sameFilter = (a, b) => ["period", "cat", "min", "sort", "q"].every((k) => (a[k] || "") === (b[k] || ""));
+function setFilter(patch) { filt = { ...filt, ...patch }; keep(K.filt, filt); renderListView(); }
+
+function openPick(title, options, current, onPick, extra) {
+  $("pickTitle").textContent = title;
+  const box = $("pickList"); box.innerHTML = "";
+  options.forEach(([val, label]) => {
+    const b = el("button", "setrow"); b.type = "button";
+    b.append(el("span", "", label)); if (val === current) { const c = el("span", "check"); c.append(ico("check")); b.append(c); }
+    b.onclick = () => { $("pickSheet").close(); onPick(val); };
+    box.append(b);
+  });
+  $("pickExtra").hidden = !extra; $("pickExtra").innerHTML = ""; if (extra) $("pickExtra").append(extra);
+  box.parentElement.hidden = !options.length;
+  $("pickSheet").showModal();
+}
+
+function renderListView() {
+  // saved views as tabs ("All" resets)
+  const tabs = $("savedViews"); tabs.innerHTML = "";
+  const all = el("button", "chip", "All"); all.type = "button"; all.setAttribute("aria-pressed", sameFilter(filt, DEFAULT_FILTER));
+  all.onclick = () => { $("searchBox").value = ""; setFilter({ ...DEFAULT_FILTER }); };
+  tabs.append(all);
+  savedViews.forEach((v) => {
+    const c = el("button", "chip", v.name); c.type = "button"; c.setAttribute("aria-pressed", sameFilter(filt, v.f));
+    c.onclick = () => { $("searchBox").value = v.f.q || ""; setFilter({ ...v.f }); };
+    let t; c.addEventListener("pointerdown", () => { t = setTimeout(() => manageView(v), 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => c.addEventListener(ev, () => clearTimeout(t)));
+    c.addEventListener("contextmenu", (e) => { e.preventDefault(); manageView(v); });
+    tabs.append(c);
+  });
+  // filter chips
+  const chips = $("filterChips"); chips.innerHTML = "";
+  const chip = (label, on, fn) => { const b = el("button", "fchip" + (on ? " on" : "")); b.type = "button"; b.append(el("span", "", label), ico("chev")); b.onclick = fn; chips.append(b); };
+  chip(PERIODS[filt.period], filt.period !== "month", () => openPick("Period", Object.entries(PERIODS), filt.period, (v) => setFilter({ period: v })));
+  chip(filt.cat || "All categories", !!filt.cat, () => openPick("Category", [["", "All categories"], ...CATS.map((c) => [c.name, c.name]), [UNCAT, UNCAT]], filt.cat, (v) => setFilter({ cat: v })));
+  chip(filt.min ? "Over " + fmt(filt.min) : "Any amount", !!filt.min, () => openPick("Amount", MINS.map((m) => [m, m ? "Over " + fmt(m) : "Any amount"]), filt.min, (v) => setFilter({ min: v })));
+  chip(SORTS[filt.sort], filt.sort !== "new", () => openPick("Sort", Object.entries(SORTS), filt.sort, (v) => setFilter({ sort: v })));
+  const isSaved = savedViews.some((v) => sameFilter(filt, v.f));
+  if (!sameFilter(filt, DEFAULT_FILTER) && !isSaved) {
+    const s = el("button", "fchip save"); s.type = "button"; s.append(ico("plus"), el("span", "", "Save view")); s.onclick = saveViewPrompt; chips.append(s);
+  }
+  // results
+  const items = filtered();
+  $("resultSum").innerHTML = "";
+  $("resultSum").append(el("span", "", items.length + (items.length === 1 ? " payment" : " payments")), el("b", "", fmt(items.reduce((s, e) => s + e.amount, 0))));
+  const box = $("resultList"); box.innerHTML = "";
+  if (!items.length) { const c = el("div", "card"); c.append(emptyState("tab-pie", "No matching payments", "Try a different period, category or search.")); box.append(c); return; }
+  if (filt.sort === "new" || filt.sort === "old") {   // grouped by day, like the rest of the app
+    const groups = [];
+    items.slice(0, 400).forEach((e) => { const k = dayKey(e.ts); let g = groups[groups.length - 1]; if (!g || g.k !== k) groups.push((g = { k, ts: e.ts, items: [] })); g.items.push(e); });
+    groups.forEach((g) => {
+      const wrap = el("div"); wrap.style.cssText = "display:flex;flex-direction:column;gap:14px";
+      const head = el("div", "day");
+      head.append(el("span", "", new Date(g.ts).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: new Date(g.ts).getFullYear() === new Date().getFullYear() ? undefined : "numeric" })),
+        el("span", "", fmt(g.items.reduce((s, x) => s + x.amount, 0))));
+      const card = el("div", "card flush"); g.items.forEach((e) => card.append(payRow(e, "time")));
+      wrap.append(head, card); box.append(wrap);
+    });
+  } else {
+    const card = el("div", "card flush"); items.slice(0, 400).forEach((e) => card.append(payRow(e, "date"))); box.append(card);
+  }
+}
+let searchTimer;
+$("searchBox").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => setFilter({ q: $("searchBox").value }), 200); });
+
+function saveViewPrompt() {
+  const wrap = el("div", "stack"), inp = el("input", "field"), btn = el("button", "btn primary", "Save view"), err = el("div", "err");
+  inp.type = "text"; inp.maxLength = 30; inp.placeholder = "Name, e.g. Eating out this month"; btn.type = "button";
+  const parts = [filt.cat, filt.min ? "over " + fmt(filt.min) : "", filt.q ? "“" + filt.q + "”" : "", PERIODS[filt.period].toLowerCase()].filter(Boolean);
+  inp.value = parts.join(" ").replace(/^./, (c) => c.toUpperCase()).slice(0, 30);
+  btn.onclick = () => {
+    const name = inp.value.trim();
+    if (!name) { err.textContent = "Give the view a name."; return; }
+    savedViews = [...savedViews, { id: newId("v"), name, f: { ...filt } }]; keep(K.views, savedViews);
+    $("pickSheet").close(); renderListView(); showToast("Saved view “" + name + "”");
+  };
+  wrap.append(inp, err, btn);
+  openPick("Save this view", [], null, () => {}, wrap);
+  setTimeout(() => inp.focus(), 50);
+}
+function manageView(v) {
+  openPick(v.name, [["delete", "Delete this view"]], null, () => {
+    savedViews = savedViews.filter((x) => x.id !== v.id); keep(K.views, savedViews); renderListView(); showToast("Deleted view “" + v.name + "”");
+  });
+}
+
+/* ======================================================================
+   Templates: saved entries you log with one tap (kept on this phone)
+   ====================================================================== */
+let templates = load(K.tpl, []);   // [{id, note, amount, cat}]
+let tplCurrent = null, pendingTpl = null;
+function useTemplate(t) {
+  if (t.amount > 0) {
+    const e = { id: newId("e"), amount: t.amount, cat: t.cat, note: t.note || "", ts: Date.now() };
+    putExpense(e);
+    showToast("Saved " + fmt(t.amount) + " · " + (t.note || catLabel(t.cat)), () => { delExpense(e.id); showToast("Removed"); });
+  } else openAdd({ tpl: t });   // amount changes each time: just ask for it
+}
+function openTemplate(t, from) {
+  tplCurrent = t;
+  $("tplTitle").textContent = t ? "Edit template" : "New template";
+  const base = t || from || {};
+  $("tplNote").value = base.note || ""; $("tplAmount").value = base.amount || "";
+  const cs = $("tplCat"); cs.innerHTML = ""; cs.append(new Option("Pick a category", ""));
+  CATS.forEach((c) => cs.append(new Option(c.name, c.name)));
+  cs.value = base.cat ? mainOf(base.cat) : ""; fillSubs(cs.value, subOf(base.cat), $("tplSub"));
+  $("tplErr").textContent = ""; $("tplDelete").hidden = !t; resetConfirm($("tplDelete"), "Delete");
+  $("tplSheet").showModal();
+}
+$("tplCat").onchange = () => fillSubs($("tplCat").value, "", $("tplSub"));
+$("tplSave").onclick = () => {
+  const note = $("tplNote").value.trim(), amount = $("tplAmount").value.trim() ? parseAmount($("tplAmount").value) : 0;
+  if (!$("tplCat").value) { $("tplErr").textContent = "Pick a category."; return; }
+  if ($("tplAmount").value.trim() && !(amount > 0)) { $("tplErr").textContent = "The amount should be a number, or leave it empty."; return; }
+  const cat = $("tplCat").value + ($("tplSub").value ? ": " + $("tplSub").value : "");
+  const t = { id: (tplCurrent && tplCurrent.id) || newId("t"), note: note || catLabel(cat), amount, cat };
+  templates = tplCurrent ? templates.map((x) => (x.id === t.id ? t : x)) : [...templates, t];
+  keep(K.tpl, templates); $("tplSheet").close(); renderQuick(); renderTplList();
+  showToast((tplCurrent ? "Updated" : "Added") + " template “" + t.note + "”");
+};
+armConfirm($("tplDelete"), "Delete", () => {
+  templates = templates.filter((x) => x.id !== tplCurrent.id); keep(K.tpl, templates);
+  $("tplSheet").close(); renderQuick(); renderTplList(); showToast("Deleted template");
+});
+$("edTpl").onclick = () => {
+  const cat = $("edCat").value ? $("edCat").value + ($("edSub").value ? ": " + $("edSub").value : "") : "";
+  $("editSheet").close();
+  openTemplate(null, { note: $("edNote").value.trim(), amount: parseAmount($("edAmount").value) || "", cat });
+};
+function renderTplList() {
+  const box = $("tplList"); box.innerHTML = "";
+  templates.forEach((t) => {
+    const r = el("button", "setrow"); r.type = "button";
+    const left = el("span", "tplrow"); left.append(tile(t.cat, "sm"), el("span", "", t.note));
+    r.append(left, el("small", "", t.amount ? fmt(t.amount) : "ask amount")); r.onclick = () => { $("setSheet").close(); openTemplate(t); };
+    box.append(r);
+  });
+  const add = el("button", "setrow tap", "+ New template"); add.type = "button"; add.onclick = () => { $("setSheet").close(); openTemplate(null); };
+  box.append(add);
+}
 /* ---------- tabs, month nav, navigation bars ---------- */
 function showTab(which) {
   $("logScreen").hidden = which !== "log"; $("sumScreen").hidden = which !== "sum"; $("lentScreen").hidden = which !== "lent";
@@ -2050,7 +2388,7 @@ $("quickNavBtn").onclick = () => openAdd();
 $("logBtn").onclick = () => openAdd();
 $("seeAllBtn").onclick = openSpending;
 ["gWeek", "gMonth", "gYear"].forEach((id) => ($(id).onclick = openSpending));
-document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); $("setSheet").showModal(); }));
+document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); renderTplList(); $("setSheet").showModal(); }));
 
 // Swipe the month card left/right to change month
 (() => {
