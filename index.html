@@ -292,6 +292,12 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .4); animation: fadeIn .3s; }
 .sheet .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .sheet .close { width: 30px; height: 30px; border-radius: 50%; background: var(--fill); color: var(--fg2); display: grid; place-items: center; font-size: 14px; }
 .sheet .err { color: var(--red); font-size: 14px; min-height: 17px; }
+.fsedit > summary { list-style: none; cursor: pointer; color: var(--fg2); font-size: 15px; font-weight: 500; padding: 10px 2px; }
+.fsedit > summary::-webkit-details-marker { display: none; }
+.fsedit > summary::after { content: " ›"; }
+.fsedit[open] > summary::after { content: " ⌄"; }
+.fsedit.new > summary { display: none; }
+#fsRemind { width: auto; min-width: 9em; background: var(--fill); }
 .sheet .bigbal { font-size: 36px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .sheet .item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 11px 16px; width: 100%; text-align: left; background: var(--card); position: relative; }
 .sheet .item + .item::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: .5px solid var(--sep); }
@@ -819,17 +825,20 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
   <div class="stack">
     <div class="head"><h3 id="fsTitle">Friend</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
     <div id="fsSummary" class="stack"></div>
-    <div class="hint" style="padding-left:2px">Profile</div>
-    <label>Name<input class="field" id="fsName" type="text" maxlength="30" autocomplete="off"></label>
-    <label>Phone (optional)<input class="field" id="fsPhone" type="tel" maxlength="20" autocomplete="off" placeholder="For sending them their balance on WhatsApp"></label>
-    <div class="two">
-      <label>I lend them monthly (₹)<input class="field" id="fsMonthly" type="text" inputmode="decimal" autocomplete="off" placeholder="0 = no reminder"></label>
-      <label>Remind me on day<input class="field" id="fsDay" type="number" min="1" max="31" inputmode="numeric" placeholder="1–31"></label>
-    </div>
-    <label>Note<input class="field" id="fsNote" type="text" maxlength="80" autocomplete="off"></label>
-    <div class="err" id="fsErr"></div>
-    <div class="btnrow"><button class="btn danger" id="fsDelete" type="button">Remove profile</button><button class="btn primary" id="fsSave" type="button">Save profile</button></div>
+    <div class="group"><div class="cardin">
+      <div class="setrow"><span>Remind me on</span><input class="when" id="fsRemind" type="date" aria-label="Reminder date"></div>
+    </div></div>
     <div id="fsHistory" class="stack" style="gap:0"></div>
+    <details class="fsedit" id="fsEdit">
+      <summary>Edit profile</summary>
+      <div class="stack">
+        <label>Name<input class="field" id="fsName" type="text" maxlength="30" autocomplete="off"></label>
+        <label>Phone (optional)<input class="field" id="fsPhone" type="tel" maxlength="20" autocomplete="off"></label>
+        <label>Note<input class="field" id="fsNote" type="text" maxlength="80" autocomplete="off"></label>
+        <div class="err" id="fsErr"></div>
+        <div class="btnrow"><button class="btn danger" id="fsDelete" type="button">Remove profile</button><button class="btn primary" id="fsSave" type="button">Save profile</button></div>
+      </div>
+    </details>
   </div>
 </dialog>
 
@@ -1389,29 +1398,40 @@ function friendStats(name) {
   return { items, lent, back, bal: lent - back, mLent, mBack, last: items.length ? items[0].ts : 0 };
 }
 
-/* Monthly lending reminders: a friend with "I lend them monthly" set, past their day, nothing lent yet this month */
+/* Lending reminders. A profile's "day" holds the reminder date as yyyymmdd (e.g. 20261105), which the sheet stores
+   in its "Reminder day" column unchanged. Older profiles hold a monthly day 1–31 with an amount; those still work
+   the old way (due on that day each month until something is lent) until the reminder is changed. */
+const isLegacyRem = (f) => f.monthly > 0 && f.day >= 1 && f.day <= 31;
+const dateNum = (d) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+function remindDate(f) {
+  if (f.day > 19000000) return new Date(Math.floor(f.day / 10000), Math.floor(f.day / 100) % 100 - 1, f.day % 100);
+  if (isLegacyRem(f)) { const n = new Date(), dim = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate(); return new Date(n.getFullYear(), n.getMonth(), Math.min(f.day, dim)); }
+  return null;
+}
+function addMonth(d) { const dim = new Date(d.getFullYear(), d.getMonth() + 2, 0).getDate(); return new Date(d.getFullYear(), d.getMonth() + 1, Math.min(d.getDate(), dim)); }
 function lendingDue() {
-  const now = new Date(), ym = now.getFullYear() + "-" + (now.getMonth() + 1), skips = load(K.skips, {});
-  const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), cur = monthRange(0);
-  return friends.filter((f) => f.monthly > 0 && f.day >= 1 && now.getDate() >= Math.min(f.day, dim) && skips[f.id] !== ym &&
-    !loans.some((l) => l.friend === f.name && l.type === "lent" && l.ts >= cur.start && l.ts < cur.end));
+  const now = new Date(), ym = now.getFullYear() + "-" + (now.getMonth() + 1), skips = load(K.skips, {}), cur = monthRange(0);
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return friends.filter((f) => {
+    const d = remindDate(f);
+    if (!d || d >= tomorrow) return false;
+    return !isLegacyRem(f) || (skips[f.id] !== ym && !loans.some((l) => l.friend === f.name && l.type === "lent" && l.ts >= cur.start && l.ts < cur.end));
+  });
 }
-function skipThisMonth(f) { const s = load(K.skips, {}), now = new Date(); s[f.id] = now.getFullYear() + "-" + (now.getMonth() + 1); keep(K.skips, s); renderAll(); }
-function logMonthly(f) {
-  const l = { id: newId("l"), friend: f.name, amount: f.monthly, type: "lent", note: "Monthly", ts: Date.now() };
-  putLoan(l);
-  showToast("Lent " + fmt(f.monthly) + " · " + f.name, () => { delLoan(l.id); showToast("Removed"); });
-}
-function dueCard(f, compact) {
-  const dueOn = new Date(new Date().getFullYear(), new Date().getMonth(), f.day).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+function setReminder(f, date) { putFriend({ ...f, monthly: 0, day: date ? dateNum(date) : 0 }); }
+const shortDate = (d) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+function dueCard(f) {
+  const d = remindDate(f);
+  const when = "Due " + (dayKey(+d) === dayKey(Date.now()) ? "today" : shortDate(d));
   const acts = el("div", "acts");
-  const a = el("button", "pill primary", compact ? "Sent" : "I sent " + fmtShort(f.monthly)); a.type = "button"; a.onclick = () => logMonthly(f);
-  const b = el("button", "pill", "Skip"); b.type = "button"; b.onclick = () => skipThisMonth(f);
-  a.setAttribute("aria-label", "I sent " + fmt(f.monthly) + " to " + f.name); b.setAttribute("aria-label", "Skip this month for " + f.name);
+  const a = el("button", "pill primary", "Done"); a.type = "button";
+  a.onclick = () => { setReminder(f, null); showToast("Reminder cleared", () => { putFriend({ ...f }); showToast("Restored"); }); };
+  const b = el("button", "pill", "+1 month"); b.type = "button";
+  b.onclick = () => { const n = addMonth(d); setReminder(f, n); showToast("Next reminder " + shortDate(n)); };
+  a.setAttribute("aria-label", "Clear the reminder for " + f.name); b.setAttribute("aria-label", "Remind me again next month about " + f.name);
   acts.append(a, b);
   const c = el("div", "strip"), t = el("div", "t");
-  t.append(el("div", "", compact ? f.name + " · " + fmt(f.monthly) + " monthly" : "Monthly loan to " + f.name + " · " + fmt(f.monthly)),
-    el("small", "", compact ? "Due " + dueOn + " · not logged yet" : "Due " + dueOn + " · this month's isn't logged yet"));
+  t.append(el("div", "", f.name), el("small", "", when));
   c.append(avatar(f.name), t, acts);
   return c;
 }
@@ -1429,7 +1449,7 @@ function renderLoans() {
 
   // reminders: monthly loans due, and balances with no activity for 30+ days
   const cards = $("lentCards"); cards.innerHTML = "";
-  lendingDue().forEach((f) => cards.appendChild(dueCard(f, false)));
+  lendingDue().forEach((f) => cards.appendChild(dueCard(f)));
   people.filter((f) => stats[f.name].bal > 0 && stats[f.name].last && Date.now() - stats[f.name].last > 30 * DAY).forEach((f) => {
     const s = stats[f.name], c = el("div", "strip"), t = el("div", "t");
     t.append(el("div", "", f.name + " still owes " + fmt(s.bal)), el("small", "", "Nothing logged for " + Math.floor((Date.now() - s.last) / DAY) + " days"));
@@ -1450,13 +1470,13 @@ function renderLoans() {
   chips.appendChild(add);
 
   const list = $("friendList"); list.innerHTML = "";
-  if (!people.length) list.append(emptyState("tab-people", "No friends here yet", "Tap the person button at the top to add a profile. Set a monthly amount and day to get a reminder each month."));
+  if (!people.length) list.append(emptyState("tab-people", "No friends here yet", "Tap the person button at the top to add a profile. Pick a reminder date to get a nudge on that day."));
   people.slice().sort((a, b) => stats[b.name].bal - stats[a.name].bal).forEach((f) => {
     const s = stats[f.name];
     const card = el("button", "fcard"); card.type = "button"; card.onclick = () => openFriend(f);
     card.append(avatar(f.name), el("div", "fname", f.name),
       el("span", "bal" + (s.bal <= 0 ? " settled" : ""), s.bal > 0 ? "owes " + fmt(s.bal) : s.bal < 0 ? "you owe " + fmt(-s.bal) : s.items.length ? "settled" : ""),
-      el("div", "fsub", s.lent ? "Paid back " + fmt(s.back) + " of " + fmt(s.lent) + (f.monthly ? " · " + fmt(f.monthly) + "/month" : "") : f.monthly ? fmt(f.monthly) + " monthly on day " + f.day : "No entries yet"));
+      el("div", "fsub", s.lent ? "Paid back " + fmt(s.back) + " of " + fmt(s.lent) + (remindDate(f) ? " · reminder " + shortDate(remindDate(f)) : "") : remindDate(f) ? "Reminder " + shortDate(remindDate(f)) : "No entries yet"));
     if (s.lent) { const p = el("div", "progress"), i = el("i"); i.style.width = Math.min(100, (100 * s.back) / s.lent) + "%"; p.append(i); card.append(p); }
     list.appendChild(card);
   });
@@ -1484,7 +1504,10 @@ function openFriend(f) {
   fsCurrent = f;
   $("fsTitle").textContent = f ? f.name : "Add a friend";
   $("fsName").value = f ? f.name : ""; $("fsPhone").value = f ? f.phone || "" : "";
-  $("fsMonthly").value = f && f.monthly ? f.monthly : ""; $("fsDay").value = f && f.day ? f.day : "";
+  let rd = f && remindDate(f);
+  if (rd && isLegacyRem(f) && !lendingDue().some((x) => x.id === f.id) && rd <= new Date()) rd = addMonth(rd);   // old monthly reminder already handled this month
+  $("fsRemind").value = rd ? isoDay(rd) : "";
+  $("fsEdit").open = !f; $("fsEdit").classList.toggle("new", !f);
   $("fsNote").value = f ? f.note || "" : ""; $("fsErr").textContent = "";
   $("fsSave").textContent = f ? "Save profile" : "Add friend";
   $("fsDelete").hidden = !(f && f.id); resetConfirm($("fsDelete"), "Remove profile");
@@ -1501,12 +1524,9 @@ function openFriend(f) {
     const go = () => { $("friendSheet").close(); selFriend = f.name; showTab("lent"); renderLoans(); $("lendAmt").focus(); };
     lend.onclick = go; pay.onclick = go;
     acts.append(lend, pay); sum.append(acts);
-    if (f.phone && s.bal > 0) {
-      const months = monthsBreakdown(s.items).filter((m) => m.left > 0).map((m) => m.label + " " + fmt(m.left)).join(", ");
-      const text = "Hi " + f.name + ", a quick note: the total you owe me is " + fmt(s.bal) + (months ? " (" + months + ")" : "") + ".";
-      const a = el("a", "linkbtn", "Send balance on WhatsApp ↗");
-      a.href = "https://wa.me/" + f.phone.replace(/\D/g, "").replace(/^0+/, "").replace(/^(\d{10})$/, "91$1") + "?text=" + encodeURIComponent(text);
-      a.target = "_blank"; a.rel = "noopener"; sum.append(a);
+    if (s.items.length) {
+      const sh = el("button", "btn", "Share history"); sh.type = "button"; sh.id = "fsShare";
+      sh.onclick = () => pickSharePeriod(f); sum.append(sh);
     }
     // history, month by month, with what's still left from that month
     if (s.items.length) hist.append(el("div", "hint", "History · tap an entry to edit"));
@@ -1545,14 +1565,10 @@ function monthsBreakdown(items) {
 }
 $("fsSave").onclick = () => {
   const name = $("fsName").value.trim().replace(/\s+/g, " ");
-  const monthly = $("fsMonthly").value.trim() ? parseAmount($("fsMonthly").value) : 0;
-  const day = $("fsDay").value ? Math.round(Number($("fsDay").value)) : 0;
   if (!name) { $("fsErr").textContent = "Type a name."; return; }
   const oldName = fsCurrent ? fsCurrent.name : null;
   if (name !== oldName && allFriends().some((f) => f.name.toLowerCase() === name.toLowerCase())) { $("fsErr").textContent = name + " is already in your list."; return; }
-  if ($("fsMonthly").value.trim() && !(monthly >= 0)) { $("fsErr").textContent = "The monthly amount should be a number."; return; }
-  if (monthly > 0 && !(day >= 1 && day <= 31)) { $("fsErr").textContent = "Pick a reminder day from 1 to 31."; return; }
-  const f = { id: (fsCurrent && fsCurrent.id) || newId("f"), name, phone: $("fsPhone").value.trim(), monthly: monthly || 0, day: monthly ? day : 0, note: $("fsNote").value.trim() };
+  const f = { id: (fsCurrent && fsCurrent.id) || newId("f"), name, phone: $("fsPhone").value.trim(), monthly: 0, day: remindFromBox(), note: $("fsNote").value.trim() };
   if (oldName && oldName !== name) loans.filter((l) => l.friend === oldName).forEach((l) => putLoan({ ...l, friend: name }));   // keep history under the new name
   putFriend(f);
   selFriend = name;
@@ -1564,6 +1580,56 @@ armConfirm($("fsDelete"), "Remove profile", () => {
   delFriend(fsCurrent.id); $("friendSheet").close();
   showToast("Removed " + fsCurrent.name + "'s profile. Their loan history is kept.");
 });
+function remindFromBox() { const v = $("fsRemind").value; return v ? Number(v.replace(/-/g, "")) : 0; }
+// On a saved friend the reminder date saves as soon as it's picked; a new friend's is saved with "Add friend"
+$("fsRemind").addEventListener("change", () => {
+  if (!fsCurrent) return;
+  const base = friends.find((x) => x.id === fsCurrent.id) || { id: newId("f"), name: fsCurrent.name, phone: "", note: "" };
+  const f = { ...base, monthly: 0, day: remindFromBox() };
+  putFriend(f); fsCurrent = f;
+  showToast(f.day ? "I'll remind you on " + shortDate(remindDate(f)) : "Reminder removed");
+});
+
+/* ---------- share a friend's history as plain text ---------- */
+function historyText(f, from, to, label) {
+  const s = friendStats(f.name), yr = new Date().getFullYear();
+  const items = s.items.filter((l) => l.ts >= from && l.ts < to).sort((a, b) => a.ts - b.ts);
+  const day = (ts) => new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: new Date(ts).getFullYear() === yr ? undefined : "numeric" });
+  const lines = [f.name + " · lending history", label, ""];
+  items.forEach((l) => lines.push(day(l.ts) + " · " + (l.type === "lent" ? "Lent " : "Paid back ") + fmt(l.amount) + (l.note && l.note !== "Monthly" ? " (" + l.note + ")" : "")));
+  if (!items.length) lines.push("Nothing in this period.");
+  const lent = items.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0), back = items.reduce((t, l) => t + (l.type === "lent" ? 0 : l.amount), 0);
+  if (items.length) lines.push("", "Lent: " + fmt(lent), "Paid back: " + fmt(back));
+  lines.push("", s.bal > 0 ? "Total still to pay back: " + fmt(s.bal) : s.bal < 0 ? "I owe you: " + fmt(-s.bal) : "All settled");
+  return lines.join("\n");
+}
+async function shareText(text) {
+  if (navigator.share) { try { await navigator.share({ text }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(text); showToast("Copied. Paste it in any chat."); } catch { showToast("Couldn't share from this browser", null, true); }
+}
+function pickSharePeriod(f) {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth(), M = (k) => +new Date(y, m + k, 1);
+  const range = (a, b) => new Date(a).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + " – " + new Date(b - 1).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const periods = {
+    all: [0, Infinity, "All entries"],
+    this: [M(0), M(1), new Date(M(0)).toLocaleString("en-IN", { month: "long", year: "numeric" })],
+    last: [M(-1), M(0), new Date(M(-1)).toLocaleString("en-IN", { month: "long", year: "numeric" })],
+    three: [M(-2), M(1), range(M(-2), Math.min(M(1), Date.now() + 1))],
+  };
+  // custom dates
+  const box = el("div", "stack"), row = el("div", "two"), a = el("input", "field"), b = el("input", "field"), go = el("button", "btn primary", "Share these dates");
+  a.type = b.type = "date"; a.value = isoDay(new Date(M(0))); b.value = isoDay(now); a.setAttribute("aria-label", "From"); b.setAttribute("aria-label", "To");
+  const la = el("label", "", "From"), lb = el("label", "", "To"); la.append(a); lb.append(b); row.append(la, lb);
+  go.type = "button"; go.onclick = () => {
+    if (!a.value || !b.value) return;
+    const [from, to] = [a.value, b.value].sort(), [fy, fm, fd] = from.split("-").map(Number), [ty, tm, td] = to.split("-").map(Number);
+    const s = +new Date(fy, fm - 1, fd), e = +new Date(ty, tm - 1, td + 1);
+    $("pickSheet").close(); shareText(historyText(f, s, e, range(s, e)));
+  };
+  box.append(row, go);
+  openPick("Share " + f.name + "'s history", [["all", "Whole history"], ["this", "This month"], ["last", "Last month"], ["three", "Last 3 months"], ["pick", "Pick dates…"]], null,
+    (k) => { if (k === "pick") { setTimeout(() => openPick("Share " + f.name + "'s history", [], null, null, box)); return; } const [s, e, label] = periods[k]; shareText(historyText(f, s, e, label)); });
+}
 
 /* ---------- edit a payment ---------- */
 let edCurrent = null;
@@ -1821,7 +1887,7 @@ function weekDigest() {
 }
 function renderLogCards() {
   const box = $("logCards"); box.innerHTML = "";
-  lendingDue().forEach((f) => box.appendChild(dueCard(f, true)));
+  lendingDue().forEach((f) => box.appendChild(dueCard(f)));
   const d = weekDigest(); if (d) box.appendChild(d);
 }
 
