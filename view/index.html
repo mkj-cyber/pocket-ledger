@@ -1,0 +1,2749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pocket Ledger</title>
+<meta name="description" content="Log spending and money lent to friends in seconds. Works offline and backs up to your Google Sheet.">
+<meta name="theme-color" content="#F2F2F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: iOS-style. Grouped inset lists on a grey ground, coloured icon tiles, large titles,
+   a frosted tab bar, sheets that slide up. Apple system colours; the accent colour is the user's choice. */
+:root {
+  --bg: #F2F2F7;          /* grouped background */
+  --card: #FFFFFF;        /* grouped cell */
+  --card2: #F2F2F7;       /* field inside a sheet */
+  --fg: #000000;          /* label */
+  --fg2: #8A8A8E;         /* secondary label */
+  --fg3: #C4C4C7;         /* tertiary label */
+  --sep: #C6C6C8;         /* separator */
+  --fill: #E5E5EA;        /* system fill: keys, chips, tracks */
+  --prev: #D1D1D6;        /* last month's bars */
+  --bar: rgba(249, 249, 249, .86);
+  --sheet: #F2F2F7; --sheetcard: #FFFFFF;
+  --accent: #007AFF;
+  --accent-ink: #FFFFFF;
+  --red: #FF3B30; --green: #34C759; --orange: #FF9500;
+  --c-food: #FF9500; --c-groc: #34C759; --c-trans: #5856D6; --c-shop: #FF2D55;
+  --c-bills: #AF52DE; --c-fun: #32ADE6; --c-health: #FF3B30; --c-other: #8E8E93;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --round: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #000000; --card: #1C1C1E; --card2: #2C2C2E; --fg: #FFFFFF; --fg2: #98989F; --fg3: #5A5A5F; --sep: #38383A;
+  --fill: #2C2C2E; --prev: #3A3A3C; --bar: rgba(22, 22, 24, .86); --sheet: #1C1C1E; --sheetcard: #2C2C2E;
+  --red: #FF453A; --green: #30D158; --orange: #FF9F0A;
+  --c-food: #FF9F0A; --c-groc: #30D158; --c-trans: #5E5CE6; --c-shop: #FF375F; --c-bills: #BF5AF2; --c-fun: #64D2FF; --c-health: #FF453A; --c-other: #8E8E93;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #000000; --card: #1C1C1E; --card2: #2C2C2E; --fg: #FFFFFF; --fg2: #98989F; --fg3: #5A5A5F; --sep: #38383A;
+  --fill: #2C2C2E; --prev: #3A3A3C; --bar: rgba(22, 22, 24, .86); --sheet: #1C1C1E; --sheetcard: #2C2C2E;
+  --red: #FF453A; --green: #30D158; --orange: #FF9F0A;
+  --c-food: #FF9F0A; --c-groc: #30D158; --c-trans: #5E5CE6; --c-shop: #FF375F; --c-bills: #BF5AF2; --c-fun: #64D2FF; --c-health: #FF453A; --c-other: #8E8E93;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.3;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+svg.i { width: 1em; height: 1em; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.num { font-variant-numeric: tabular-nums; }
+
+.app { height: 100%; max-width: 520px; margin: 0 auto; position: relative; }
+main {
+  height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+}
+.screen {
+  display: flex; flex-direction: column; gap: 14px; min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 16px;
+}
+
+/* ---- Navigation bar + large title ---- */
+.navbar {
+  position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 48px; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding-inline: max(16px, env(safe-area-inset-left, 0px));
+  transition: background .2s, box-shadow .2s;
+}
+.navbar.scrolled { background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); box-shadow: 0 .5px 0 var(--sep); }
+.navbar .small { position: absolute; left: 50%; transform: translateX(-50%); font-weight: 600; font-size: 17px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.navbar.scrolled .small { opacity: 1; }
+.navbar .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; letter-spacing: -.02em; }
+.navbar .acts { display: flex; gap: 6px; margin-left: auto; }
+.navbtn { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); background: var(--card); font-size: 19px; }
+.navbtn.filled { background: var(--accent); color: var(--accent-ink); }
+.large { margin: -4px 0 2px; font-size: 34px; font-weight: 700; letter-spacing: -.025em; line-height: 1.1; }
+.syncdot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg3); }
+.syncdot.ok { background: var(--green); }
+.syncdot.wait { background: var(--orange); }
+.syncdot.err { background: var(--red); }
+.preview-pill { align-self: center; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--card); border-radius: 999px; padding: 4px 10px; }
+
+/* ---- Grouped lists and cards ---- */
+.card { background: var(--card); border-radius: var(--round); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.card.flush { padding: 0; gap: 0; overflow: hidden; }
+.sechead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 0 16px; margin-bottom: -8px;
+  font-size: 13px; color: var(--fg2); text-transform: uppercase; letter-spacing: .02em; }
+.sechead button, .linkbtn { color: var(--accent); font-size: 15px; text-transform: none; letter-spacing: 0; font-weight: 500; text-decoration: none; }
+.cardtitle { font-size: 17px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sub { color: var(--fg2); font-size: 14px; }
+.hint { font-size: 13px; color: var(--fg2); text-transform: uppercase; letter-spacing: .02em; }
+.hintrow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-inline: 4px; }
+.hintrow button { font-size: 15px; font-weight: 500; color: var(--accent); }
+.row {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; width: 100%; text-align: left;
+  min-height: 52px; padding: 8px 16px; background: var(--card); position: relative;
+}
+.row + .row::before, .swipe + .swipe .row::before { content: ""; position: absolute; top: 0; right: 0; left: 60px; border-top: .5px solid var(--sep); }
+.row .t { min-width: 0; }
+.row .t div { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .t small { display: block; font-size: 13px; color: var(--fg2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.row .amt { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chev { color: var(--fg3); font-size: 15px; }
+
+/* coloured icon tiles, as in iPhone Settings */
+.tile { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--cc, var(--c-other)); font-size: 18px; flex: none; }
+.tile.sm { width: 22px; height: 22px; border-radius: 6px; font-size: 13px; }
+.tile.lg { width: 50px; height: 50px; border-radius: 13px; font-size: 26px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 600; font-size: 15px; background: var(--cc, var(--c-other)); flex: none; }
+.avatar.sm { width: 22px; height: 22px; font-size: 10px; }
+
+/* ---- Log screen ---- */
+.hero { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
+.hero .lbl { font-size: 13px; color: var(--fg2); font-weight: 500; }
+.hero .big { font-size: 30px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.hero .side { display: flex; align-items: center; gap: 10px; text-align: right; }
+.hero .side b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.ring { width: 52px; height: 52px; position: relative; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 6; }
+.ring .track { stroke: var(--fill); }
+.ring .val { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(.2, .8, .2, 1); }
+.ring span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.amount { display: flex; align-items: baseline; justify-content: center; gap: 4px; font-weight: 700; font-variant-numeric: tabular-nums; min-height: 64px; padding-top: 4px; }
+.amount .cur { font-size: 28px; color: var(--fg2); font-weight: 600; }
+.amount .val { font-size: clamp(44px, 14vw, 58px); letter-spacing: -.035em; line-height: 1; }
+.amount.empty .val { color: var(--fg3); }
+.amount.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-8px) } 50% { transform: translateX(7px) } 75% { transform: translateX(-4px) } }
+.banner { text-align: center; font-size: 14px; color: var(--accent); font-weight: 500; min-height: 18px; margin-top: -8px; }
+.banner button { color: var(--fg); text-decoration: underline; font-weight: 600; font-size: 14px; padding: 4px; }
+.quick { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+.quick::-webkit-scrollbar { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 999px; background: var(--card); font-weight: 500; font-size: 15px; white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.chip.add { color: var(--accent); }
+.quick .chip { flex: none; padding-left: 6px; }
+.quick .chip b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.note, .field {
+  width: 100%; border: 0; background: var(--card); color: var(--fg); border-radius: 10px; padding: 12px 14px; font: inherit; font-size: 16px; min-height: 44px;
+}
+.note::placeholder, .field::placeholder { color: var(--fg3); }
+.noterow { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.noterow .note { min-width: 0; }
+.when { width: 9em; border: 0; background: var(--card); color: var(--accent); border-radius: 10px; padding: 0 10px; font: inherit; font-size: 15px; font-weight: 500; min-height: 44px; font-variant-numeric: tabular-nums; }
+.when.past { background: var(--accent); color: var(--accent-ink); }
+.cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; }
+.cat { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--fg); transition: transform .12s; }
+.cat:active { transform: scale(.92); }
+.cat .tile { width: 48px; height: 48px; border-radius: 13px; font-size: 24px; box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.subpanel { display: flex; flex-direction: column; gap: 10px; animation: fadeUp .22s ease-out; }
+.subhead { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; }
+.subhead button { width: 34px; height: 34px; border-radius: 50%; background: var(--card); color: var(--accent); display: grid; place-items: center; font-size: 18px; }
+.subs { display: flex; flex-wrap: wrap; gap: 8px; }
+.subs .chip { padding-left: 5px; }
+.subs .chip.general { color: var(--fg2); padding-left: 13px; }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: auto; }
+.key {
+  height: 46px; border-radius: 10px; background: var(--card); font-size: 26px; font-weight: 400; font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .18); user-select: none; -webkit-user-select: none; display: grid; place-items: center; transition: background .08s;
+}
+.key:active { background: var(--fill); }
+.key svg { width: 26px; height: 26px; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } }
+
+/* reminder / digest strips */
+.strip { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: var(--round); padding: 10px 10px 10px 14px; }
+.strip .t { flex: 1; min-width: 0; }
+.strip .t div { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.strip .t small { display: block; color: var(--fg2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.strip .acts, .card .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { height: 32px; padding: 0 14px; border-radius: 999px; font-weight: 600; font-size: 14px; background: var(--fill); color: var(--accent); }
+.pill.primary { background: var(--accent); color: var(--accent-ink); }
+
+/* ---- Spending screen ---- */
+.monthbar { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.monthbar h2 { margin: 0; min-width: 9em; text-align: center; font-size: 17px; font-weight: 600; }
+.nav { width: 34px; height: 34px; border-radius: 50%; background: var(--card); color: var(--accent); display: grid; place-items: center; font-size: 17px; }
+.nav:disabled { color: var(--fg3); cursor: default; }
+.total { font-size: 40px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.donutwrap { display: grid; grid-template-columns: 136px 1fr; gap: 16px; align-items: center; }
+.donutwrap svg { width: 136px; height: 136px; }
+.donutwrap circle { fill: none; stroke-width: 18; }
+.legendlist { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.legendlist div { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 14px; }
+.legendlist span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legendlist b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.legendlist i { width: 10px; height: 10px; border-radius: 3px; background: var(--cc); display: block; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font-family: var(--font); fill: var(--fg2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart text.on { fill: var(--fg); font-weight: 700; }
+.chart .bar { fill: var(--prev); }
+.chart .bar.on { fill: var(--accent); }
+.chart .hit { fill: transparent; cursor: pointer; }
+.chart .avg { stroke: var(--fg2); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .base { stroke: var(--sep); stroke-width: .5; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 6px; border-radius: 3px; background: var(--fg); display: inline-block; }
+.legend i.prev { background: var(--prev); }
+.rows { display: flex; flex-direction: column; }
+.crow { display: grid; grid-template-columns: auto 1fr auto auto; gap: 6px 10px; align-items: center; padding: 10px 0; text-align: left; width: 100%; position: relative; }
+.crow + .crow { border-top: .5px solid var(--sep); }
+.crow .name { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crow .amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+.delta { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 8px; border-radius: 999px; background: var(--fill); color: var(--fg2); white-space: nowrap; }
+.delta.up { color: var(--red); }
+.delta.down { color: var(--green); }
+.bars { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 3px; }
+.bars i { display: block; height: 5px; border-radius: 3px; background: var(--cc); min-width: 2px; transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+.bars i.prev { background: var(--prev); }
+.subrows { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+.subrows div { display: flex; justify-content: space-between; font-size: 14px; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.subrows div b { color: var(--fg); font-weight: 500; }
+.week .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; height: 72px; }
+.week .days div { display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+.week .days i { width: 100%; max-width: 24px; border-radius: 4px; background: var(--prev); min-height: 3px; display: block; }
+.week .days i.today { background: var(--accent); }
+.week .days i.future { background: var(--fill); }
+.week .days span { font-size: 11px; color: var(--fg2); }
+.week .big { font-size: 28px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.day { display: flex; justify-content: space-between; padding: 0 16px; margin: 6px 0 -8px; font-size: 13px; color: var(--fg2); text-transform: uppercase; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; color: var(--fg2); padding: 26px 16px; line-height: 1.45; font-size: 15px; }
+.empty-state b { color: var(--fg); font-size: 17px; font-weight: 600; }
+.empty-state .tile { width: 56px; height: 56px; border-radius: 16px; font-size: 28px; background: var(--fill); color: var(--fg2); }
+
+/* swipe actions on list rows */
+.swipe { position: relative; overflow: hidden; background: var(--card); }
+.swipe .row { transition: transform .25s cubic-bezier(.2, .8, .2, 1); touch-action: pan-y; z-index: 1; }
+.swipe .act { position: absolute; top: 0; bottom: 0; width: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #fff; font-weight: 600; font-size: 14px; opacity: 0; transition: opacity .15s; }
+.swipe.active .act { opacity: 1; }
+.swipe .act .i { font-size: 20px; margin: 0 auto 2px; }
+.swipe .act.edit { left: 0; background: var(--accent); }
+.swipe .act.del { right: 0; background: var(--red); }
+
+/* ---- Lent screen ---- */
+.lend-form .amt-field { display: flex; align-items: baseline; gap: 6px; border-bottom: .5px solid var(--sep); padding-bottom: 6px; }
+.amt-field span { font-size: 26px; color: var(--fg2); font-weight: 600; }
+.amt-field input { flex: 1; min-width: 0; border: 0; background: none; color: var(--fg); outline: none; font: inherit; font-weight: 700; font-size: 34px; font-variant-numeric: tabular-nums; }
+.amt-field input::placeholder { color: var(--fg3); }
+.lend-form .chip { background: var(--fill); }
+.lend-form .chip[aria-pressed="true"] { background: var(--accent); }
+.lend-form .note, .lend-form .when { background: var(--fill); }
+.lend-form .when { color: var(--accent); }
+.lend-form .when.past { background: var(--accent); color: var(--accent-ink); }
+.btnrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.btn { height: 50px; border-radius: 12px; font-weight: 600; font-size: 17px; background: var(--fill); color: var(--accent); padding: 0 14px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.danger { background: var(--fill); color: var(--red); }
+.btn.danger.confirm { background: var(--red); color: #fff; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn:active, .pill:active, .chip:active, .navbtn:active { opacity: .7; }
+.fcard { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 12px; align-items: center; padding: 10px 16px; width: 100%; text-align: left; background: var(--card); position: relative; }
+.fcard + .fcard::before { content: ""; position: absolute; top: 0; right: 0; left: 64px; border-top: .5px solid var(--sep); }
+.fcard .avatar { grid-row: span 2; }
+.fcard .fname { font-weight: 500; font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fcard .fsub { color: var(--fg2); font-size: 13px; font-variant-numeric: tabular-nums; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bal { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.bal.settled { color: var(--green); font-weight: 500; }
+.progress { grid-column: 2 / -1; height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; margin-top: 4px; }
+.progress i { display: block; height: 100%; background: var(--green); border-radius: 2px; transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+.tag { font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: var(--fill); color: var(--fg2); }
+.tag.back { color: var(--green); }
+
+/* ---- Sheets (slide up from the bottom, like iOS) ---- */
+dialog.sheet {
+  width: min(100%, 520px); max-width: 100vw; margin: auto auto 0; border: 0; border-radius: 14px 14px 0 0; background: var(--sheet); color: var(--fg);
+  padding: 8px max(16px, env(safe-area-inset-left, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 92vh; overflow-y: auto;
+}
+dialog.sheet[open] { animation: sheetUp .36s cubic-bezier(.2, .9, .25, 1); }
+dialog.sheet::backdrop { background: rgba(0, 0, 0, .4); animation: fadeIn .3s; }
+@keyframes sheetUp { from { transform: translateY(100%); } }
+@keyframes fadeIn { from { opacity: 0; } }
+.grab { width: 36px; height: 5px; border-radius: 3px; background: var(--fg3); margin: 0 auto 10px; touch-action: none; }
+.sheet h3 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.sheet .stack { display: flex; flex-direction: column; gap: 14px; }
+.sheet label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--fg2); padding-left: 2px; }
+.sheet .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.sheet .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sheet .close { width: 30px; height: 30px; border-radius: 50%; background: var(--fill); color: var(--fg2); display: grid; place-items: center; font-size: 14px; }
+.sheet .err { color: var(--red); font-size: 14px; min-height: 17px; }
+/* read-only viewer: Spending only, nothing to tap that changes data */
+.viewer .tabs, .viewer #sumScreen [data-settings], .viewer .swipehint { display: none !important; }
+.viewnote { display: flex; align-items: center; gap: 10px; color: var(--fg2); font-size: 14px; margin: -4px 2px 2px; }
+.viewnote .linkbtn { font-size: 14px; }
+.fsedit > summary { list-style: none; cursor: pointer; color: var(--fg2); font-size: 15px; font-weight: 500; padding: 10px 2px; }
+.fsedit > summary::-webkit-details-marker { display: none; }
+.fsedit > summary::after { content: " ›"; }
+.fsedit[open] > summary::after { content: " ⌄"; }
+.fsedit.new > summary { display: none; }
+#fsRemind { width: auto; min-width: 9em; background: var(--fill); }
+.sheet .bigbal { font-size: 36px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.sheet .item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 11px 16px; width: 100%; text-align: left; background: var(--card); position: relative; }
+.sheet .item + .item::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: .5px solid var(--sep); }
+.sheet .item .what { min-width: 0; }
+.sheet .item .what div { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet .item .what small { color: var(--fg2); font-size: 13px; display: block; }
+.sheet .item .amt { font-weight: 600; font-variant-numeric: tabular-nums; }
+.sheet .day { margin: 8px 0 0; padding: 0 4px 6px; }
+.sheet .item:first-of-type { border-radius: 10px 10px 0 0; }
+select.field { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--fg2) 50%), linear-gradient(135deg, var(--fg2) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+.sheet .field { background: var(--sheetcard); }
+.sheet .item { background: var(--sheetcard) !important; }
+.sheet .seg { background: var(--fill); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--fill); border-radius: 9px; padding: 2px; gap: 2px; }
+.seg button { height: 32px; border-radius: 7px; font-weight: 500; font-size: 14px; color: var(--fg); }
+.seg button[aria-pressed="true"] { background: var(--card); font-weight: 600; box-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04); }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { background: #636366; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button[aria-pressed="true"] { background: #636366; } }
+.field.big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; padding-block: 8px; }
+.qinfo { font-size: 14px; color: var(--fg2); background: var(--sheetcard); border-radius: 10px; padding: 10px 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.qinfo.warn { color: var(--orange); }
+
+/* settings sheet */
+.group { display: flex; flex-direction: column; gap: 6px; }
+.group .cardin { background: var(--sheetcard); border-radius: var(--round); overflow: hidden; }
+.setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 16px; position: relative; width: 100%; text-align: left; }
+.setrow + .setrow::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: .5px solid var(--sep); }
+.setrow.tap { color: var(--accent); }
+.foot { font-size: 13px; color: var(--fg2); padding: 0 16px; line-height: 1.4; }
+.switch { width: 51px; height: 31px; border-radius: 999px; background: var(--fill); position: relative; transition: background .2s; flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .15), 0 1px 1px rgba(0, 0, 0, .16); transition: transform .2s; }
+.switch[aria-checked="true"] { background: var(--green); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.swatches { display: flex; gap: 12px; flex-wrap: wrap; }
+.swatch { width: 30px; height: 30px; border-radius: 50%; background: var(--sw); box-shadow: inset 0 0 0 0 var(--card); transition: box-shadow .15s; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--sw); }
+.syncstate { font-size: 14px; color: var(--fg2); line-height: 1.4; padding: 0 16px; }
+.syncstate.ok { color: var(--green); }
+.syncstate.wait { color: var(--orange); }
+.syncstate.err { color: var(--red); }
+.datacard .note { background: var(--fill); }
+.links { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 0 16px; }
+
+/* ---- Tab bar ---- */
+nav.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: grid; grid-template-columns: repeat(3, 1fr); max-width: 520px; margin: 0 auto;
+  padding: 6px max(10px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-right, 0px));
+  background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); box-shadow: 0 -.5px 0 var(--sep);
+}
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 500; color: var(--fg2); padding: 2px 0; }
+.tab .i { font-size: 26px; }
+.tab[aria-selected="true"] { color: var(--accent); }
+
+/* ---- Toast (saved / undo) ---- */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+  background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  color: var(--fg); border-radius: 14px; padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18), 0 0 0 .5px var(--sep); max-width: calc(100% - 32px); animation: toastIn .3s cubic-bezier(.2, .9, .25, 1);
+}
+.toast .ok { width: 22px; height: 22px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 13px; flex: none; }
+.toast.error .ok { background: var(--red); }
+.toast button { color: var(--accent); font-weight: 600; padding: 6px 8px; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px) scale(.96); } }
+
+#logScreen { gap: 10px; }
+#logScreen .hero { padding: 10px 14px; row-gap: 8px; }
+.hero .digest { grid-column: 1 / -1; border-top: .5px solid var(--sep); padding-top: 8px; }
+.dg { display: flex; align-items: center; gap: 10px; }
+.dg .t { flex: 1; min-width: 0; }
+.dg .t div { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dg .t small { display: block; font-size: 12.5px; color: var(--fg2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dg .acts { display: flex; gap: 6px; }
+.dg .pill { height: 28px; padding: 0 12px; font-size: 13px; }
+#logScreen .cats { gap: 8px 6px; }
+#logScreen .banner:empty { display: none; }
+#logScreen .strip { padding-block: 7px; }
+#logScreen .navbar { min-height: 44px; }
+#lendMsg:empty { display: none; }
+@media (max-height: 920px) { .key { height: 38px; font-size: 22px; } #logScreen .amount { min-height: 44px; padding-top: 0; } #logScreen .amount .val { font-size: 40px; } .cat .tile { width: 42px; height: 42px; font-size: 21px; border-radius: 11px; } .amount { min-height: 48px; } .amount .val { font-size: 44px; } #logScreen .hero .big { font-size: 24px; } .ring { width: 44px; height: 44px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ======================================================================
+   Monochrome theme (in the spirit of minimalist black-and-white iPhone apps):
+   light grey ground, white rounded cards, black type, black bars and buttons,
+   line icons in soft grey squares. Colour is kept only for delete and errors.
+   ====================================================================== */
+:root {
+  --bg: #F2F2F2; --card: #FFFFFF; --card2: #F2F2F2; --fg: #0A0A0A; --fg2: #8A8A8A; --fg3: #C2C2C2; --sep: #E6E6E6;
+  --fill: #EFEFEF; --prev: #D6D6D6; --bar: rgba(242, 242, 242, .88); --sheet: #F2F2F2; --sheetcard: #FFFFFF;
+  --accent: #0A0A0A; --accent-ink: #FFFFFF; --tilebg: #F2F2F2; --round: 16px;
+  --c-food: var(--fg); --c-groc: var(--fg); --c-trans: var(--fg); --c-shop: var(--fg); --c-bills: var(--fg); --c-fun: var(--fg); --c-health: var(--fg); --c-other: var(--fg);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #000000; --card: #141414; --card2: #1E1E1E; --fg: #F5F5F5; --fg2: #8C8C8C; --fg3: #4A4A4A; --sep: #262626;
+  --fill: #1E1E1E; --prev: #3A3A3A; --bar: rgba(10, 10, 10, .88); --sheet: #141414; --sheetcard: #1E1E1E;
+  --accent: #F5F5F5; --accent-ink: #0A0A0A; --tilebg: #1E1E1E;
+  --c-food: var(--fg); --c-groc: var(--fg); --c-trans: var(--fg); --c-shop: var(--fg); --c-bills: var(--fg); --c-fun: var(--fg); --c-health: var(--fg); --c-other: var(--fg);
+} }
+:root[data-theme="dark"] {
+  --bg: #000000; --card: #141414; --card2: #1E1E1E; --fg: #F5F5F5; --fg2: #8C8C8C; --fg3: #4A4A4A; --sep: #262626;
+  --fill: #1E1E1E; --prev: #3A3A3A; --bar: rgba(10, 10, 10, .88); --sheet: #141414; --sheetcard: #1E1E1E;
+  --accent: #F5F5F5; --accent-ink: #0A0A0A; --tilebg: #1E1E1E;
+  --c-food: var(--fg); --c-groc: var(--fg); --c-trans: var(--fg); --c-shop: var(--fg); --c-bills: var(--fg); --c-fun: var(--fg); --c-health: var(--fg); --c-other: var(--fg);
+}
+.tile, .avatar { background: var(--tilebg); color: var(--fg); }
+.cat .tile { background: var(--card); box-shadow: none; }
+.tile.sm { background: var(--fill); }
+.navbtn, .nav, .subhead button { background: var(--card); color: var(--fg); }
+.nav:disabled { color: var(--fg3); }
+.delta.up { color: var(--fg); }
+.delta.down { color: var(--fg2); }
+.legend i { background: var(--fg) !important; }
+.legend i.prev { background: var(--prev) !important; }
+.progress i { background: var(--fg); }
+.bal.settled, .tag.back { color: var(--fg2); }
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { background: var(--accent-ink); }
+.toast .ok { background: var(--accent); color: var(--accent-ink); }
+.swipe .act.edit { background: #8E8E93; }
+.qinfo.warn { color: var(--fg); font-weight: 600; }
+.preview-pill { color: var(--fg); }
+.syncdot.ok { background: var(--fg); }
+.syncdot.wait { background: transparent; box-shadow: inset 0 0 0 1.5px var(--fg); }
+.week .days { background-image: linear-gradient(var(--sep) 1px, transparent 1px); background-size: 100% 25%; padding-bottom: 0; }
+.week .days i { background: var(--fg); max-width: 22px; border-radius: 5px 5px 2px 2px; }
+.week .days i.future { background: transparent; }
+.week .lbl, .hero .lbl, .hint { letter-spacing: 0; }
+.total, .hero .big, .week .big, .amount .val { letter-spacing: -.035em; }
+.sechead, .day, .hint { text-transform: none; font-size: 13.5px; font-weight: 500; }
+.chip { background: var(--card); }
+.lend-form .chip, .lend-form .note, .lend-form .when { background: var(--fill); }
+.btn { background: var(--fill); color: var(--fg); }
+.btn.danger { color: var(--red); }
+.pill { background: var(--fill); color: var(--fg); }
+.pill.primary { background: var(--accent); color: var(--accent-ink); }
+.when { color: var(--fg); }
+.when.past { background: var(--accent); color: var(--accent-ink); }
+.linkbtn, .sechead button, .hintrow button, .setrow.tap, .chip.add { color: var(--fg); font-weight: 600; }
+.ring .val { stroke: var(--fg); }
+.ring span { font-size: 11px; }
+
+/* ======================================================================
+   Calm home + "What is the amount?" prompt (v6)
+   ====================================================================== */
+:root { --bg: #EFEFEF; --round: 22px; --kbd: #D3D5DB; --key: #FFFFFF; --keyshadow: rgba(0, 0, 0, .28); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --kbd: #1C1C1C; --key: #3A3A3C; --keyshadow: rgba(0, 0, 0, .6); } }
+:root[data-theme="dark"] { --kbd: #1C1C1C; --key: #3A3A3C; --keyshadow: rgba(0, 0, 0, .6); }
+.navbar .brand { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.large { font-size: 32px; font-weight: 700; }
+.total { font-weight: 600; font-size: 38px; }
+.week .big { font-weight: 600; }
+.card { border-radius: var(--round); }
+
+/* glance cards */
+.glance { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.gcard { background: var(--card); border-radius: var(--round); padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; transition: transform .12s; }
+.gcard:active { transform: scale(.98); }
+.gcard span { font-size: 14px; color: var(--fg2); font-weight: 500; }
+.gcard b { font-size: 30px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+#logScreen { gap: 14px; }
+#logScreen .sechead { margin-top: 4px; }
+.logbtn {
+  position: sticky; bottom: 12px; z-index: 2; margin-top: auto; height: 54px; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 17px; font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+}
+.logbtn .i { font-size: 20px; }
+.logbtn:active { transform: scale(.98); }
+
+/* the prompt: a floating card over a dimmed screen, keyboard docked below */
+dialog.prompt {
+  position: fixed; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; margin: 0; padding: 0; border: 0;
+  background: transparent; color: var(--fg); overflow: hidden; display: none; flex-direction: column;
+}
+dialog.prompt[open] { display: flex; }
+dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: fadeIn .25s; }
+.pcard {
+  width: calc(100% - 32px); max-width: 420px; margin: calc(env(safe-area-inset-top, 0px) + 14vh) auto 0; padding: 16px; border-radius: 26px;
+  background: var(--sheet); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); display: flex; flex-direction: column; gap: 12px; animation: popIn .28s cubic-bezier(.2, .9, .25, 1);
+  max-height: calc(100% - 14vh - 24px); overflow-y: auto;
+}
+#stepCat.pcard { margin-top: calc(env(safe-area-inset-top, 0px) + 6vh); }
+@keyframes popIn { from { opacity: 0; transform: scale(.94); } }
+.ptitle { font-size: 16px; font-weight: 500; padding: 2px 4px 0; }
+.pfield { position: relative; background: var(--sheetcard); border-radius: 16px; min-height: 64px; display: grid; place-items: center; }
+.pfield .amount { min-height: 0; padding: 0; }
+.pfield .amount .val { font-size: 32px; font-weight: 600; letter-spacing: -.02em; }
+.pfield .amount .cur { font-size: 22px; font-weight: 500; }
+.pfield .amount.empty .val { color: var(--fg3); }
+.pclear { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; background: var(--fg3); color: var(--sheetcard); display: grid; place-items: center; font-size: 12px; }
+.pcard .banner { margin: -4px 0 0; min-height: 0; color: var(--red); }
+.pcard .banner:empty { display: none; }
+.pbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pbtn { height: 48px; border-radius: 999px; background: var(--fill); color: var(--fg); font-weight: 600; font-size: 16px; width: 100%; }
+.pbtn.primary { background: var(--accent); color: var(--accent-ink); }
+.pbtn:active { opacity: .75; }
+.phead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pback { display: inline-flex; align-items: center; gap: 4px; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 4px; }
+.pback .i { font-size: 18px; color: var(--fg2); }
+.plinks { display: flex; gap: 14px; }
+.plinks button { font-size: 14px; font-weight: 600; color: var(--fg2); }
+.pcard .note, .pcard .when { background: var(--sheetcard); }
+.pcard .cats { gap: 12px 6px; }
+.pcard .cat .tile { background: var(--sheetcard); width: 50px; height: 50px; border-radius: 14px; font-size: 24px; }
+.pcard .subs .chip { background: var(--sheetcard); }
+.pcard .subhead button { background: var(--sheetcard); }
+
+/* iPhone-style number pad */
+.kbd {
+  margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; background: var(--kbd);
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px)); animation: kbdUp .3s cubic-bezier(.2, .9, .25, 1);
+}
+@keyframes kbdUp { from { transform: translateY(100%); } }
+.kbd .key {
+  height: 48px; border-radius: 7px; background: var(--key); box-shadow: 0 1px 0 var(--keyshadow); color: var(--fg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 25px; font-weight: 400; line-height: 1;
+}
+.kbd .key small { font-size: 9.5px; font-weight: 600; letter-spacing: .14em; margin-top: 2px; min-height: 10px; }
+.kbd .key.flat { background: transparent; box-shadow: none; }
+.kbd .key:active { background: var(--fg3); }
+.kbd .key.flat:active { background: var(--key); }
+
+/* ======================================================================
+   Notion-inspired views: Calendar, List with filters + saved views, Templates (v8)
+   ====================================================================== */
+.viewseg { margin-top: -4px; }
+#calView, #listView { display: flex; flex-direction: column; gap: 14px; }
+#listView { gap: 12px; }
+.cal { padding: 14px 12px; gap: 8px; }
+.calhead, .calgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.calhead span { text-align: center; font-size: 12px; color: var(--fg2); font-weight: 500; }
+.calday {
+  aspect-ratio: 1 / 1.08; max-width: 100%; border-radius: 10px; background: var(--fill); display: flex; flex-direction: column;
+  justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; position: relative; min-width: 0;
+}
+.calday .n { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.calday .v { font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; width: 100%; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+.calday.blank { background: transparent; }
+.calday.future { opacity: .4; }
+.calday.lv1 { background: color-mix(in srgb, var(--fg) 14%, var(--card)); }
+.calday.lv2 { background: color-mix(in srgb, var(--fg) 32%, var(--card)); }
+.calday.lv3 { background: color-mix(in srgb, var(--fg) 58%, var(--card)); color: var(--card); }
+.calday.lv4 { background: var(--fg); color: var(--card); }
+.calday.today .n { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
+.calday[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--fg); }
+.calday.lv4[aria-pressed="true"], .calday.lv3[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--fg), inset 0 0 0 4px var(--card); }
+.callegend { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 11.5px; color: var(--fg2); padding-top: 2px; }
+.callegend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.callegend .lv1 { background: color-mix(in srgb, var(--fg) 14%, var(--card)); }
+.callegend .lv2 { background: color-mix(in srgb, var(--fg) 32%, var(--card)); }
+.callegend .lv3 { background: color-mix(in srgb, var(--fg) 58%, var(--card)); }
+.callegend .lv4 { background: var(--fg); }
+.callegend span:first-child { margin-right: 2px; }
+.callegend span:last-child { margin-left: 2px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.viewtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+.viewtabs::-webkit-scrollbar { display: none; }
+.viewtabs .chip { flex: none; }
+.fchip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; background: var(--card); font-size: 14px; font-weight: 500; color: var(--fg); }
+.fchip.on { background: var(--accent); color: var(--accent-ink); }
+.fchip .i { font-size: 12px; opacity: .6; }
+.fchip.save { color: var(--fg2); background: none; box-shadow: inset 0 0 0 1px var(--fg3); }
+.search { background: var(--card); padding-left: 14px; }
+.resultsum { display: flex; justify-content: space-between; padding: 0 4px; font-size: 14px; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.resultsum b { color: var(--fg); font-weight: 600; }
+.setrow .check { font-size: 18px; color: var(--fg); }
+.chip.tpl { box-shadow: inset 0 0 0 1.5px var(--fg); }
+.tplrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tplrow small { color: var(--fg2); font-size: 13px; }
+
+/* ======================================================================
+   Home refinements (v9): one summary card, readable greys, status in words
+   ====================================================================== */
+:root { --fg2: #6B6B6B; }   /* 4.5:1+ on the light grey ground and on white cards (WCAG AA) */
+.summary { width: 100%; align-items: center; text-align: center; padding: 22px 16px 18px; gap: 4px; transition: transform .12s; }
+.summary:active { transform: scale(.985); }
+.summary .slabel { font-size: 14px; color: var(--fg2); font-weight: 500; }
+.summary .sbig { font-size: 40px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.summary .sdelta { font-size: 14px; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.summary .ssplit { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-top: 14px; padding-top: 14px; border-top: .5px solid var(--sep); }
+.summary .ssplit > span { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.summary .ssplit > span + span { border-left: .5px solid var(--sep); }
+.summary .ssplit small { font-size: 13px; color: var(--fg2); }
+.summary .ssplit b { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.statuspill { margin-left: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--card); color: var(--fg); white-space: nowrap; }
+.statuspill.err { background: var(--red); color: #fff; }
+.ppicks { display: flex; flex-direction: column; gap: 8px; border-top: .5px solid var(--sep); padding-top: 12px; margin-top: 2px; }
+.ptitle.sm { font-size: 13px; color: var(--fg2); padding: 0 4px; }
+.ppicks .quick { margin-inline: -16px; padding-inline: 16px; }
+.ppicks .chip { background: var(--sheetcard); }
+.chip.tpl.add { box-shadow: inset 0 0 0 1.5px var(--fg3); color: var(--fg); padding-left: 12px; }
+#logScreen .logbtn { margin-top: 6px; }
+#recentList { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="app" inert>
+  <main id="main">
+    <!-- ================= HOME ================= -->
+    <section class="screen" id="logScreen">
+      <div class="navbar">
+        <div class="brand"><span class="syncdot" id="syncDot" title="Backup status" hidden></span>Pocket Ledger</div>
+        <span class="preview-pill" id="previewPill" hidden>Preview</span>
+        <button class="statuspill" type="button" id="syncPill" data-settings hidden></button>
+        <div class="acts">
+          <button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button>
+        </div>
+      </div>
+      <!-- one summary card: this month (with how it compares), then this week and this year -->
+      <button class="card summary" type="button" id="gMonth">
+        <span class="slabel" id="gMonthLbl">This Month</span>
+        <b class="sbig" id="gMonthVal">₹0</b>
+        <span class="sdelta" id="gDelta"></span>
+        <span class="ssplit">
+          <span id="gWeek"><small>This Week</small><b id="gWeekVal">₹0</b></span>
+          <span id="gYear"><small>This Year</small><b id="gYearVal">₹0</b></span>
+        </span>
+      </button>
+      <div id="logCards" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="quick" id="quickRow" hidden></div>
+      <div class="sechead"><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
+      <div class="card flush" id="recentList"></div>
+      <button class="logbtn" type="button" id="logBtn"><svg class="i"><use href="#i-plus"/></svg>Log expense</button>
+    </section>
+
+    <!-- ================= SPENDING ================= -->
+    <section class="screen" id="sumScreen" hidden>
+      <div class="navbar"><span class="small">Spending</span>
+        <div class="acts"><button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button></div>
+      </div>
+      <h1 class="large">Spending</h1>
+      <div class="viewnote" id="viewNote" hidden></div>
+      <div class="seg viewseg" id="viewSeg" role="group" aria-label="View">
+        <button type="button" data-view="overview" aria-pressed="true">Overview</button>
+        <button type="button" data-view="calendar" aria-pressed="false">Calendar</button>
+        <button type="button" data-view="list" aria-pressed="false">List</button>
+      </div>
+      <div class="monthbar" id="monthBar">
+        <button class="nav" id="prevM" aria-label="Previous month"><svg class="i"><use href="#i-back"/></svg></button>
+        <h2 id="monthName">October</h2>
+        <button class="nav" id="nextM" aria-label="Next month"><svg class="i"><use href="#i-chev"/></svg></button>
+      </div>
+
+      <!-- Calendar view: each day of the month with what you spent -->
+      <div id="calView" class="view" hidden>
+        <div class="card cal">
+          <div class="calhead"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+          <div class="calgrid" id="calGrid"></div>
+          <div class="callegend"><span>Less</span><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i><span>More</span></div>
+        </div>
+        <div class="sechead"><span id="calDayTitle">Today</span><span id="calDayTotal"></span></div>
+        <div class="card flush" id="calDayList"></div>
+      </div>
+
+      <!-- List view: search, filters and saved views -->
+      <div id="listView" class="view" hidden>
+        <div class="chips viewtabs" id="savedViews"></div>
+        <input class="note search" id="searchBox" type="search" placeholder="Search notes and categories" autocomplete="off" enterkeyhint="search">
+        <div class="chips" id="filterChips"></div>
+        <div class="resultsum" id="resultSum"></div>
+        <div id="resultList" style="display:flex;flex-direction:column;gap:14px"></div>
+      </div>
+
+      <div id="ovView" class="view" style="display:flex;flex-direction:column;gap:14px">
+      <div class="card" id="sumHero">
+        <div class="total" id="mTotal">₹0</div>
+        <div class="sub" id="mSub"></div>
+        <div class="donutwrap" id="donutWrap" hidden>
+          <svg viewBox="0 0 140 140" id="donut" role="img" aria-label="Share of spending by category"></svg>
+          <div class="legendlist" id="donutLegend"></div>
+        </div>
+      </div>
+      <div class="card week" id="weekCard"></div>
+      <div class="sechead"><span>Last 6 months</span></div>
+      <div class="card"><svg class="chart" id="trend" viewBox="0 0 340 150" role="img" aria-label="Spending per month for the last 6 months"></svg></div>
+      <div class="sechead"><span id="cmpTitle">By category</span></div>
+      <div class="card">
+        <div class="legend" id="cmpLegend"></div>
+        <div class="rows" id="catRows"></div>
+      </div>
+      <div class="sechead"><span>Payments</span><span class="swipehint" style="text-transform:none">Swipe to edit or delete</span></div>
+      <div id="list" class="stack" style="display:flex;flex-direction:column;gap:14px"></div>
+      </div>
+    </section>
+
+    <!-- ================= LENT ================= -->
+    <section class="screen" id="lentScreen" hidden>
+      <div class="navbar"><span class="small">Lent</span>
+        <div class="acts">
+          <button class="navbtn" type="button" id="addFriendBtn" aria-label="Add a friend"><svg class="i"><use href="#i-person-add"/></svg></button>
+          <button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button>
+        </div>
+      </div>
+      <h1 class="large">Lent</h1>
+      <div class="card">
+        <div class="hint">Friends owe you</div>
+        <div class="total" id="owedTotal">₹0</div>
+        <div class="sub" id="lentSub"></div>
+      </div>
+      <div id="lentCards" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="card lend-form">
+        <label class="amt-field"><span>₹</span><input id="lendAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Amount"></label>
+        <div class="chips" id="friendChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        <div class="noterow">
+          <input class="note" id="lendNote" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done">
+          <input class="when" id="lendWhen" type="date" aria-label="Date of loan or payback">
+        </div>
+        <div class="btnrow">
+          <button class="btn primary" id="btnLent" type="button">I lent this</button>
+          <button class="btn" id="btnRepaid" type="button">They paid back</button>
+        </div>
+        <div class="banner" id="lendMsg" style="margin:0"></div>
+      </div>
+      <div class="sechead"><span>Friends</span><span style="text-transform:none">Tap for profile &amp; history</span></div>
+      <div class="card flush" id="friendList"></div>
+    </section>
+  </main>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabLog" aria-selected="true"><svg class="i"><use href="#i-house"/></svg>Home</button>
+    <button class="tab" role="tab" id="tabSum" aria-selected="false"><svg class="i"><use href="#i-tab-pie"/></svg>Spending</button>
+    <button class="tab" role="tab" id="tabLent" aria-selected="false"><svg class="i"><use href="#i-tab-people"/></svg>Lent</button>
+  </nav>
+</div>
+<div class="toast" id="toast" hidden><span class="ok" id="toastIcon"><svg class="i"><use href="#i-check"/></svg></span><span id="toastMsg"></span><button id="toastBtn" type="button">Undo</button></div>
+
+<!-- Log an expense: step 1 asks "What is the amount?", step 2 "What was it for?" -->
+<dialog class="prompt" id="addSheet">
+  <div class="pcard" id="stepAmount">
+    <div class="ptitle">What is the amount?</div>
+    <div class="pfield">
+      <div class="amount empty" id="amount" aria-live="polite"><span class="cur">₹</span><span class="val" id="amountVal">0</span></div>
+      <button class="pclear" type="button" id="clearAmt" aria-label="Clear amount"><svg class="i"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="banner" id="banner"></div>
+    <div class="pbtns"><button class="pbtn" type="button" id="addCancel">Cancel</button><button class="pbtn primary" type="button" id="addDone">Done</button></div>
+    <div class="ppicks" id="promptPicksWrap" hidden><span class="ptitle sm">Or tap a recent one</span><div class="quick" id="promptPicks"></div></div>
+  </div>
+  <div class="pcard" id="stepCat" hidden>
+    <div class="phead">
+      <button class="pback" type="button" id="stepBack" aria-label="Change the amount"><svg class="i"><use href="#i-back"/></svg><span id="stepAmt">₹0</span></button>
+      <div class="plinks"><button type="button" id="loanInstead">It was a loan</button><button type="button" id="fullFormBtn">More details</button></div>
+    </div>
+    <div class="ptitle" id="catHint">What was it for?</div>
+    <div class="noterow">
+      <input class="note" id="note" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done" list="noteList">
+      <input class="when" id="when" type="date" aria-label="Date of payment">
+    </div>
+    <div class="cats" id="cats"></div>
+    <div class="subpanel" id="subPanel" hidden>
+      <div class="subhead"><button type="button" id="subBack" aria-label="Back to categories"><svg class="i"><use href="#i-back"/></svg></button><span class="tile" id="subDot"></span><span id="subTitle"></span></div>
+      <div class="subs" id="subs"></div>
+    </div>
+    <button class="pbtn" type="button" id="catCancel" style="margin-top:4px">Cancel</button>
+  </div>
+  <div class="kbd" id="pad"></div>
+</dialog>
+<datalist id="noteList"></datalist>
+
+<!-- Quick entry: every detail on one screen (opened from the home-screen shortcut and from Share) -->
+<dialog class="sheet" id="quickSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3>Quick entry</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="qinfo" id="qInfo" hidden></div>
+    <div class="seg" role="group" aria-label="What is this?">
+      <button type="button" data-kind="pay" aria-pressed="true">Payment</button>
+      <button type="button" data-kind="lent" aria-pressed="false">I lent</button>
+      <button type="button" data-kind="repaid" aria-pressed="false">Paid back</button>
+    </div>
+    <label>Amount<input class="field big" id="qAmount" type="text" inputmode="decimal" autocomplete="off" placeholder="₹0"></label>
+    <div class="two" id="qCatRow">
+      <label>Category<select class="field" id="qCat"></select></label>
+      <label>Type<select class="field" id="qSub"></select></label>
+    </div>
+    <div id="qFriendRow" class="stack" hidden>
+      <label>Friend<select class="field" id="qFriend"></select></label>
+      <label id="qNewFriendRow" hidden>New friend's name<input class="field" id="qNewFriend" type="text" maxlength="30" autocomplete="off"></label>
+    </div>
+    <label>Note<input class="field" id="qNote" type="text" maxlength="80" autocomplete="off" list="noteList" placeholder="What for? (optional)"></label>
+    <label>Date<input class="field" id="qDate" type="date"></label>
+    <div class="err" id="qErr"></div>
+    <div class="btnrow"><button class="btn" id="qSaveMore" type="button">Save &amp; add another</button><button class="btn primary" id="qSave" type="button">Save</button></div>
+  </div>
+</dialog>
+
+<!-- Edit a payment -->
+<dialog class="sheet" id="editSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3>Edit payment</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <label>Amount<input class="field big" id="edAmount" type="text" inputmode="decimal" autocomplete="off"></label>
+    <div class="two">
+      <label>Category<select class="field" id="edCat"></select></label>
+      <label>Type<select class="field" id="edSub"></select></label>
+    </div>
+    <label>Note<input class="field" id="edNote" type="text" maxlength="80" autocomplete="off" list="noteList"></label>
+    <label>Date<input class="field" id="edDate" type="date"></label>
+    <div class="err" id="edErr"></div>
+    <button class="linkbtn" id="edTpl" type="button" style="align-self:flex-start;padding-left:2px">Save as a template</button>
+    <div class="btnrow"><button class="btn danger" id="edDelete" type="button">Delete</button><button class="btn primary" id="edSave" type="button">Save changes</button></div>
+  </div>
+</dialog>
+
+<!-- Edit a loan / payback entry -->
+<dialog class="sheet" id="loanSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3>Edit entry</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="two">
+      <label>Friend<select class="field" id="leFriend"></select></label>
+      <label>Type<select class="field" id="leType"><option value="lent">I lent</option><option value="repaid">They paid back</option></select></label>
+    </div>
+    <label>Amount<input class="field big" id="leAmount" type="text" inputmode="decimal" autocomplete="off"></label>
+    <label>Note<input class="field" id="leNote" type="text" maxlength="80" autocomplete="off"></label>
+    <label>Date<input class="field" id="leDate" type="date"></label>
+    <div class="err" id="leErr"></div>
+    <div class="btnrow"><button class="btn danger" id="leDelete" type="button">Delete</button><button class="btn primary" id="leSave" type="button">Save changes</button></div>
+  </div>
+</dialog>
+
+<!-- Friend profile + history -->
+<dialog class="sheet" id="friendSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3 id="fsTitle">Friend</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div id="fsSummary" class="stack"></div>
+    <div class="group"><div class="cardin">
+      <div class="setrow"><span>Remind me on</span><input class="when" id="fsRemind" type="date" aria-label="Reminder date"></div>
+    </div></div>
+    <div id="fsHistory" class="stack" style="gap:0"></div>
+    <details class="fsedit" id="fsEdit">
+      <summary>Edit profile</summary>
+      <div class="stack">
+        <label>Name<input class="field" id="fsName" type="text" maxlength="30" autocomplete="off"></label>
+        <label>Phone (optional)<input class="field" id="fsPhone" type="tel" maxlength="20" autocomplete="off"></label>
+        <label>Note<input class="field" id="fsNote" type="text" maxlength="80" autocomplete="off"></label>
+        <div class="err" id="fsErr"></div>
+        <div class="btnrow"><button class="btn danger" id="fsDelete" type="button">Remove profile</button><button class="btn primary" id="fsSave" type="button">Save profile</button></div>
+      </div>
+    </details>
+  </div>
+</dialog>
+
+<!-- Pick one option (filters, saving a view) -->
+<dialog class="sheet" id="pickSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3 id="pickTitle">Choose</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div id="pickExtra" class="stack" hidden></div>
+    <div class="group"><div class="cardin" id="pickList"></div></div>
+  </div>
+</dialog>
+
+<!-- Template: a saved entry you can log with one tap -->
+<dialog class="sheet" id="tplSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3 id="tplTitle">New template</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <label>Name<input class="field" id="tplNote" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Rent, Gym, Chai"></label>
+    <label>Amount (leave empty if it changes)<input class="field big" id="tplAmount" type="text" inputmode="decimal" autocomplete="off" placeholder="₹ —"></label>
+    <div class="two">
+      <label>Category<select class="field" id="tplCat"></select></label>
+      <label>Type<select class="field" id="tplSub"></select></label>
+    </div>
+    <div class="err" id="tplErr"></div>
+    <div class="btnrow"><button class="btn danger" id="tplDelete" type="button">Delete</button><button class="btn primary" id="tplSave" type="button">Save template</button></div>
+  </div>
+</dialog>
+
+<!-- Settings -->
+<dialog class="sheet" id="setSheet">
+  <div class="grab"></div>
+  <div class="stack" style="gap:22px">
+    <div class="head"><h3>Settings</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Appearance</div>
+      <div class="cardin">
+        <div class="setrow"><div class="seg" id="themeSeg" style="width:100%" role="group" aria-label="Appearance">
+          <button type="button" data-theme-choice="auto" aria-pressed="true">Automatic</button>
+          <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+          <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+        </div></div>
+        <div class="setrow" hidden><span>Accent colour</span><div class="swatches" id="accentRow"></div></div>
+      </div>
+    </div>
+
+    <div class="group datacard" id="backupCard">
+      <div class="hint" style="padding-left:16px">Google Sheet backup</div>
+      <div class="cardin">
+        <div id="connectBox" class="setrow" style="flex-direction:column;align-items:stretch">
+          <span class="sub">Everything is saved on this phone. Paste your sync link to back it up to your Google Sheet; changes made offline are sent as soon as you have signal.</span>
+          <div class="noterow">
+            <input class="note" id="syncLinkInput" type="url" placeholder="Paste your sync link" autocomplete="off">
+            <button class="btn primary" id="connectBtn" type="button" style="height:44px">Connect</button>
+          </div>
+        </div>
+        <div id="connectedBox">
+          <button class="setrow tap" id="syncNowBtn" type="button">Sync now</button>
+          <button class="setrow tap" id="pullBtn" type="button">Bring in from sheet</button>
+        </div>
+        <button class="setrow tap" id="excelBtn" type="button">Download Excel file</button>
+        <a class="setrow tap linkbtn" id="sheetLink" href="#" target="_blank" rel="noopener" hidden>Open my Google Sheet</a>
+        <button class="setrow tap" id="changeLinkBtn" type="button" hidden>Change sync link</button>
+      </div>
+      <div class="syncstate" id="syncState"></div>
+    </div>
+
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Templates</div>
+      <div class="cardin" id="tplList"></div>
+      <div class="foot">One-tap entries for things you pay often. Templates are kept on this phone.</div>
+    </div>
+
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Reminders</div>
+      <div class="cardin">
+        <div class="setrow"><span>Evening reminder</span><button class="switch" id="remindBtn" type="button" role="switch" aria-checked="false" aria-label="Evening reminder"></button></div>
+        <button class="setrow tap" id="testNotifBtn" type="button">Send a test notification</button>
+      </div>
+      <div class="syncstate" id="remindState"></div>
+      <div class="foot">A daily nudge after 5 pm if you might have missed a payment. Android decides the exact time, so treat it as a backup.</div>
+    </div>
+
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Shortcuts &amp; sharing</div>
+      <div class="cardin">
+        <button class="setrow tap" id="installBtn" type="button" hidden>Install Pocket Ledger on this phone</button>
+        <div class="setrow"><span class="sub">Long-press the app icon for Quick entry, Log payment, Lend money and This week. Drag one onto your home screen for its own icon.</span></div>
+        <div class="setrow"><span class="sub">From a bank SMS or payment receipt: tap Share → Pocket Ledger and the amount is filled in.</span></div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- Icons (drawn for this app; 24×24 line icons) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+    <symbol id="i-person-add" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></symbol>
+    <symbol id="i-tab-log" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/></symbol>
+    <symbol id="i-tab-pie" viewBox="0 0 24 24"><path d="M12 3v9h9a9 9 0 1 1-9-9z"/><path d="M15 3.5a9 9 0 0 1 5.5 5.5H15z"/></symbol>
+    <symbol id="i-tab-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.2c2.6.3 4.5 2.6 4.5 5.8"/></symbol>
+    <!-- categories -->
+    <symbol id="i-food" viewBox="0 0 24 24"><path d="M6 3v7a2 2 0 0 0 4 0V3M8 10v11M17 21V3c-2.2 1.2-3.5 3.8-3.5 7v3H17"/></symbol>
+    <symbol id="i-basket" viewBox="0 0 24 24"><path d="M3 10h18l-1.8 9.2A2 2 0 0 1 17.2 21H6.8a2 2 0 0 1-2-1.8z"/><path d="M8 10l3-6M16 10l-3-6M9 14v3M15 14v3"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M5 17V12l2-5h10l2 5v5z"/><path d="M5 12h14"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 8h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M14 8v2M14 14v2"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><circle cx="7.5" cy="7.5" r="1.8"/><circle cx="16.5" cy="7.5" r="1.8"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/></symbol>
+    <symbol id="i-question" viewBox="0 0 24 24"><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></symbol>
+    <!-- types -->
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M3 9.5a13 13 0 0 1 18 0M6 13a8.5 8.5 0 0 1 12 0M9 16.5a4 4 0 0 1 6 0M12 19.5v.01"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5.5 9.5V20h13V9.5M10 20v-5h4v5"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 3.5 5.5 5.5 5.5 10.5a5.5 5.5 0 0 1-11 0c0-2.6 1.6-4.3 2.7-5.3.4 2 1.4 3 2.6 3.3 0-3.2-.9-5.6.2-8.5z"/></symbol>
+    <symbol id="i-tv" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 21h8M9 3l3 3 3-3"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.8-3.4 8-8 9-4.6-1-8-4.2-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-fuel" viewBox="0 0 24 24"><path d="M5 21V5a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v16M3.5 21h12M8 8h3M14 10h1.5a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V9l-3-3"/></symbol>
+    <symbol id="i-bus" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14M8 18v3M16 18v3"/><circle cx="8.5" cy="14.5" r=".8"/><circle cx="15.5" cy="14.5" r=".8"/></symbol>
+    <symbol id="i-parking" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M10 17V7h3a3 3 0 0 1 0 6h-3"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 4.5a4.5 4.5 0 0 0-5.8 5.8L3.5 15.5 8.5 20.5l5.2-5.2a4.5 4.5 0 0 0 5.8-5.8l-2.8 2.8-3-3z"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5l9 4.5 9-4.5M12 12v9"/></symbol>
+    <symbol id="i-cup" viewBox="0 0 24 24"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16M9 3v3M12.5 3v3"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 20c0-9 6-15 15-15 0 9-6 15-15 15z"/><path d="M5 20l8-8"/></symbol>
+    <symbol id="i-bottle" viewBox="0 0 24 24"><path d="M9.5 3h5v3l2 3v12h-9V9l2-3z"/><path d="M7.5 13h9"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2.5l2.2 10.5h10.8L21 7H6.2"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></symbol>
+    <symbol id="i-egg" viewBox="0 0 24 24"><path d="M12 3c3.8 0 7 6 7 11a7 7 0 0 1-14 0c0-5 3.2-11 7-11z"/></symbol>
+    <symbol id="i-shirt" viewBox="0 0 24 24"><path d="M8.5 3L3 6l2 4.5 2-1V21h10V9.5l2 1L21 6l-5.5-3a3.5 3.5 0 0 1-7 0z"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="10" rx="1.5"/><path d="M2.5 19h19"/></symbol>
+    <symbol id="i-sofa" viewBox="0 0 24 24"><path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 13a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3zM6 18v2M18 18v2"/></symbol>
+    <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7.5 4v16M16.5 4v16M3 9h4.5M16.5 9H21M3 15h4.5M16.5 15H21"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9v6l5-3z"/></symbol>
+    <symbol id="i-mountain" viewBox="0 0 24 24"><path d="M2.5 20l6.5-11 4.5 7 2.5-3.5L21.5 20z"/><circle cx="17" cy="6" r="1.8"/></symbol>
+    <symbol id="i-game" viewBox="0 0 24 24"><path d="M6.5 8h11a4 4 0 0 1 4 4v1.5a3 3 0 0 1-5.4 1.8L15 14H9l-1.1 1.3A3 3 0 0 1 2.5 13.5V12a4 4 0 0 1 4-4z"/><path d="M7.5 10.5v3M6 12h3M15.5 11.5h.01M17.5 13h.01"/></symbol>
+    <symbol id="i-pill" viewBox="0 0 24 24"><path d="M10.6 4.2a5 5 0 0 1 7.1 7.1l-6.4 6.4a5 5 0 0 1-7.1-7.1z"/><path d="M7.5 7.5l7 7"/></symbol>
+    <symbol id="i-steth" viewBox="0 0 24 24"><path d="M6 3v5a4 4 0 0 0 8 0V3M10 12v3a5 5 0 0 0 10 0v-3"/><circle cx="20" cy="10" r="2"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 7v10M3.5 9.5v5M17.5 7v10M20.5 9.5v5M6.5 12h11"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13M12 8C10 4 6.5 4 6.5 6.3S12 8 12 8zm0 0c2-4 5.5-4 5.5-1.7S12 8 12 8z"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2zM4 20a2 2 0 0 0 2 1h13v-3"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 3l1.8 4.7 4.7 1.8-4.7 1.8L11 16l-1.8-4.7-4.7-1.8 4.7-1.8zM18 14l.9 2.1 2.1.9-2.1.9L18 20l-.9-2.1-2.1-.9 2.1-.9z"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="3"/></symbol>
+  </defs>
+</svg>
+
+<script>
+/* ======================================================================
+   Pocket Ledger — offline-first expense and lending tracker.
+   Everything is saved on the phone (localStorage) first. Each change also
+   goes into an "outbox", which is sent to the Google Sheet (through a small
+   Apps Script web app) whenever the phone is online. Every entry has a
+   permanent ID and the sheet updates rows by ID, so nothing is ever doubled.
+
+   EASY THINGS TO CHANGE:
+   - CUR: the currency sign
+   - CATS: categories, their colour, icon and detailed types (SUB_ICONS gives each type its icon).
+     A payment's category is saved as "Bills: Electricity" (or just "Bills").
+   ====================================================================== */
+// The preview link (…/pocket-ledger-preview/) uses its own sample data and never syncs,
+// so trying a new design can't touch real payments or the Google Sheet.
+const PREVIEW = /pocket-ledger-preview/.test(location.pathname);
+// The read-only link (…/pocket-ledger/view/) shows only Spending, from the sheet's view-only key. It never writes anything.
+const VIEWER = /\/view\/(index\.html)?$/.test(location.pathname);
+if (VIEWER) document.documentElement.classList.add("viewer");
+const CUR = "₹";
+const CATS = [
+  { name: "Food", c: "--c-food", icon: "food", subs: ["Eating out", "Food delivery", "Snacks & chai", "Office lunch"] },
+  { name: "Groceries", c: "--c-groc", icon: "basket", subs: ["Vegetables & fruits", "Milk & dairy", "Supermarket", "Meat & eggs"] },
+  { name: "Transport", c: "--c-trans", icon: "car", subs: ["Fuel", "Auto & cab", "Bus, train & metro", "Parking & tolls", "Vehicle service"] },
+  { name: "Shopping", c: "--c-shop", icon: "bag", subs: ["Clothes", "Electronics", "Home & kitchen", "Online orders"] },
+  { name: "Bills", c: "--c-bills", icon: "receipt", subs: ["Electricity", "Mobile recharge", "Internet & WiFi", "Rent", "Water", "Gas cylinder", "DTH / TV", "EMI & loans", "Insurance"] },
+  { name: "Fun", c: "--c-fun", icon: "ticket", subs: ["Movies & events", "Subscriptions", "Outings & trips", "Games"] },
+  { name: "Health", c: "--c-health", icon: "heart", subs: ["Medicines", "Doctor & tests", "Gym & fitness"] },
+  { name: "Other", c: "--c-other", icon: "grid", subs: ["Gifts", "Education", "Personal care", "Donations", "Miscellaneous"] },
+];
+const SUB_ICONS = {
+  "Eating out": "food", "Food delivery": "box", "Snacks & chai": "cup", "Office lunch": "briefcase",
+  "Vegetables & fruits": "leaf", "Milk & dairy": "bottle", "Supermarket": "cart", "Meat & eggs": "egg",
+  "Fuel": "fuel", "Auto & cab": "car", "Bus, train & metro": "bus", "Parking & tolls": "parking", "Vehicle service": "wrench",
+  "Clothes": "shirt", "Electronics": "laptop", "Home & kitchen": "sofa", "Online orders": "box",
+  "Electricity": "bolt", "Mobile recharge": "phone", "Internet & WiFi": "wifi", "Rent": "house", "Water": "drop",
+  "Gas cylinder": "flame", "DTH / TV": "tv", "EMI & loans": "card", "Insurance": "shield",
+  "Movies & events": "film", "Subscriptions": "play", "Outings & trips": "mountain", "Games": "game",
+  "Medicines": "pill", "Doctor & tests": "steth", "Gym & fitness": "dumbbell",
+  "Gifts": "gift", "Education": "book", "Personal care": "sparkle", "Donations": "heart", "Miscellaneous": "dots",
+};
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const fmt = (v) => CUR + Number(v).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const fmtShort = (v) => (v >= 100000 ? CUR + (v / 100000).toFixed(v >= 1000000 ? 0 : 1).replace(/\.0$/, "") + "L" : v >= 1000 ? CUR + (v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, "") + "k" : CUR + Math.round(v));
+const UNCAT = "Needs category";
+const mainOf = (cat) => (cat ? String(cat).split(":")[0].trim() : "") || UNCAT;
+const subOf = (cat) => { const i = String(cat || "").indexOf(":"); return i < 0 ? "" : String(cat).slice(i + 1).trim(); };
+const catLabel = (cat) => subOf(cat) || mainOf(cat);
+const catOf = (cat) => CATS.find((c) => c.name === mainOf(cat));
+const catColor = (cat) => "var(" + ((catOf(cat) || CATS[7]).c) + ")";
+const iconFor = (cat) => SUB_ICONS[subOf(cat)] || (catOf(cat) ? catOf(cat).icon : "question");
+const dayKey = (ts) => { const d = new Date(ts); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+const isoDay = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const newId = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const parseAmount = (s) => Math.round(parseFloat(String(s).replace(/[,\s₹]/g, "")) * 100) / 100;
+const DAY = 864e5;
+const weekStart = (t) => { const x = new Date(t); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return +x; };   // Monday
+const sumIn = (list, a, b) => list.reduce((s, e) => (e.ts >= a && e.ts < b ? s + e.amount : s), 0);
+const initials = (n) => n.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+/* ---------- icons, tiles, avatars ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function ico(name) {
+  const s = document.createElementNS(SVGNS, "svg"), u = document.createElementNS(SVGNS, "use");
+  s.setAttribute("class", "i"); s.setAttribute("aria-hidden", "true"); u.setAttribute("href", "#i-" + name); s.append(u);
+  return s;
+}
+function tile(cat, size) { const t = el("span", "tile" + (size ? " " + size : "")); t.style.setProperty("--cc", catColor(cat)); t.append(ico(iconFor(cat))); return t; }
+const AVATAR_COLORS = ["--c-trans", "--c-shop", "--c-groc", "--c-food", "--c-bills", "--c-fun", "--c-health"];
+function avatar(name, small) {
+  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const a = el("span", "avatar" + (small ? " sm" : ""), initials(name));
+  a.style.setProperty("--cc", "var(" + AVATAR_COLORS[h % AVATAR_COLORS.length] + ")");
+  a.setAttribute("aria-hidden", "true");
+  return a;
+}
+const buzz = () => { try { if (navigator.vibrate) navigator.vibrate(10); } catch {} };   // a light tap, like iOS haptics
+// Numbers glide to their new value (skipped when the phone asks for reduced motion)
+function countTo(node, v) {
+  const from = Number(node.dataset.v || 0); node.dataset.v = v;
+  cancelAnimationFrame(node._raf);
+  if (from === v || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) { node.textContent = fmt(v); return; }
+  const t0 = performance.now(), dur = 450;
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    node.textContent = k < 1 ? fmt(Math.round(from + (v - from) * e)) : fmt(v);
+    if (k < 1) node._raf = requestAnimationFrame(step);
+  };
+  node._raf = requestAnimationFrame(step);
+}
+function emptyState(icon, title, text) {
+  const d = el("div", "empty-state"), t = el("span", "tile"); t.append(ico(icon));
+  d.append(t, el("b", "", title), el("span", "", text));
+  return d;
+}
+
+/* ---------- saved on the phone ---------- */
+const P = PREVIEW ? "pv-" : VIEWER ? "vw-" : "pl-";
+const K = { ex: P + "expenses", ln: P + "loans", fr: P + "friends", out: P + "outbox", link: P + "sync-link", last: P + "last-sync",
+  sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent",
+  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src" };
+const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+
+/* ---------- IndexedDB for the lists that keep growing ----------
+   Payments, loans, friends and the sync outbox live in IndexedDB (no practical size limit).
+   Small settings stay in localStorage. On the first start after this change the lists are
+   copied over from localStorage and checked; the old copy is left untouched as a backup. */
+const BIG = new Set([K.ex, K.ln, K.fr, K.out]);
+const FALLBACK = P + "idb-fallback";   // lists that couldn't be written to IndexedDB and were saved the old way
+let idb = null, storeReady = false;
+const keep = (k, v) => {
+  if (BIG.has(k)) {
+    if (!storeReady) return;   // never write a list before it has been loaded (protects the backup copy)
+    if (idb) { idbPut(k, v); return; }
+  }
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+};
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(P + "db", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error("blocked"));
+  });
+}
+function idbReq(mode, fn) {
+  return new Promise((res, rej) => {
+    const tx = idb.transaction("kv", mode), r = fn(tx.objectStore("kv"));
+    tx.oncomplete = () => res(r && r.result); tx.onerror = tx.onabort = () => rej(tx.error);
+  });
+}
+const idbGet = (k) => idbReq("readonly", (s) => s.get(k));
+function idbPut(k, v) {
+  return idbReq("readwrite", (s) => s.put(v, k)).catch(() => {
+    // couldn't write to IndexedDB: save this list the old way so nothing is lost, and copy it back next start
+    try { localStorage.setItem(k, JSON.stringify(v)); keepFallback(k); } catch {}
+  });
+}
+function keepFallback(k) { const f = load(FALLBACK, []); if (!f.includes(k)) { f.push(k); localStorage.setItem(FALLBACK, JSON.stringify(f)); } }
+async function openStore() {
+  try {
+    if (!("indexedDB" in window)) throw new Error("no IndexedDB");
+    idb = await idbOpen();
+    if (!(await idbGet("__migrated"))) {
+      for (const k of BIG) { const v = load(k, null); if (v) await idbReq("readwrite", (s) => s.put(v, k)); }
+      for (const k of BIG) { const v = load(k, null); if (v && JSON.stringify(await idbGet(k)) !== JSON.stringify(v)) throw new Error("copy check failed"); }
+      await idbReq("readwrite", (s) => s.put(Date.now(), "__migrated"));
+    }
+    for (const k of load(FALLBACK, [])) { const v = load(k, null); if (v) await idbReq("readwrite", (s) => s.put(v, k)); }
+    localStorage.removeItem(FALLBACK);
+    expenses = (await idbGet(K.ex)) || []; loans = (await idbGet(K.ln)) || []; friends = (await idbGet(K.fr)) || []; outbox = (await idbGet(K.out)) || [];
+  } catch {
+    idb = null;   // IndexedDB unavailable: carry on with the old storage
+    expenses = load(K.ex, []); loans = load(K.ln, []); friends = load(K.fr, []); outbox = load(K.out, []);
+  }
+  storeReady = true;
+}
+
+let expenses = [];   // [{id, amount, cat, note, ts}] newest first
+let loans = [];      // [{id, friend, amount, type: "lent" | "repaid", note, ts}] newest first
+let friends = [];    // [{id, name, phone, monthly, day, note, updated}]
+let outbox = [];     // [{seq, op: "put" | "del", kind: "e" | "l" | "f", id, rec}]
+
+const byNewest = (a, b) => b.ts - a.ts;
+function putExpense(e) { expenses = [e, ...expenses.filter((x) => x.id !== e.id)].sort(byNewest); keep(K.ex, expenses); queue("put", "e", e); renderAll(); }
+function delExpense(id) { expenses = expenses.filter((x) => x.id !== id); keep(K.ex, expenses); queue("del", "e", { id }); renderAll(); }
+function putLoan(l) { loans = [l, ...loans.filter((x) => x.id !== l.id)].sort(byNewest); keep(K.ln, loans); queue("put", "l", l); renderAll(); }
+function delLoan(id) { loans = loans.filter((x) => x.id !== id); keep(K.ln, loans); queue("del", "l", { id }); renderAll(); }
+function putFriend(f) { f.updated = Date.now(); friends = [...friends.filter((x) => x.id !== f.id), f]; keep(K.fr, friends); queue("put", "f", f); renderAll(); }
+function delFriend(id) { friends = friends.filter((x) => x.id !== id); keep(K.fr, friends); queue("del", "f", { id }); renderAll(); }
+
+/* ---------- back-dating: the date boxes start at today; a past date sticks until changed ---------- */
+function tsFrom(inputId) {
+  const v = $(inputId).value;
+  const today = isoDay(new Date());
+  if (!v || v >= today) return Date.now();
+  const [y, m, d] = v.split("-").map(Number);
+  const now = new Date();
+  return +new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());   // keeps entries in the order you typed them
+}
+function moveToDay(ts, iso) {   // same time of day, different date (used when editing)
+  const [y, m, d] = iso.split("-").map(Number), t = new Date(ts);
+  return +new Date(y, m - 1, d, t.getHours(), t.getMinutes(), t.getSeconds());
+}
+const pastLabel = (ts) => (dayKey(ts) === dayKey(Date.now()) ? "" : " · " + new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" }));
+function setupDateBox(id) {
+  const box = $(id);
+  const sync = () => {
+    const today = isoDay(new Date());
+    box.max = today;
+    if (!box.value || box.value > today) box.value = today;
+    box.classList.toggle("past", box.value < today);
+  };
+  box.addEventListener("change", sync);
+  box.addEventListener("focus", sync);
+  sync();
+}
+
+/* ======================================================================
+   Google Sheet sync
+   The sync link is the Apps Script web app address with ?key=... on the end.
+   Friend profiles ("f") are only sent once the sheet script says it is version 2
+   or newer; until then they wait safely in the outbox.
+   ====================================================================== */
+let flushing = false, flushTimer = null, syncProblem = "";
+const syncLink = () => (PREVIEW || VIEWER ? "" : load(K.link, ""));   // the preview and the viewer never sync
+const sheetVersion = () => load(K.srv, 1);
+const sendable = (o) => o.kind !== "f" || sheetVersion() >= 2;
+
+// Tell apart "no internet" from "the link reached Google but not your sheet's script"
+async function readReply(res) {
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!data || typeof data.ok !== "boolean") throw Object.assign(new Error("not-script"), { fromSheet: true });
+  if (!data.ok) throw Object.assign(new Error(data.error || "refused"), { fromSheet: true });
+  keep(K.srv, data.version || 1);
+  if (data.sheetUrl) keep(K.sheet, data.sheetUrl);
+  return data;
+}
+function problemOf(err) {
+  if (err && err.fromSheet) return err.message;
+  // Once the link has worked, a failed request just means weak signal; before that it may be a setup problem
+  return navigator.onLine === false || load(K.last, 0) ? "network" : "unreachable";
+}
+const PROBLEMS = {
+  "bad key": "Your sheet didn't accept the key at the end of the link. Tap “Change sync link” and paste it again.",
+  "not-script": "This link reaches Google but not your sheet's sync script. Copy the Web app URL from Apps Script → Deploy → Manage deployments (it ends in /exec), add ?key=… and paste it again.",
+  "unreachable": "Couldn't reach your sheet. In Apps Script → Deploy → Manage deployments, check that “Who has access” is set to Anyone.",
+};
+
+function queue(op, kind, rec) {
+  outbox = outbox.filter((o) => !(o.kind === kind && o.id === rec.id));   // only the latest change per entry matters
+  outbox.push({ seq: Date.now() + Math.random(), op, kind, id: rec.id, rec: op === "put" ? rec : null });
+  keep(K.out, outbox);
+  scheduleFlush(1500);
+}
+function scheduleFlush(ms) { clearTimeout(flushTimer); flushTimer = setTimeout(flush, ms); updateSyncUI(); }
+
+function sheetRow(kind, r) {
+  if (kind === "f") return { id: r.id, name: r.name, phone: r.phone || "", monthly: Number(r.monthly) || 0, day: Number(r.day) || 0, note: r.note || "", updated: r.updated || Date.now() };
+  const d = new Date(r.ts), p = (n) => String(n).padStart(2, "0");
+  const base = { id: r.id, ts: r.ts, date: isoDay(d), time: p(d.getHours()) + ":" + p(d.getMinutes()), month: d.getFullYear() + "-" + p(d.getMonth() + 1), amount: r.amount, note: r.note || "" };
+  return kind === "e" ? { ...base, cat: r.cat || "Uncategorised" } : { ...base, friend: r.friend, type: r.type === "lent" ? "Lent" : "Paid back" };
+}
+
+async function flush() {
+  updateSyncUI();
+  if (flushing || !syncLink()) return;
+  const batch = outbox.filter(sendable).slice(0, 200);
+  if (!batch.length) return;
+  if (!navigator.onLine) return;
+  flushing = true; updateSyncUI();
+  try {
+    const res = await fetch(syncLink(), {
+      method: "POST", redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },   // plain text keeps the request simple for Google
+      body: JSON.stringify({ ops: batch.map((o) => (o.op === "del" ? { op: "del", kind: o.kind, id: o.id } : { op: "put", kind: o.kind, row: sheetRow(o.kind, o.rec) })) }),
+    });
+    await readReply(res);
+    const sent = new Set(batch.map((o) => o.seq));
+    outbox = outbox.filter((o) => !sent.has(o.seq));
+    keep(K.out, outbox); keep(K.last, Date.now());
+    syncProblem = "";
+  } catch (err) {
+    syncProblem = problemOf(err);
+  }
+  flushing = false; updateSyncUI();
+  if (outbox.some(sendable) && !syncProblem) scheduleFlush(300);
+}
+
+async function pullFromSheet(quiet) {
+  if (!syncLink()) return false;
+  try {
+    const res = await fetch(syncLink(), { redirect: "follow" });
+    const data = await readReply(res);
+    const deleting = new Set(outbox.filter((o) => o.op === "del").map((o) => o.id));
+    const haveE = new Set(expenses.map((e) => e.id)), haveL = new Set(loans.map((l) => l.id)), haveF = new Set(friends.map((f) => f.id));
+    const newE = (data.expenses || []).filter((e) => e.id && !haveE.has(e.id) && !deleting.has(e.id))
+      .map((e) => ({ id: e.id, ts: e.ts, amount: Number(e.amount), cat: e.cat === "Uncategorised" ? "" : e.cat || "", note: e.note || "" }));
+    const newL = (data.loans || []).filter((l) => l.id && !haveL.has(l.id) && !deleting.has(l.id))
+      .map((l) => ({ id: l.id, ts: l.ts, amount: Number(l.amount), friend: l.friend, type: l.type === "Lent" ? "lent" : "repaid", note: l.note || "" }));
+    const newF = (data.friends || []).filter((f) => f.id && !haveF.has(f.id) && !deleting.has(f.id) && !friends.some((x) => x.name === f.name))
+      .map((f) => ({ id: f.id, name: f.name, phone: f.phone || "", monthly: Number(f.monthly) || 0, day: Number(f.day) || 0, note: f.note || "", updated: f.updated || 0 }));
+    expenses = expenses.concat(newE).sort(byNewest); keep(K.ex, expenses);
+    loans = loans.concat(newL).sort(byNewest); keep(K.ln, loans);
+    friends = friends.concat(newF); keep(K.fr, friends);
+    renderAll();
+    syncProblem = ""; keep(K.last, Date.now()); updateSyncUI();
+    if (!quiet || newE.length || newL.length) showToast("Brought in " + newE.length + " payments and " + newL.length + " loan entries from your sheet.");
+    if (outbox.some(sendable)) scheduleFlush(300);
+    return true;
+  } catch (err) {
+    syncProblem = problemOf(err);
+    updateSyncUI();
+    return false;
+  }
+}
+
+function ago(ts) {
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return m + " min ago";
+  const h = Math.round(m / 60);
+  return h < 24 ? h + " h ago" : new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+function updateSyncUI() {
+  const linked = !!syncLink();
+  $("connectBox").hidden = linked; $("connectedBox").hidden = !linked;
+  $("changeLinkBtn").hidden = !linked;
+  const sheetUrl = load(K.sheet, "");
+  $("sheetLink").hidden = !sheetUrl; if (sheetUrl) $("sheetLink").href = sheetUrl;
+  const n = outbox.filter(sendable).length, held = outbox.length - n, last = load(K.last, 0);
+  let msg = "", cls = "", dot = "";
+  if (!linked) { msg = outbox.length ? outbox.length + " changes saved on this phone, ready to back up once you connect." : ""; }
+  else if (syncProblem && syncProblem !== "network") { msg = PROBLEMS[syncProblem] || "Your sheet reported a problem: " + syncProblem; cls = dot = "err"; }
+  else if (flushing) { msg = "Backing up " + n + (n === 1 ? " change…" : " changes…"); cls = dot = "wait"; }
+  else if (n) { msg = n + (n === 1 ? " change is" : " changes are") + " saved on this phone and will back up when you have signal."; cls = dot = "wait"; }
+  else if (held) { msg = "Payments are backed up. Friend profiles will back up once you update the sheet script (paste the new Code.gs and deploy a new version)."; cls = "wait"; dot = "ok"; }
+  else { msg = "Everything is backed up" + (last ? " · last synced " + ago(last) : "") + "."; cls = dot = "ok"; }
+  $("syncState").textContent = msg; $("syncState").className = "syncstate" + (cls ? " " + cls : "");
+  $("syncDot").className = "syncdot" + (dot ? " " + dot : "");
+  let ptxt = "";   // shown next to the app name only when something needs attention
+  if (dot === "err") ptxt = "Backup problem";
+  else if (linked && n) ptxt = n + " to back up";
+  else if (!linked && outbox.length) ptxt = "Not backed up";
+  $("syncPill").textContent = ptxt; $("syncPill").hidden = !ptxt || PREVIEW; $("syncPill").classList.toggle("err", dot === "err");
+  $("syncPill").setAttribute("aria-label", (ptxt || "Backed up") + ". Open backup settings");
+  $("syncDot").title = msg || "Not backed up to a Google Sheet yet";
+}
+
+$("connectBtn").onclick = async () => {
+  const v = $("syncLinkInput").value.trim();
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec\?key=[A-Za-z0-9_-]+$/.test(v)) {
+    $("syncState").className = "syncstate err";
+    $("syncState").textContent = "That doesn't look like your sync link. It starts with https://script.google.com/macros/s/ and ends with ?key=…";
+    return;
+  }
+  keep(K.link, v);
+  $("syncState").className = "syncstate wait"; $("syncState").textContent = "Connecting…";
+  if (await pullFromSheet(false)) { flush(); }
+  else if (syncProblem === "network") { $("syncState").textContent = "Saved the link. You're offline, so it will connect when you have signal."; }
+};
+$("changeLinkBtn").onclick = () => { $("syncLinkInput").value = syncLink(); keep(K.link, ""); syncProblem = ""; updateSyncUI(); $("syncLinkInput").focus(); };
+$("syncNowBtn").onclick = () => { syncProblem = ""; flush(); };
+$("pullBtn").onclick = () => pullFromSheet(false);
+
+window.addEventListener("online", () => { if (syncProblem === "network" || syncProblem === "unreachable") syncProblem = ""; flush(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { flush(); renderAll(); } });
+setInterval(() => { if (!document.hidden) flush(); }, 60000);
+
+/* ---------- Excel / CSV download ---------- */
+function exportRows() {
+  const asc = (a, b) => a.ts - b.ts;
+  const ex = expenses.slice().sort(asc).map((e) => { const r = sheetRow("e", e); return [r.date, r.time, r.month, r.amount, mainOf(e.cat), subOf(e.cat), r.note]; });
+  const ln = loans.slice().sort(asc).map((l) => { const r = sheetRow("l", l); return [r.date, r.time, r.month, r.friend, r.type, r.amount, r.note]; });
+  return { ex, ln };
+}
+function saveBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+}
+$("excelBtn").onclick = async () => {
+  const { ex, ln } = exportRows();
+  const stamp = isoDay(new Date());
+  const H1 = ["Date", "Time", "Month", "Amount", "Category", "Type", "Note"], H2 = ["Date", "Time", "Month", "Friend", "Type", "Amount", "Note"];
+  try {
+    if (!window.XLSX) await loadScript("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js")   // official SheetJS build (newest);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([H1, ...ex]), "Expenses");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([H2, ...ln]), "Lending");
+    saveBlob(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "Pocket Ledger " + stamp + ".xlsx");
+  } catch {
+    // Offline: the Excel library can't load, so save a CSV (Excel opens it too)
+    const csv = (rows) => rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+    saveBlob(new Blob(["﻿" + csv([H1, ...ex]) + "\r\n\r\n" + csv([H2, ...ln])], { type: "text/csv" }), "Pocket Ledger " + stamp + ".csv");
+    showToast("You're offline, so this saved a CSV file. Excel opens it too.");
+  }
+};
+
+/* ======================================================================
+   Friends: profiles + anyone who appears in a loan entry
+   ====================================================================== */
+let selFriend = null;
+function allFriends() {
+  const list = friends.map((f) => ({ ...f }));
+  for (const l of loans) if (!list.some((f) => f.name === l.friend)) list.push({ id: null, name: l.friend, phone: "", monthly: 0, day: 0, note: "" });
+  return list;
+}
+function friendStats(name) {
+  const items = loans.filter((l) => l.friend === name);
+  const lent = items.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0);
+  const back = items.filter((l) => l.type !== "lent").reduce((t, l) => t + l.amount, 0);
+  const cur = monthRange(0);
+  const mLent = items.filter((l) => l.type === "lent" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
+  const mBack = items.filter((l) => l.type !== "lent" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
+  return { items, lent, back, bal: lent - back, mLent, mBack, last: items.length ? items[0].ts : 0 };
+}
+
+/* Lending reminders. A profile's "day" holds the reminder date as yyyymmdd (e.g. 20261105), which the sheet stores
+   in its "Reminder day" column unchanged. Older profiles hold a monthly day 1–31 with an amount; those still work
+   the old way (due on that day each month until something is lent) until the reminder is changed. */
+const isLegacyRem = (f) => f.monthly > 0 && f.day >= 1 && f.day <= 31;
+const dateNum = (d) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+function remindDate(f) {
+  if (f.day > 19000000) return new Date(Math.floor(f.day / 10000), Math.floor(f.day / 100) % 100 - 1, f.day % 100);
+  if (isLegacyRem(f)) { const n = new Date(), dim = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate(); return new Date(n.getFullYear(), n.getMonth(), Math.min(f.day, dim)); }
+  return null;
+}
+function addMonth(d) { const dim = new Date(d.getFullYear(), d.getMonth() + 2, 0).getDate(); return new Date(d.getFullYear(), d.getMonth() + 1, Math.min(d.getDate(), dim)); }
+function lendingDue() {
+  const now = new Date(), ym = now.getFullYear() + "-" + (now.getMonth() + 1), skips = load(K.skips, {}), cur = monthRange(0);
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return friends.filter((f) => {
+    const d = remindDate(f);
+    if (!d || d >= tomorrow) return false;
+    return !isLegacyRem(f) || (skips[f.id] !== ym && !loans.some((l) => l.friend === f.name && l.type === "lent" && l.ts >= cur.start && l.ts < cur.end));
+  });
+}
+function setReminder(f, date) { putFriend({ ...f, monthly: 0, day: date ? dateNum(date) : 0 }); }
+const shortDate = (d) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+function dueCard(f) {
+  const d = remindDate(f);
+  const when = "Due " + (dayKey(+d) === dayKey(Date.now()) ? "today" : shortDate(d));
+  const acts = el("div", "acts");
+  const a = el("button", "pill primary", "Done"); a.type = "button";
+  a.onclick = () => { setReminder(f, null); showToast("Reminder cleared", () => { putFriend({ ...f }); showToast("Restored"); }); };
+  const b = el("button", "pill", "+1 month"); b.type = "button";
+  b.onclick = () => { const n = addMonth(d); setReminder(f, n); showToast("Next reminder " + shortDate(n)); };
+  a.setAttribute("aria-label", "Clear the reminder for " + f.name); b.setAttribute("aria-label", "Remind me again next month about " + f.name);
+  acts.append(a, b);
+  const c = el("div", "strip"), t = el("div", "t");
+  t.append(el("div", "", f.name), el("small", "", when));
+  c.append(avatar(f.name), t, acts);
+  return c;
+}
+
+function renderLoans() {
+  const cur = monthRange(0);
+  const people = allFriends();
+  if (selFriend && !people.some((f) => f.name === selFriend)) selFriend = null;
+  if (!selFriend && people.length) selFriend = people[0].name;
+  let owed = 0, mLent = 0, mBack = 0;
+  const stats = {};
+  people.forEach((f) => { const s = (stats[f.name] = friendStats(f.name)); owed += Math.max(0, s.bal); mLent += s.mLent; mBack += s.mBack; });
+  countTo($("owedTotal"), owed);
+  $("lentSub").textContent = cur.label + ": lent " + fmt(mLent) + " · got back " + fmt(mBack);
+
+  // reminders: monthly loans due, and balances with no activity for 30+ days
+  const cards = $("lentCards"); cards.innerHTML = "";
+  lendingDue().forEach((f) => cards.appendChild(dueCard(f)));
+  people.filter((f) => stats[f.name].bal > 0 && stats[f.name].last && Date.now() - stats[f.name].last > 30 * DAY).forEach((f) => {
+    const s = stats[f.name], c = el("div", "strip"), t = el("div", "t");
+    t.append(el("div", "", f.name + " still owes " + fmt(s.bal)), el("small", "", "Nothing logged for " + Math.floor((Date.now() - s.last) / DAY) + " days"));
+    const acts = el("div", "acts"), b = el("button", "pill primary", "Payback"); b.type = "button";
+    b.setAttribute("aria-label", "Record a payback from " + f.name);
+    b.onclick = () => { selFriend = f.name; renderLoans(); $("lendAmt").focus(); };
+    acts.append(b); c.append(avatar(f.name), t, acts); cards.appendChild(c);
+  });
+
+  const chips = $("friendChips"); chips.innerHTML = "";
+  people.forEach((f) => {
+    const c = el("button", "chip"); c.type = "button"; c.setAttribute("aria-pressed", f.name === selFriend);
+    c.append(avatar(f.name, true), el("span", "", f.name));
+    c.onclick = () => { selFriend = f.name; $("lendMsg").textContent = ""; renderLoans(); };
+    chips.appendChild(c);
+  });
+  const add = el("button", "chip add"); add.type = "button"; add.append(ico("plus"), el("span", "", "Add friend")); add.onclick = () => openFriend(null);
+  chips.appendChild(add);
+
+  const list = $("friendList"); list.innerHTML = "";
+  if (!people.length) list.append(emptyState("tab-people", "No friends here yet", "Tap the person button at the top to add a profile. Pick a reminder date to get a nudge on that day."));
+  people.slice().sort((a, b) => stats[b.name].bal - stats[a.name].bal).forEach((f) => {
+    const s = stats[f.name];
+    const card = el("button", "fcard"); card.type = "button"; card.onclick = () => openFriend(f);
+    card.append(avatar(f.name), el("div", "fname", f.name),
+      el("span", "bal" + (s.bal <= 0 ? " settled" : ""), s.bal > 0 ? "owes " + fmt(s.bal) : s.bal < 0 ? "you owe " + fmt(-s.bal) : s.items.length ? "settled" : ""),
+      el("div", "fsub", s.lent ? "Paid back " + fmt(s.back) + " of " + fmt(s.lent) + (remindDate(f) ? " · reminder " + shortDate(remindDate(f)) : "") : remindDate(f) ? "Reminder " + shortDate(remindDate(f)) : "No entries yet"));
+    if (s.lent) { const p = el("div", "progress"), i = el("i"); i.style.width = Math.min(100, (100 * s.back) / s.lent) + "%"; p.append(i); card.append(p); }
+    list.appendChild(card);
+  });
+}
+
+function recordLoan(type) {
+  const amount = parseAmount($("lendAmt").value);
+  if (!amount || amount <= 0) { $("lendMsg").textContent = "Type the amount first"; $("lendAmt").focus(); return; }
+  if (!selFriend) { $("lendMsg").textContent = "Add a friend first"; openFriend(null); return; }
+  const l = { id: newId("l"), friend: selFriend, amount, type, note: $("lendNote").value.trim(), ts: tsFrom("lendWhen") };
+  putLoan(l);
+  $("lendAmt").value = ""; $("lendNote").value = ""; $("lendMsg").textContent = "";
+  document.activeElement && document.activeElement.blur();
+  const s = friendStats(l.friend);
+  showToast((type === "lent" ? "Lent " : "Got back ") + fmt(amount) + " · " + l.friend + pastLabel(l.ts) + (s.bal > 0 ? " · owes " + fmt(s.bal) : ""), () => { delLoan(l.id); showToast("Removed"); });
+}
+$("btnLent").onclick = () => recordLoan("lent");
+$("btnRepaid").onclick = () => recordLoan("repaid");
+$("addFriendBtn").onclick = () => openFriend(null);
+$("lendNote").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+
+/* ---------- friend profile sheet ---------- */
+let fsCurrent = null;   // the friend being viewed (null = adding a new one)
+function openFriend(f) {
+  fsCurrent = f;
+  $("fsTitle").textContent = f ? f.name : "Add a friend";
+  $("fsName").value = f ? f.name : ""; $("fsPhone").value = f ? f.phone || "" : "";
+  let rd = f && remindDate(f);
+  if (rd && isLegacyRem(f) && !lendingDue().some((x) => x.id === f.id) && rd <= new Date()) rd = addMonth(rd);   // old monthly reminder already handled this month
+  $("fsRemind").value = rd ? isoDay(rd) : "";
+  $("fsEdit").open = !f; $("fsEdit").classList.toggle("new", !f);
+  $("fsNote").value = f ? f.note || "" : ""; $("fsErr").textContent = "";
+  $("fsSave").textContent = f ? "Save profile" : "Add friend";
+  $("fsDelete").hidden = !(f && f.id); resetConfirm($("fsDelete"), "Remove profile");
+
+  const sum = $("fsSummary"), hist = $("fsHistory"); sum.innerHTML = ""; hist.innerHTML = "";
+  if (f) {
+    const s = friendStats(f.name);
+    sum.append(el("div", "bigbal", s.bal > 0 ? fmt(s.bal) : s.bal < 0 ? "You owe " + fmt(-s.bal) : "All settled"),
+      el("div", "sub", s.lent ? "Paid back " + fmt(s.back) + " of " + fmt(s.lent) + " lent (" + Math.round((100 * s.back) / s.lent) + "%)" : "Nothing lent yet"));
+    if (s.lent) { const p = el("div", "progress"), i = el("i"); p.style.gridColumn = "auto"; i.style.width = Math.min(100, (100 * s.back) / s.lent) + "%"; p.append(i); sum.append(p); }
+    const acts = el("div", "btnrow");
+    const lend = el("button", "btn primary", "Lend money"); lend.type = "button";
+    const pay = el("button", "btn", "Record payback"); pay.type = "button";
+    const go = () => { $("friendSheet").close(); selFriend = f.name; showTab("lent"); renderLoans(); $("lendAmt").focus(); };
+    lend.onclick = go; pay.onclick = go;
+    acts.append(lend, pay); sum.append(acts);
+    if (s.items.length) {
+      const sh = el("button", "btn", "Share history"); sh.type = "button"; sh.id = "fsShare";
+      sh.onclick = () => pickSharePeriod(f); sum.append(sh);
+    }
+    // history, month by month, with what's still left from that month
+    if (s.items.length) hist.append(el("div", "hint", "History · tap an entry to edit"));
+    monthsBreakdown(s.items).forEach((m) => {
+      const head = el("div", "day");
+      head.append(el("span", "", m.label), el("span", "", "lent " + fmt(m.lent) + " · back " + fmt(m.back)));
+      hist.append(head);
+      m.items.forEach((l) => {
+        const it = el("button", "item"); it.type = "button"; it.onclick = () => { $("friendSheet").close(); openLoan(l); };
+        const tag = el("span", "tag" + (l.type === "lent" ? "" : " back"), l.type === "lent" ? "Lent" : "Back");
+        const what = el("div", "what");
+        const dt = new Date(l.ts);
+        what.append(el("div", "", l.note || (l.type === "lent" ? "Lent to " + f.name : "Paid back")),
+          el("small", "", dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + ", " + dt.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })));
+        it.append(tag, what, el("span", "amt", (l.type === "lent" ? "" : "+") + fmt(l.amount)));
+        hist.append(it);
+      });
+    });
+  }
+  $("friendSheet").showModal();
+}
+// Group a friend's entries by month; "left" = what's still unpaid from that month's loans (paybacks clear the oldest first)
+function monthsBreakdown(items) {
+  const groups = [];
+  items.forEach((l) => {
+    const d = new Date(l.ts), key = d.getFullYear() * 12 + d.getMonth();
+    let g = groups.find((x) => x.key === key);
+    if (!g) groups.push((g = { key, label: d.toLocaleString("en-IN", { month: "short", year: "numeric" }), lent: 0, back: 0, items: [] }));
+    g.items.push(l);
+    if (l.type === "lent") g.lent += l.amount; else g.back += l.amount;
+  });
+  groups.sort((a, b) => a.key - b.key);
+  let pool = groups.reduce((t, g) => t + g.back, 0);
+  groups.forEach((g) => { const paid = Math.min(pool, g.lent); g.left = g.lent - paid; pool -= paid; });
+  return groups.sort((a, b) => b.key - a.key);
+}
+$("fsSave").onclick = () => {
+  const name = $("fsName").value.trim().replace(/\s+/g, " ");
+  if (!name) { $("fsErr").textContent = "Type a name."; return; }
+  const oldName = fsCurrent ? fsCurrent.name : null;
+  if (name !== oldName && allFriends().some((f) => f.name.toLowerCase() === name.toLowerCase())) { $("fsErr").textContent = name + " is already in your list."; return; }
+  const f = { id: (fsCurrent && fsCurrent.id) || newId("f"), name, phone: $("fsPhone").value.trim(), monthly: 0, day: remindFromBox(), note: $("fsNote").value.trim() };
+  if (oldName && oldName !== name) loans.filter((l) => l.friend === oldName).forEach((l) => putLoan({ ...l, friend: name }));   // keep history under the new name
+  putFriend(f);
+  selFriend = name;
+  $("friendSheet").close();
+  showToast(fsCurrent ? "Saved " + name + "'s profile" : "Added " + name);
+};
+armConfirm($("fsDelete"), "Remove profile", () => {
+  if (!fsCurrent || !fsCurrent.id) return;
+  delFriend(fsCurrent.id); $("friendSheet").close();
+  showToast("Removed " + fsCurrent.name + "'s profile. Their loan history is kept.");
+});
+function remindFromBox() { const v = $("fsRemind").value; return v ? Number(v.replace(/-/g, "")) : 0; }
+// On a saved friend the reminder date saves as soon as it's picked; a new friend's is saved with "Add friend"
+$("fsRemind").addEventListener("change", () => {
+  if (!fsCurrent) return;
+  const base = friends.find((x) => x.id === fsCurrent.id) || { id: newId("f"), name: fsCurrent.name, phone: "", note: "" };
+  const f = { ...base, monthly: 0, day: remindFromBox() };
+  putFriend(f); fsCurrent = f;
+  showToast(f.day ? "I'll remind you on " + shortDate(remindDate(f)) : "Reminder removed");
+});
+
+/* ---------- share a friend's history as plain text ---------- */
+function historyText(f, from, to, label) {
+  const s = friendStats(f.name), yr = new Date().getFullYear();
+  const items = s.items.filter((l) => l.ts >= from && l.ts < to).sort((a, b) => a.ts - b.ts);
+  const day = (ts) => new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: new Date(ts).getFullYear() === yr ? undefined : "numeric" });
+  const lines = [f.name + " · lending history", label, ""];
+  items.forEach((l) => lines.push(day(l.ts) + " · " + (l.type === "lent" ? "Lent " : "Paid back ") + fmt(l.amount) + (l.note && l.note !== "Monthly" ? " (" + l.note + ")" : "")));
+  if (!items.length) lines.push("Nothing in this period.");
+  const lent = items.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0), back = items.reduce((t, l) => t + (l.type === "lent" ? 0 : l.amount), 0);
+  if (items.length) lines.push("", "Lent: " + fmt(lent), "Paid back: " + fmt(back));
+  lines.push("", s.bal > 0 ? "Total still to pay back: " + fmt(s.bal) : s.bal < 0 ? "I owe you: " + fmt(-s.bal) : "All settled");
+  return lines.join("\n");
+}
+async function shareText(text) {
+  if (navigator.share) { try { await navigator.share({ text }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(text); showToast("Copied. Paste it in any chat."); } catch { showToast("Couldn't share from this browser", null, true); }
+}
+function pickSharePeriod(f) {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth(), M = (k) => +new Date(y, m + k, 1);
+  const range = (a, b) => new Date(a).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + " – " + new Date(b - 1).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const periods = {
+    all: [0, Infinity, "All entries"],
+    this: [M(0), M(1), new Date(M(0)).toLocaleString("en-IN", { month: "long", year: "numeric" })],
+    last: [M(-1), M(0), new Date(M(-1)).toLocaleString("en-IN", { month: "long", year: "numeric" })],
+    three: [M(-2), M(1), range(M(-2), Math.min(M(1), Date.now() + 1))],
+  };
+  // custom dates
+  const box = el("div", "stack"), row = el("div", "two"), a = el("input", "field"), b = el("input", "field"), go = el("button", "btn primary", "Share these dates");
+  a.type = b.type = "date"; a.value = isoDay(new Date(M(0))); b.value = isoDay(now); a.setAttribute("aria-label", "From"); b.setAttribute("aria-label", "To");
+  const la = el("label", "", "From"), lb = el("label", "", "To"); la.append(a); lb.append(b); row.append(la, lb);
+  go.type = "button"; go.onclick = () => {
+    if (!a.value || !b.value) return;
+    const [from, to] = [a.value, b.value].sort(), [fy, fm, fd] = from.split("-").map(Number), [ty, tm, td] = to.split("-").map(Number);
+    const s = +new Date(fy, fm - 1, fd), e = +new Date(ty, tm - 1, td + 1);
+    $("pickSheet").close(); shareText(historyText(f, s, e, range(s, e)));
+  };
+  box.append(row, go);
+  openPick("Share " + f.name + "'s history", [["all", "Whole history"], ["this", "This month"], ["last", "Last month"], ["three", "Last 3 months"], ["pick", "Pick dates…"]], null,
+    (k) => { if (k === "pick") { setTimeout(() => openPick("Share " + f.name + "'s history", [], null, null, box)); return; } const [s, e, label] = periods[k]; shareText(historyText(f, s, e, label)); });
+}
+
+/* ---------- edit a payment ---------- */
+let edCurrent = null;
+function fillSubs(main, sub, s = $("edSub")) {
+  s.innerHTML = "";
+  const c = CATS.find((x) => x.name === main);
+  s.append(new Option("General", ""));
+  (c ? c.subs : []).forEach((n) => s.append(new Option(n, n)));
+  if (sub && !(c && c.subs.includes(sub))) s.append(new Option(sub, sub));
+  s.value = sub || "";
+  s.disabled = !c;
+}
+function openEdit(e) {
+  if (VIEWER) return;
+  edCurrent = e;
+  $("edAmount").value = e.amount;
+  const cs = $("edCat"); cs.innerHTML = "";
+  if (!e.cat) cs.append(new Option("Pick a category", ""));
+  CATS.forEach((c) => cs.append(new Option(c.name, c.name)));
+  cs.value = e.cat ? mainOf(e.cat) : "";
+  fillSubs(cs.value, subOf(e.cat));
+  $("edNote").value = e.note || ""; $("edDate").value = isoDay(new Date(e.ts)); $("edDate").max = isoDay(new Date());
+  $("edErr").textContent = ""; resetConfirm($("edDelete"), "Delete");
+  $("editSheet").showModal();
+}
+$("edCat").onchange = () => fillSubs($("edCat").value, "");
+$("edSave").onclick = () => {
+  const amount = parseAmount($("edAmount").value);
+  if (!(amount > 0)) { $("edErr").textContent = "Type an amount above zero."; return; }
+  if (!$("edCat").value) { $("edErr").textContent = "Pick a category."; return; }
+  const cat = $("edCat").value + ($("edSub").value ? ": " + $("edSub").value : "");
+  const before = { ...edCurrent };
+  const after = { ...edCurrent, amount, cat, note: $("edNote").value.trim(), ts: $("edDate").value ? moveToDay(edCurrent.ts, $("edDate").value) : edCurrent.ts };
+  putExpense(after); $("editSheet").close();
+  showToast("Updated · " + fmt(amount) + " · " + catLabel(cat), () => { putExpense(before); showToast("Change undone"); });
+};
+armConfirm($("edDelete"), "Delete", () => {
+  const e = edCurrent; delExpense(e.id); $("editSheet").close();
+  showToast("Deleted " + fmt(e.amount) + " · " + catLabel(e.cat), () => { putExpense(e); showToast("Restored"); });
+});
+
+/* ---------- edit a loan / payback ---------- */
+let leCurrent = null;
+function openLoan(l) {
+  leCurrent = l;
+  const fs = $("leFriend"); fs.innerHTML = "";
+  allFriends().forEach((f) => fs.append(new Option(f.name, f.name)));
+  fs.value = l.friend; $("leType").value = l.type;
+  $("leAmount").value = l.amount; $("leNote").value = l.note || "";
+  $("leDate").value = isoDay(new Date(l.ts)); $("leDate").max = isoDay(new Date());
+  $("leErr").textContent = ""; resetConfirm($("leDelete"), "Delete");
+  $("loanSheet").showModal();
+}
+$("leSave").onclick = () => {
+  const amount = parseAmount($("leAmount").value);
+  if (!(amount > 0)) { $("leErr").textContent = "Type an amount above zero."; return; }
+  const before = { ...leCurrent };
+  putLoan({ ...leCurrent, friend: $("leFriend").value, type: $("leType").value, amount, note: $("leNote").value.trim(), ts: $("leDate").value ? moveToDay(leCurrent.ts, $("leDate").value) : leCurrent.ts });
+  $("loanSheet").close();
+  showToast("Updated entry", () => { putLoan(before); showToast("Change undone"); });
+};
+armConfirm($("leDelete"), "Delete", () => {
+  const l = leCurrent; delLoan(l.id); $("loanSheet").close();
+  showToast("Deleted entry", () => { putLoan(l); showToast("Restored"); });
+});
+
+document.querySelectorAll("dialog [data-close]").forEach((b) => (b.onclick = () => b.closest("dialog").close()));
+// Opening a sheet shouldn't put a focus ring on its close button (or pop up the keyboard)
+const _showModal = HTMLDialogElement.prototype.showModal;
+document.querySelectorAll("dialog.sheet").forEach((d) => (d.showModal = function () { _showModal.call(this); if (document.activeElement) document.activeElement.blur(); this.scrollTop = 0; }));
+document.querySelectorAll("dialog.sheet").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) d.close(); }));   // tap outside to close
+
+function armConfirm(btn, label, onConfirm) {
+  btn.addEventListener("click", () => {
+    if (!btn.classList.contains("confirm")) { btn.classList.add("confirm"); btn.textContent = "Tap again to confirm"; setTimeout(() => resetConfirm(btn, label), 3000); return; }
+    resetConfirm(btn, label); onConfirm();
+  });
+}
+function resetConfirm(btn, label) { btn.classList.remove("confirm"); btn.textContent = label; }
+
+/* ======================================================================
+   Log screen
+   ====================================================================== */
+let amountStr = "";
+function setAmount(s) {
+  amountStr = s;
+  const [whole, dec] = s.split(".");
+  $("amountVal").textContent = s ? Number(whole || 0).toLocaleString("en-IN") + (dec !== undefined ? "." + dec : "") : "0";
+  $("amount").classList.toggle("empty", !s);
+}
+function press(k) {
+  if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
+  let s = amountStr;
+  if (k === "back") s = s.slice(0, -1);
+  else if (k === ".") { if (!s.includes(".")) s = (s || "0") + "."; }
+  else {
+    if (s === "0") s = "";
+    const dec = s.split(".")[1];
+    if (dec !== undefined && dec.length >= 2) return;
+    if (s.replace(".", "").length >= 9) return;
+    s += k;
+  }
+  $("banner").textContent = "";
+  setAmount(s);
+}
+
+const BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11v14H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>';
+const KEY_LETTERS = { 2: "ABC", 3: "DEF", 4: "GHI", 5: "JKL", 6: "MNO", 7: "PQRS", 8: "TUV", 9: "WXYZ" };   // as on the iPhone number pad
+["1","2","3","4","5","6","7","8","9",".","0","back"].forEach((k) => {
+  const b = el("button", "key" + (k === "." || k === "back" ? " flat" : "")); b.type = "button";
+  if (k === "back") { b.innerHTML = BACK_SVG; b.setAttribute("aria-label", "Delete digit (hold to clear)"); }
+  else { b.append(document.createTextNode(k)); if (/\d/.test(k)) b.append(el("small", "", KEY_LETTERS[k] || "")); b.setAttribute("aria-label", k === "." ? "Decimal point" : k); }
+  b.addEventListener("click", () => press(k));
+  if (k === "back") {
+    let t; b.addEventListener("pointerdown", () => { t = setTimeout(() => setAmount(""), 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(t)));
+  }
+  $("pad").appendChild(b);
+});
+
+// Main categories as icon tiles; tapping one shows its detailed types
+CATS.forEach((c) => {
+  const b = el("button", "cat"); b.type = "button";
+  b.append(tile(c.name), el("span", "", c.name));
+  b.addEventListener("click", () => openSubs(c));
+  $("cats").appendChild(b);
+});
+function openSubs(c) {
+  $("cats").hidden = true; $("subPanel").hidden = false; $("catHint").textContent = "Which one?";
+  $("subTitle").textContent = c.name;
+  const t = $("subDot"); t.innerHTML = ""; t.style.setProperty("--cc", "var(" + c.c + ")"); t.append(ico(c.icon));
+  const box = $("subs"); box.innerHTML = "";
+  c.subs.forEach((s) => { const b = el("button", "chip"); b.type = "button"; b.append(tile(c.name + ": " + s, "sm"), document.createTextNode(s)); b.onclick = () => save(c.name + ": " + s); box.appendChild(b); });
+  const g = el("button", "chip general", c.name + " (general)"); g.type = "button"; g.onclick = () => save(c.name); box.appendChild(g);
+}
+function closeSubs() { $("cats").hidden = false; $("subPanel").hidden = true; $("catHint").textContent = "What was it for?"; }
+$("subBack").onclick = closeSubs;
+
+/* ---------- Log an expense: "What is the amount?" → "What was it for?" ---------- */
+function addStep(n) {
+  $("stepAmount").hidden = n !== 1; $("pad").hidden = n !== 1; $("stepCat").hidden = n !== 2;
+  $("stepAmt").textContent = fmt(parseAmount(amountStr) || 0);
+  closeSubs();
+}
+function openAdd(pre = {}) {
+  pendingTpl = pre.tpl || null;   // a template without a fixed amount: ask only for the amount, then save
+  $("stepAmount").querySelector(".ptitle").textContent = pendingTpl ? "How much for " + pendingTpl.note + "?" : "What is the amount?";
+  $("promptPicksWrap").hidden = !!pendingTpl || !$("promptPicks").children.length;
+  setAmount(pre.amount ? String(pre.amount) : ""); $("banner").textContent = "";
+  $("note").value = pre.note || "";
+  $("when").value = isoDay(new Date(pre.ts || Date.now())); $("when").dispatchEvent(new Event("change"));   // each new entry starts at today unless shared text said otherwise
+  addStep(pre.amount && pre.step === 2 ? 2 : 1);
+  if (!$("addSheet").open) $("addSheet").showModal();
+  if (document.activeElement) document.activeElement.blur();   // no focus ring or pop-up keyboard on open
+}
+function closeAdd() { if ($("addSheet").open) $("addSheet").close(); setAmount(""); $("banner").textContent = ""; pendingTpl = null; }
+$("addDone").onclick = () => {
+  if (!(parseAmount(amountStr) > 0)) { const a = $("amount"); a.classList.remove("shake"); void a.offsetWidth; a.classList.add("shake"); $("banner").textContent = "Type the amount first"; return; }
+  buzz();
+  if (pendingTpl) { const t = pendingTpl; pendingTpl = null; $("note").value = t.note || ""; save(t.cat); return; }
+  addStep(2);
+};
+$("addCancel").onclick = closeAdd;
+$("catCancel").onclick = closeAdd;
+$("clearAmt").onclick = () => setAmount("");
+$("stepBack").onclick = () => addStep(1);
+$("loanInstead").onclick = () => { const a = amountStr; closeAdd(); $("lendAmt").value = a; renderLoans(); showTab("lent"); };
+$("addSheet").addEventListener("cancel", () => setAmount(""));   // the phone's back button closes it
+
+function save(cat) {
+  const amount = parseAmount(amountStr);
+  if (!amount || amount <= 0) {
+    const a = $("amount"); a.classList.remove("shake"); void a.offsetWidth; a.classList.add("shake");
+    $("banner").textContent = "Type the amount first";
+    return;
+  }
+  const e = { id: newId("e"), amount, cat, note: $("note").value.trim(), ts: tsFrom("when") };
+  putExpense(e);
+  setAmount(""); $("note").value = ""; $("note").blur(); $("banner").textContent = "";
+  closeSubs();
+  if ($("addSheet").open) $("addSheet").close();
+  showToast("Saved " + fmt(amount) + " · " + catLabel(cat) + pastLabel(e.ts), () => { delExpense(e.id); showToast("Removed"); });
+}
+
+/* Quick add: payments you repeat (same amount, category and note at least twice in 90 days) — one tap saves */
+function quickPicks() {
+  const since = Date.now() - 90 * DAY, seen = {};
+  expenses.forEach((e) => {
+    if (e.ts < since || !e.cat) return;
+    const k = e.amount + "|" + e.cat + "|" + (e.note || "").toLowerCase();
+    (seen[k] = seen[k] || { amount: e.amount, cat: e.cat, note: e.note || "", n: 0, last: 0 }).n++;
+    seen[k].last = Math.max(seen[k].last, e.ts);
+  });
+  return Object.values(seen).filter((q) => q.n >= 2).sort((a, b) => b.n - a.n || b.last - a.last).slice(0, 6);
+}
+function renderQuick() {
+  const same = (t, q) => t.amount === q.amount && t.cat === q.cat && (t.note || "") === (q.note || "");
+  const picks = quickPicks().filter((q) => !templates.some((t) => same(t, q))), row = $("quickRow"); row.innerHTML = "";
+  row.hidden = false;
+  // Home shows only your templates (hold one to edit it) and "+ Template";
+  // repeats the app noticed appear inside the "What is the amount?" prompt instead
+  templates.forEach((t) => {
+    const b = el("button", "chip tpl"); b.type = "button";
+    b.append(tile(t.cat, "sm")); if (t.amount) b.append(el("b", "", fmt(t.amount))); b.append(el("span", "", t.note || catLabel(t.cat)));
+    b.title = t.amount ? "Save " + fmt(t.amount) + " · " + t.note + " now" : "Log " + t.note + " (asks for the amount)";
+    b.onclick = () => useTemplate(t);
+    let h; b.addEventListener("pointerdown", () => { h = setTimeout(() => { b.dataset.held = "1"; openTemplate(t); }, 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(h)));
+    b.addEventListener("click", (e) => { if (b.dataset.held) { delete b.dataset.held; e.stopImmediatePropagation(); } }, true);
+    b.addEventListener("contextmenu", (e) => { e.preventDefault(); openTemplate(t); });
+    row.appendChild(b);
+  });
+  const addTpl = el("button", "chip tpl add"); addTpl.type = "button"; addTpl.append(ico("plus"), el("span", "", templates.length ? "Template" : "Add a template"));
+  addTpl.onclick = () => openTemplate(null);
+  row.appendChild(addTpl);
+  const pp = $("promptPicks"); pp.innerHTML = "";
+  $("promptPicksWrap").hidden = !picks.length;
+  picks.forEach((q) => {
+    const b = el("button", "chip"); b.type = "button";
+    b.append(tile(q.cat, "sm"), el("b", "", fmt(q.amount)), el("span", "", q.note || catLabel(q.cat)));
+    b.title = "Save " + fmt(q.amount) + " · " + catLabel(q.cat) + " now";
+    b.onclick = () => {
+      const e = { id: newId("e"), amount: q.amount, cat: q.cat, note: q.note, ts: Date.now() };
+      putExpense(e); closeAdd();
+      showToast("Saved " + fmt(q.amount) + " · " + (q.note || catLabel(q.cat)), () => { delExpense(e.id); showToast("Removed"); });
+    };
+    pp.appendChild(b);
+  });
+  // note suggestions: notes you've used, most frequent first
+  const counts = {};
+  expenses.forEach((e) => { if (e.note) counts[e.note] = (counts[e.note] || 0) + 1; });
+  const dl = $("noteList"); dl.innerHTML = "";
+  Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 40).forEach(([n]) => dl.append(new Option(n)));
+}
+
+/* Weekly digest on the Log screen: once each new week, last week's numbers */
+function weekDigest() {
+  const ws = weekStart(Date.now()), lastStart = ws - 7 * DAY;
+  if (load(K.week, 0) === ws) return null;
+  const last = sumIn(expenses, lastStart, ws), before = sumIn(expenses, lastStart - 7 * DAY, lastStart);
+  if (!last) return null;
+  const by = {};
+  expenses.forEach((e) => { if (e.ts >= lastStart && e.ts < ws) by[mainOf(e.cat)] = (by[mainOf(e.cat)] || 0) + e.amount; });
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
+  const c = el("div", "strip"), t = el("div", "t");
+  let change = "";
+  if (before) { const p = Math.round((100 * (last - before)) / before); change = p === 0 ? "same as the week before" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs the week before"; }
+  t.append(el("div", "", "Last week you spent " + fmt(last)), el("small", "", (change ? change + " · " : "") + "most on " + top[0] + " " + fmt(top[1])));
+  const acts = el("div", "acts");
+  const see = el("button", "pill primary", "View"); see.type = "button"; see.onclick = () => { keep(K.week, ws); openSpending(); };
+  const ok = el("button", "pill", "Got it"); ok.type = "button"; ok.onclick = () => { keep(K.week, ws); renderAll(); };
+  acts.append(see, ok);
+
+  c.append(t, acts);
+  return c;
+}
+function renderLogCards() {
+  const box = $("logCards"); box.innerHTML = "";
+  lendingDue().forEach((f) => box.appendChild(dueCard(f)));
+  const d = weekDigest(); if (d) box.appendChild(d);
+}
+
+/* ======================================================================
+   Spending screen
+   ====================================================================== */
+let monthOffset = 0, openCats = new Set();
+function monthRange(offset) {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 1);
+  return { start: +start, end: +end, label: start.toLocaleString("en-IN", { month: "long", year: start.getFullYear() === now.getFullYear() ? undefined : "numeric" }),
+    short: start.toLocaleString("en-IN", { month: "short" }), days: offset === 0 ? now.getDate() : Math.round((end - start) / DAY) };
+}
+
+function renderWeek() {
+  const card = $("weekCard"); card.innerHTML = "";
+  card.hidden = monthOffset !== 0;
+  if (monthOffset !== 0) return;
+  const now = Date.now(), ws = weekStart(now), sinceStart = now - ws;
+  const total = sumIn(expenses, ws, now + 1), prev = sumIn(expenses, ws - 7 * DAY, ws - 7 * DAY + sinceStart);
+  const head = el("div", "cardtitle");
+  head.append(el("span", "", "This week"));
+  const d = el("span", "delta");
+  if (prev) { const p = Math.round((100 * (total - prev)) / prev); d.textContent = (p > 0 ? "▲ " : p < 0 ? "▼ " : "") + Math.abs(p) + "% vs last week"; d.classList.add(p > 0 ? "up" : p < 0 ? "down" : "same"); }
+  else d.textContent = "no spending last week";
+  head.append(d);
+  const days = el("div", "days"), vals = [], todayIdx = Math.floor(sinceStart / DAY);
+  for (let i = 0; i < 7; i++) vals.push(sumIn(expenses, ws + i * DAY, ws + (i + 1) * DAY));
+  const max = Math.max(...vals, 1);
+  "MTWTFSS".split("").forEach((L, i) => {
+    const col = el("div"), bar = el("i", i === todayIdx ? "today" : i > todayIdx ? "future" : "");
+    bar.style.height = (i > todayIdx ? 3 : Math.max(3, (52 * vals[i]) / max)) + "px";
+    bar.title = fmt(vals[i]);
+    col.append(bar, el("span", "", L)); days.append(col);
+  });
+  const by = {};
+  expenses.forEach((e) => { if (e.ts >= ws && e.ts <= now) by[mainOf(e.cat)] = (by[mainOf(e.cat)] || 0) + e.amount; });
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => k + " " + fmt(v)).join(" · ");
+  const bigDay = vals.indexOf(Math.max(...vals));
+  card.append(head, el("div", "sub", new Date(ws).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + " – today"), el("div", "big", fmt(total)), days,
+    el("div", "sub", total ? "Top: " + top + (vals[bigDay] ? " · biggest day " + ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][bigDay] + " (" + fmt(vals[bigDay]) + ")" : "") : "Nothing logged this week yet."));
+}
+
+// 6-month trend: one series (bars), the selected month highlighted with its value; tap a bar to open that month
+function renderTrend() {
+  const svg = $("trend"), W = 340, H = 150, top = 22, bottom = 22, left = 4, right = 4;
+  const months = [];
+  for (let o = -5; o <= 0; o++) { const r = monthRange(o); months.push({ o, r, v: sumIn(expenses, r.start, r.end) }); }
+  const max = Math.max(...months.map((m) => m.v), 1);
+  const slot = (W - left - right) / 6, bw = Math.min(28, slot - 16), ch = H - top - bottom;
+  const withData = months.filter((m) => m.v > 0 && m.o < 0), avg = withData.length ? withData.reduce((t, m) => t + m.v, 0) / withData.length : 0;
+  let s = '<line class="base" x1="0" x2="' + W + '" y1="' + (H - bottom) + '" y2="' + (H - bottom) + '"/>';
+  if (avg) { const y = H - bottom - (ch * avg) / max; s += '<line class="avg" x1="0" x2="' + W + '" y1="' + y + '" y2="' + y + '"/><text x="' + W + '" y="' + (y - 4) + '" text-anchor="end">avg ' + fmtShort(avg) + "</text>"; }
+  months.forEach((m, i) => {
+    const cx = left + slot * i + slot / 2, h = m.v ? Math.max(6, (ch * m.v) / max) : 0, y = H - bottom - h, on = m.o === monthOffset;
+    if (h) s += '<path class="bar' + (on ? " on" : "") + '" d="M' + (cx - bw / 2) + "," + (H - bottom) + " V" + (y + 5) + " q0,-5 5,-5 h" + (bw - 10) + " q5,0 5,5 V" + (H - bottom) + ' Z"/>';
+    s += '<text x="' + cx + '" y="' + (H - 6) + '" text-anchor="middle"' + (on ? ' class="on"' : "") + ">" + m.r.short + "</text>";
+    if (on) s += '<text class="on" x="' + cx + '" y="' + (y - 6) + '" text-anchor="middle">' + fmtShort(m.v) + "</text>";
+    s += '<rect class="hit" data-o="' + m.o + '" x="' + (left + slot * i) + '" y="0" width="' + slot + '" height="' + H + '"><title>' + m.r.label + ": " + fmt(m.v) + "</title></rect>";
+  });
+  svg.innerHTML = s;
+  svg.querySelectorAll(".hit").forEach((r) => (r.onclick = () => { monthOffset = Number(r.dataset.o); renderSpending(); }));
+}
+
+// Where the month's money went: a donut by category, labelled in the list beside it
+function renderDonut(inMonth, total) {
+  const by = {};
+  inMonth.forEach((e) => { const k = mainOf(e.cat); by[k] = (by[k] || 0) + e.amount; });
+  const parts = Object.entries(by).sort((a, b) => b[1] - a[1]);
+  $("donutWrap").hidden = !total;
+  if (!total) return;
+  const r = 52, C = 2 * Math.PI * r, gap = parts.length > 1 ? 2.5 : 0;
+  let off = 0, s = '<g transform="rotate(-90 70 70)"><circle cx="70" cy="70" r="' + r + '" style="stroke:var(--fill)"/>';
+  parts.forEach(([k, v]) => {
+    const len = (C * v) / total;
+    s += '<circle cx="70" cy="70" r="' + r + '" style="stroke:' + catColor(k) + '" stroke-dasharray="' + Math.max(0.5, len - gap) + " " + C + '" stroke-dashoffset="' + -off + '"><title>' + k + ": " + fmt(v) + "</title></circle>";
+    off += len;
+  });
+  s += '</g><text x="70" y="68" text-anchor="middle" style="font:700 19px var(--font);fill:var(--fg)">' + fmtShort(total) + '</text><text x="70" y="86" text-anchor="middle" style="font:500 11px var(--font);fill:var(--fg2)">' + parts.length + (parts.length === 1 ? " category" : " categories") + "</text>";
+  $("donut").innerHTML = s;
+  const lg = $("donutLegend"); lg.innerHTML = "";
+  parts.slice(0, 6).forEach(([k, v]) => {
+    const d = el("div"), i = el("i"); i.style.setProperty("--cc", catColor(k));
+    d.append(i, el("span", "", k), el("b", "", Math.round((100 * v) / total) + "%"));
+    lg.append(d);
+  });
+  if (parts.length > 6) lg.append(el("div", "sub", "+ " + (parts.length - 6) + " more below"));
+}
+
+// This month vs last month, by category. For the current month it compares like with like (1st to today vs 1st to the same day last month).
+function renderCompare(r) {
+  const p = monthRange(monthOffset - 1);
+  const pEnd = monthOffset === 0 ? Math.min(p.end, p.start + (Date.now() - r.start)) : p.end;
+  const pLabel = monthOffset === 0 ? p.short + " 1–" + new Date(pEnd - 1).getDate() : p.label;
+  $("cmpTitle").textContent = "By category · vs " + pLabel;
+  $("cmpLegend").innerHTML = "";
+  const l1 = el("span"), l2 = el("span"), i1 = el("i"), i2 = el("i", "prev");
+  i1.style.background = "linear-gradient(90deg, var(--c-food), var(--c-trans), var(--c-bills))";
+  l1.append(i1, r.label + (monthOffset === 0 ? " so far" : "")); l2.append(i2, pLabel);
+  $("cmpLegend").append(l1, l2);
+
+  const cur = {}, old = {}, subs = {};
+  expenses.forEach((e) => {
+    const m = mainOf(e.cat);
+    if (e.ts >= r.start && e.ts < r.end) { cur[m] = (cur[m] || 0) + e.amount; const s = subOf(e.cat) || "General"; (subs[m] = subs[m] || {})[s] = (subs[m][s] || 0) + e.amount; }
+    if (e.ts >= p.start && e.ts < pEnd) old[m] = (old[m] || 0) + e.amount;
+  });
+  const names = [...new Set([...Object.keys(cur), ...Object.keys(old)])].sort((a, b) => (cur[b] || 0) - (cur[a] || 0) || (old[b] || 0) - (old[a] || 0));
+  const max = Math.max(1, ...names.map((n) => Math.max(cur[n] || 0, old[n] || 0)));
+  const box = $("catRows"); box.innerHTML = "";
+  names.forEach((n) => {
+    const a = cur[n] || 0, b = old[n] || 0;
+    const row = el("button", "crow"); row.type = "button"; row.style.setProperty("--cc", catColor(n));
+    const d = el("span", "delta");
+    if (!b) { d.textContent = "new"; }
+    else if (a === b) { d.textContent = "same"; }
+    else { d.textContent = (a > b ? "▲ " : "▼ ") + fmtShort(Math.abs(a - b)); d.classList.add(a > b ? "up" : "down"); }
+    const bars = el("div", "bars"), i1b = el("i"), i2b = el("i", "prev");
+    i1b.style.width = (100 * a) / max + "%"; i2b.style.width = (100 * b) / max + "%";
+    i1b.title = r.label + ": " + fmt(a); i2b.title = pLabel + ": " + fmt(b);
+    bars.append(i1b, i2b);
+    row.append(tile(n, "sm"), el("span", "name", n), el("span", "amt", fmt(a)), d, bars);
+    if (openCats.has(n) && subs[n]) {
+      const sr = el("div", "subrows");
+      Object.entries(subs[n]).sort((x, y) => y[1] - x[1]).forEach(([s, v]) => { const line = el("div"); line.append(el("span", "", s), el("b", "", fmt(v))); sr.append(line); });
+      row.append(sr);
+    }
+    row.onclick = () => { openCats.has(n) ? openCats.delete(n) : openCats.add(n); renderCompare(r); };
+    box.appendChild(row);
+  });
+  if (!names.length) box.append(el("div", "sub", "No spending in either month yet."));
+}
+
+// iOS-style swipe actions: swipe left for Delete, right for Edit; a tap opens the editor
+function makeSwipe(wrap, row, onEdit, onDel) {
+  let x0 = 0, y0 = 0, dx = 0, open = 0, dragging = false, decided = false, moved = false;
+  const set = (x) => { row.style.transform = x ? "translateX(" + x + "px)" : ""; wrap.classList.toggle("active", !!x); };
+  row.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; dx = open; dragging = true; decided = false; moved = false; });
+  row.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (!decided) {
+      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+      decided = true;
+      if (Math.abs(my) > Math.abs(mx)) { dragging = false; return; }   // it's a scroll
+      moved = true; row.style.transition = "none";
+      try { row.setPointerCapture(e.pointerId); } catch {}
+    }
+    dx = Math.max(-120, Math.min(120, mx + open)); set(dx);
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false; row.style.transition = "";
+    if (!moved) return;
+    open = dx < -45 ? -84 : dx > 45 ? 84 : 0; set(open);
+    if (open) buzz();
+    setTimeout(() => (moved = false), 0);   // only the click that ends this swipe is ignored
+  };
+  row.addEventListener("pointerup", end); row.addEventListener("pointercancel", end);
+  // capture on the wrapper so this runs before the row's own "open editor" tap handler
+  wrap.addEventListener("click", (e) => {
+    if (!row.contains(e.target)) return;
+    if (moved) { moved = false; e.stopPropagation(); return; }
+    if (open) { open = 0; set(0); e.stopPropagation(); }
+  }, true);
+  wrap.querySelector(".act.edit").onclick = () => { open = 0; set(0); onEdit(); };
+  wrap.querySelector(".act.del").onclick = () => { open = 0; set(0); onDel(); };
+}
+
+function renderSpending() {
+  const r = monthRange(monthOffset);
+  const inMonth = expenses.filter((e) => e.ts >= r.start && e.ts < r.end);
+  const total = inMonth.reduce((s, e) => s + e.amount, 0);
+  $("monthName").textContent = r.label;
+  $("nextM").disabled = monthOffset >= 0;
+  countTo($("mTotal"), total);
+  $("mSub").textContent = inMonth.length
+    ? inMonth.length + (inMonth.length === 1 ? " payment" : " payments") + " · about " + fmt(Math.round(total / r.days)) + " a day"
+    : "Nothing logged";
+  renderWeek(); renderTrend(); renderCompare(r);   // (the donut is left out of the monochrome design)
+  renderCalendar(r); renderListView();
+
+  const list = $("list"); list.innerHTML = "";
+  if (!inMonth.length) { const c = el("div", "card"); c.append(emptyState("tab-log", "No payments here yet", VIEWER ? "Nothing was spent in this month." : "Go to Log, type the amount and tap a category. It shows up here right away.")); list.append(c); }
+  const todayK = dayKey(Date.now());
+  const days = [];
+  inMonth.forEach((e) => { const k = dayKey(e.ts); let g = days[days.length - 1]; if (!g || g.k !== k) days.push((g = { k, ts: e.ts, items: [] })); g.items.push(e); });
+  days.forEach((g) => {
+    const wrapDay = el("div"); wrapDay.style.cssText = "display:flex;flex-direction:column;gap:14px";
+    const head = el("div", "day"), d = new Date(g.ts);
+    head.append(el("span", "", g.k === todayK ? "Today" : g.k === dayKey(Date.now() - DAY) ? "Yesterday" : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })),
+      el("span", "", fmt(g.items.reduce((s, x) => s + x.amount, 0))));
+    const card = el("div", "card flush");
+    g.items.forEach((e) => card.append(payRow(e, "time")));
+    wrapDay.append(head, card);
+    list.append(wrapDay);
+  });
+}
+
+// One payment row: icon square, title + detail, amount. Tap to edit; swipe left to delete, right to edit.
+function payRow(e, when) {
+  const sw = el("div", "swipe");
+  const ed = el("button", "act edit"), de = el("button", "act del");
+  ed.type = de.type = "button";
+  ed.append(el("span"), document.createTextNode("Edit")); ed.firstChild.append(ico("pencil")); ed.setAttribute("aria-label", "Edit");
+  de.append(el("span"), document.createTextNode("Delete")); de.firstChild.append(ico("trash")); de.setAttribute("aria-label", "Delete");
+  const it = el("button", "row"); it.type = "button";
+  const t = el("div", "t"), d = new Date(e.ts);
+  const whenText = when === "date"
+    ? (dayKey(e.ts) === dayKey(Date.now()) ? "Today" : dayKey(e.ts) === dayKey(Date.now() - DAY) ? "Yesterday" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }))
+    : d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  t.append(el("div", "", e.note || catLabel(e.cat) || UNCAT),
+    el("small", "", (e.note ? (e.cat ? mainOf(e.cat) + (subOf(e.cat) ? " · " + subOf(e.cat) : "") : UNCAT) + " · " : (subOf(e.cat) ? mainOf(e.cat) + " · " : "")) + whenText));
+  it.append(tile(e.cat), t, el("span", "amt", fmt(e.amount)));
+  if (VIEWER) { const r = el("div", "row"); r.append(...it.childNodes); sw.append(r); return sw; }   // read-only: no tap, no swipe
+  it.onclick = () => openEdit(e);
+  sw.append(ed, de, it);
+  makeSwipe(sw, it, () => openEdit(e), () => { delExpense(e.id); showToast("Deleted " + fmt(e.amount) + " · " + catLabel(e.cat), () => { putExpense(e); showToast("Restored"); }); });
+  return sw;
+}
+
+// Home: the five most recent payments
+function renderRecent() {
+  const box = $("recentList"); box.innerHTML = "";
+  const recent = expenses.filter((e) => e.ts <= Date.now() + 60e3).slice(0, 5);
+  if (!recent.length) box.append(emptyState("tab-log", "No payments yet", "Tap Log expense, type the amount and pick what it was for."));
+  recent.forEach((e) => box.append(payRow(e, "date")));
+  $("seeAllBtn").hidden = !recent.length;
+}
+
+// Home: This Week / This Month / This Year, like a stack of widgets
+function renderHeader() {
+  const now = Date.now(), cur = monthRange(0), prev = monthRange(-1), y0 = +new Date(new Date().getFullYear(), 0, 1);
+  const month = sumIn(expenses, cur.start, cur.end);
+  countTo($("gWeekVal"), sumIn(expenses, weekStart(now), now + 60e3));
+  countTo($("gMonthVal"), month);
+  countTo($("gYearVal"), sumIn(expenses, y0, now + 60e3));
+  $("gMonthLbl").textContent = cur.label;
+  // compare like with like: the 1st to today, against the same days last month
+  const days = new Date().getDate(), pEnd = Math.min(prev.end, prev.start + days * DAY), before = sumIn(expenses, prev.start, pEnd);
+  const d = $("gDelta");
+  if (!before) d.textContent = month ? "Nothing to compare with last month yet" : "Nothing logged yet this month";
+  else {
+    const p = Math.round((100 * (month - before)) / before);
+    d.textContent = (p === 0 ? "Same as" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs") + " the same days in " + prev.label;
+  }
+}
+function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
+
+/* ======================================================================
+   Quick entry: every detail on one screen
+   ====================================================================== */
+let qKind = "pay";
+function setQKind(kind) {
+  qKind = kind;
+  document.querySelectorAll("#quickSheet .seg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.kind === kind));
+  $("qCatRow").hidden = kind !== "pay"; $("qFriendRow").hidden = kind === "pay";
+  $("qSave").textContent = kind === "pay" ? "Save payment" : kind === "lent" ? "Save loan" : "Save payback";
+}
+function fillQFriends(pick) {
+  const s = $("qFriend"); s.innerHTML = "";
+  allFriends().forEach((f) => s.append(new Option(f.name, f.name)));
+  s.append(new Option("+ New friend…", "__new"));
+  s.value = pick && allFriends().some((f) => f.name === pick) ? pick : allFriends().length ? allFriends()[0].name : "__new";
+  $("qNewFriendRow").hidden = s.value !== "__new";
+}
+function openQuick(pre = {}) {
+  setQKind(pre.kind || "pay");
+  $("qAmount").value = pre.amount ? String(pre.amount) : "";
+  const cs = $("qCat"); cs.innerHTML = "";
+  cs.append(new Option("Pick a category", ""));
+  CATS.forEach((c) => cs.append(new Option(c.name, c.name)));
+  cs.value = pre.cat ? mainOf(pre.cat) : ""; fillSubs(cs.value, subOf(pre.cat), $("qSub"));
+  fillQFriends(selFriend); $("qNewFriend").value = "";
+  $("qNote").value = pre.note || "";
+  $("qDate").max = isoDay(new Date()); $("qDate").value = isoDay(new Date(pre.ts || Date.now()));
+  $("qInfo").hidden = !pre.info; $("qInfo").textContent = pre.info || ""; $("qInfo").classList.toggle("warn", !!pre.warn);
+  $("qErr").textContent = "";
+  $("quickSheet").showModal();
+}
+document.querySelectorAll("#quickSheet .seg button").forEach((b) => (b.onclick = () => setQKind(b.dataset.kind)));
+$("qCat").onchange = () => fillSubs($("qCat").value, "", $("qSub"));
+$("qFriend").onchange = () => { $("qNewFriendRow").hidden = $("qFriend").value !== "__new"; if (!$("qNewFriendRow").hidden) $("qNewFriend").focus(); };
+function quickSave(another) {
+  const amount = parseAmount($("qAmount").value);
+  if (!(amount > 0)) { $("qErr").textContent = "Type an amount above zero."; $("qAmount").focus(); return; }
+  const day = $("qDate").value || isoDay(new Date());
+  const ts = day >= isoDay(new Date()) ? Date.now() : moveToDay(Date.now(), day);
+  const note = $("qNote").value.trim();
+  let msg, undo;
+  if (qKind === "pay") {
+    if (!$("qCat").value) { $("qErr").textContent = "Pick a category."; return; }
+    const cat = $("qCat").value + ($("qSub").value ? ": " + $("qSub").value : "");
+    const e = { id: newId("e"), amount, cat, note, ts };
+    putExpense(e);
+    msg = "Saved " + fmt(amount) + " · " + catLabel(cat) + pastLabel(ts); undo = () => { delExpense(e.id); showToast("Removed"); };
+  } else {
+    let name = $("qFriend").value;
+    if (name === "__new") {
+      name = $("qNewFriend").value.trim().replace(/\s+/g, " ");
+      if (!name) { $("qErr").textContent = "Type your friend's name."; $("qNewFriend").focus(); return; }
+      const existing = allFriends().find((f) => f.name.toLowerCase() === name.toLowerCase());
+      if (existing) name = existing.name;
+      else putFriend({ id: newId("f"), name, phone: "", monthly: 0, day: 0, note: "" });
+    }
+    const l = { id: newId("l"), friend: name, amount, type: qKind, note, ts };
+    putLoan(l); selFriend = name;
+    msg = (qKind === "lent" ? "Lent " : "Got back ") + fmt(amount) + " · " + name + pastLabel(ts); undo = () => { delLoan(l.id); showToast("Removed"); };
+  }
+  showToast(msg, undo);
+  if (another) {   // keep the type, friend/category and date; clear the rest
+    $("qAmount").value = ""; $("qNote").value = ""; $("qErr").textContent = ""; $("qInfo").hidden = true;
+    if (qKind !== "pay") fillQFriends(selFriend);
+    $("qAmount").focus();
+  } else $("quickSheet").close();
+}
+$("qSave").onclick = () => quickSave(false);
+$("qSaveMore").onclick = () => quickSave(true);
+$("fullFormBtn").onclick = () => { const pre = { amount: parseAmount(amountStr) || "", note: $("note").value.trim() }; closeAdd(); openQuick(pre); };
+
+/* ======================================================================
+   Share → Pocket Ledger: read the amount (and who / when) from shared text
+   such as a bank SMS or a payment app's receipt text
+   ====================================================================== */
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+function parseShared(text) {
+  const t = String(text || "").replace(/\s+/g, " ").trim();
+  const out = { amount: 0, note: "", ts: 0, credit: false };
+  const num = (s) => parseFloat(s.replace(/,/g, ""));
+  const hits = [];
+  const re = /(?:₹|\brs\.?|\binr)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/gi;
+  let m;
+  while ((m = re.exec(t))) hits.push({ v: num(m[1]), i: m.index });
+  if (!hits.length) { const p = t.match(/\b(?:paid|debited|spent|sent)\b\D{0,15}([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i); if (p) hits.push({ v: num(p[1]), i: p.index }); }
+  // prefer the amount that sits next to "debited / paid / spent…", not the balance at the end
+  const near = hits.find((h) => /debit|paid|spent|sent|transfer|withdrawn|purchase|payment/i.test(t.slice(Math.max(0, h.i - 30), h.i + 45)) && !/bal|balance|limit|lmt/i.test(t.slice(Math.max(0, h.i - 12), h.i)));
+  const pick = near || hits.find((h) => !/bal|balance|limit|lmt/i.test(t.slice(Math.max(0, h.i - 12), h.i))) || hits[0];
+  if (pick && pick.v > 0) out.amount = Math.round(pick.v * 100) / 100;
+  out.credit = /\b(credited|received)\b/i.test(t) && !/\b(debited|paid|spent|sent)\b/i.test(t);
+  // who it went to
+  const vpa = t.match(/\bVPA\s+([A-Za-z0-9._-]+)@/i);
+  const who = t.match(/\b(?:paid to|sent to|to|at|towards)\s+([A-Za-z][A-Za-z0-9&.' -]{1,30}?)(?=\s+(?:on|via|using|from|ref|upi|txn|avl|is|was|has|for)\b|[.,;:]|$)/i);
+  if (vpa) out.note = vpa[1];
+  else if (who && !/^(vpa|your|you|a\/?c|ac|account|card|the|bank)\b/i.test(who[1])) out.note = who[1].trim();
+  // when (dd-mm-yy, dd/mm/yyyy, dd-Mon-yy, yyyy-mm-dd)
+  let d = null;
+  const iso = t.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
+  const dmy = t.match(/\b(\d{1,2})[-/ ](\d{1,2}|[A-Za-z]{3})[a-z]*[-/ ,]+(\d{2,4})\b/);
+  if (iso) d = new Date(+iso[1], +iso[2] - 1, +iso[3]);
+  else if (dmy) {
+    const mon = /\d/.test(dmy[2]) ? +dmy[2] - 1 : MONTHS.indexOf(dmy[2].toLowerCase().slice(0, 3));
+    const yr = dmy[3].length === 2 ? 2000 + +dmy[3] : +dmy[3];
+    if (mon >= 0 && mon < 12) d = new Date(yr, mon, +dmy[1]);
+  }
+  if (d && !isNaN(d) && +d <= Date.now() && Date.now() - d < 90 * DAY && dayKey(+d) !== dayKey(Date.now())) out.ts = moveToDay(Date.now(), isoDay(d));
+  return out;
+}
+function openFromShare(text) {
+  const p = parseShared(text);
+  const snippet = text.length > 110 ? text.slice(0, 110) + "…" : text;
+  let info;
+  if (!p.amount) info = "Couldn't find an amount in what you shared, so type it in. Shared: “" + snippet + "”";
+  else if (p.credit) info = "This looks like money you received, not spent. Check before saving. Shared: “" + snippet + "”";
+  else info = "Filled in from what you shared. Pick a category and save.";
+  openQuick({ amount: p.amount || "", note: p.note, ts: p.ts || Date.now(), info, warn: !p.amount || p.credit });
+}
+
+/* ======================================================================
+   Daily evening reminder (best effort: Android decides when web apps may run)
+   The service worker reads a small state file to decide whether to nudge.
+   ====================================================================== */
+const REM = P + "remind";
+let stateTimer = null;
+function writeState() {
+  if (PREVIEW || VIEWER) return;
+  clearTimeout(stateTimer);
+  stateTimer = setTimeout(async () => {
+    if (!("caches" in window)) return;
+    try {
+      const c = await caches.open("pl-state"), old = await c.match("./state"), prev = old ? await old.json() : {};
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      const todaySum = sumIn(expenses, +t0, +t0 + DAY);
+      const latest = expenses.filter((e) => e.ts <= Date.now()).reduce((m, e) => Math.max(m, e.ts), 0);
+      const s = { ...prev, remind: load(REM, false), lastLogDay: latest ? dayKey(latest) : "", todayTotal: fmt(todaySum) };
+      await c.put("./state", new Response(JSON.stringify(s), { headers: { "Content-Type": "application/json" } }));
+    } catch {}
+  }, 500);
+}
+function setRem(msg, cls) { $("remindState").textContent = msg; $("remindState").className = "syncstate" + (cls ? " " + cls : ""); }
+function updateRemUI() {
+  const on = load(REM, false);
+  $("remindBtn").setAttribute("aria-checked", on);
+  if (on) setRem("On. It comes in the evening (after 5 pm) at a time Android picks, at most once a day.", "ok");
+  else if (!$("remindState").classList.contains("err")) setRem("");
+}
+async function reminderOn() {
+  if (PREVIEW) return setRem("Reminders are switched off in the preview.", "err");
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return setRem("This browser can't show notifications for web apps.", "err");
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") return setRem("Notifications are blocked. Allow them in Android Settings → Apps → Pocket Ledger → Notifications, then try again.", "err");
+  const reg = await navigator.serviceWorker.ready;
+  if (!reg.periodicSync) return setRem("Notifications are allowed, but this browser can't wake web apps in the background, so a daily reminder isn't possible here. Shortcuts and Share still work.", "err");
+  try { await reg.periodicSync.register("pl-daily", { minInterval: 12 * 3600e3 }); }
+  catch { return setRem("Android only allows background reminders for installed apps. Install Pocket Ledger to your home screen, open it from there, and try again.", "err"); }
+  keep(REM, true); writeState(); updateRemUI();
+  reg.showNotification("Daily reminder is on", { body: "Pocket Ledger will nudge you in the evening if you might have missed a payment.", icon: "icon-192.png", badge: "icon-192.png", tag: "pl-test" });
+}
+async function reminderOff() {
+  keep(REM, false); writeState();
+  try { const reg = await navigator.serviceWorker.ready; if (reg.periodicSync) await reg.periodicSync.unregister("pl-daily"); } catch {}
+  setRem(""); updateRemUI();
+}
+$("remindBtn").onclick = () => { buzz(); (load(REM, false) ? reminderOff() : reminderOn()); };
+$("testNotifBtn").onclick = async () => {
+  if (PREVIEW) return setRem("Notifications are switched off in the preview.", "err");
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return setRem("This browser can't show notifications for web apps.", "err");
+  if ((await Notification.requestPermission()) !== "granted") return setRem("Notifications are blocked. Allow them in Android Settings → Apps → Pocket Ledger → Notifications.", "err");
+  const reg = await navigator.serviceWorker.ready;
+  reg.showNotification("Did you pay for anything today?", { body: "Tap to log it in Pocket Ledger before you forget.", icon: "icon-192.png", badge: "icon-192.png", tag: "pl-test", data: { url: "./?go=quick" } });
+  setRem("Test sent. Tap the notification to check it opens Quick entry.", "ok");
+};
+
+/* ---------- appearance: light / dark / automatic, and the accent colour ---------- */
+const ACCENTS = { blue: ["#007AFF", "#0A84FF"], orange: ["#FF9500", "#FF9F0A"], green: ["#34C759", "#30D158"], indigo: ["#5856D6", "#5E5CE6"],
+  pink: ["#FF2D55", "#FF375F"], purple: ["#AF52DE", "#BF5AF2"], teal: ["#30B0C7", "#40C8E0"] };
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme() {
+  const t = load(K.theme, "auto"), a = ACCENTS[load(K.accent, "blue")] ? load(K.accent, "blue") : "blue";
+  if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t;
+  const dark = t === "dark" || (t === "auto" && darkQuery.matches);
+  document.documentElement.style.removeProperty("--accent");   // monochrome: black in light mode, white in dark mode
+  document.querySelectorAll("#themeSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themeChoice === t));
+  document.querySelectorAll("#accentRow .swatch").forEach((b) => b.setAttribute("aria-pressed", b.dataset.accent === a));
+}
+Object.entries(ACCENTS).forEach(([name, [light]]) => {
+  const b = el("button", "swatch"); b.type = "button"; b.dataset.accent = name; b.style.setProperty("--sw", light);
+  b.setAttribute("aria-label", name[0].toUpperCase() + name.slice(1));
+  b.onclick = () => { keep(K.accent, name); buzz(); applyTheme(); };
+  $("accentRow").append(b);
+});
+document.querySelectorAll("#themeSeg button").forEach((b) => (b.onclick = () => { keep(K.theme, b.dataset.themeChoice); applyTheme(); }));
+darkQuery.addEventListener("change", applyTheme);
+
+/* ======================================================================
+   Views on Spending (inspired by Notion): Overview, Calendar, List
+   ====================================================================== */
+let spendView = "overview", calSel = null;
+function setView(v) {
+  spendView = v;
+  document.querySelectorAll("#viewSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === v));
+  $("ovView").hidden = v !== "overview"; $("calView").hidden = v !== "calendar"; $("listView").hidden = v !== "list";
+  $("monthBar").hidden = v === "list";   // the List view has its own period filter
+  renderSpending();
+}
+document.querySelectorAll("#viewSeg button").forEach((b) => (b.onclick = () => { buzz(); setView(b.dataset.view); }));
+
+/* ---------- Calendar: each day of the month, shaded by how much you spent ---------- */
+function renderCalendar(r) {
+  const grid = $("calGrid"); grid.innerHTML = "";
+  const first = new Date(r.start), lead = (first.getDay() + 6) % 7, days = Math.round((r.end - r.start) / DAY);
+  const vals = [];
+  for (let d = 0; d < days; d++) vals.push(sumIn(expenses, r.start + d * DAY, r.start + (d + 1) * DAY));
+  const max = Math.max(...vals, 0), todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+  if (calSel == null || calSel < r.start || calSel >= r.end) {   // default: today, or the latest day with spending in that month
+    calSel = monthOffset === 0 ? todayStart : r.start + (Math.max(0, vals.map((v, i) => (v ? i : -1)).reduce((a, b) => Math.max(a, b), 0))) * DAY;
+  }
+  for (let i = 0; i < lead; i++) grid.append(el("span", "calday blank"));
+  vals.forEach((v, d) => {
+    const t = new Date(first.getFullYear(), first.getMonth(), d + 1).getTime();
+    const lv = !v ? 0 : max ? Math.min(4, 1 + Math.floor((3.999 * v) / max)) : 0;
+    const b = el("button", "calday" + (lv ? " lv" + lv : "") + (t === todayStart ? " today" : "") + (t > todayStart ? " future" : ""));
+    b.type = "button"; b.setAttribute("aria-pressed", t === calSel);
+    b.setAttribute("aria-label", new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "long" }) + ": " + fmt(v));
+    b.append(el("span", "n", String(d + 1)), el("span", "v", v ? fmtShort(v) : ""));
+    b.onclick = () => { calSel = t; renderCalendar(r); };
+    grid.append(b);
+  });
+  // the chosen day's payments
+  const items = expenses.filter((e) => e.ts >= calSel && e.ts < calSel + DAY);
+  $("calDayTitle").textContent = calSel === todayStart ? "Today" : new Date(calSel).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" });
+  $("calDayTotal").textContent = items.length ? fmt(items.reduce((s, e) => s + e.amount, 0)) : "";
+  const list = $("calDayList"); list.innerHTML = "";
+  if (!items.length) list.append(emptyState("tab-log", "Nothing spent", calSel > todayStart ? "This day hasn't happened yet." : "No payments logged on this day."));
+  items.forEach((e) => list.append(payRow(e, "time")));
+}
+
+/* ---------- List: search, filters and saved views ---------- */
+const DEFAULT_FILTER = { period: "month", cat: "", min: 0, sort: "new", q: "" };
+let filt = { ...DEFAULT_FILTER, ...load(K.filt, {}) };
+let savedViews = load(K.views, []);   // [{id, name, f}]
+const PERIODS = { month: "This month", week: "This week", last30: "Last 30 days", year: "This year", all: "All time" };
+const SORTS = { new: "Newest first", old: "Oldest first", high: "Highest amount", low: "Lowest amount" };
+const MINS = [0, 100, 500, 1000, 5000];
+function periodRange(p) {
+  const now = Date.now(), d = new Date();
+  if (p === "week") return [weekStart(now), now + 60e3];
+  if (p === "last30") return [now - 30 * DAY, now + 60e3];
+  if (p === "year") return [+new Date(d.getFullYear(), 0, 1), now + 60e3];
+  if (p === "all") return [0, Infinity];
+  const r = monthRange(0); return [r.start, r.end];
+}
+function filtered(f = filt) {
+  const [a, b] = periodRange(f.period), q = (f.q || "").trim().toLowerCase();
+  const out = expenses.filter((e) => e.ts >= a && e.ts < b && (!f.cat || mainOf(e.cat) === f.cat) && e.amount >= (f.min || 0) &&
+    (!q || (e.note || "").toLowerCase().includes(q) || String(e.cat || "").toLowerCase().includes(q)));
+  const by = { new: (x, y) => y.ts - x.ts, old: (x, y) => x.ts - y.ts, high: (x, y) => y.amount - x.amount || y.ts - x.ts, low: (x, y) => x.amount - y.amount || y.ts - x.ts };
+  return out.sort(by[f.sort] || by.new);
+}
+const sameFilter = (a, b) => ["period", "cat", "min", "sort", "q"].every((k) => (a[k] || "") === (b[k] || ""));
+function setFilter(patch) { filt = { ...filt, ...patch }; keep(K.filt, filt); renderListView(); }
+
+function openPick(title, options, current, onPick, extra) {
+  $("pickTitle").textContent = title;
+  const box = $("pickList"); box.innerHTML = "";
+  options.forEach(([val, label]) => {
+    const b = el("button", "setrow"); b.type = "button";
+    b.append(el("span", "", label)); if (val === current) { const c = el("span", "check"); c.append(ico("check")); b.append(c); }
+    b.onclick = () => { $("pickSheet").close(); onPick(val); };
+    box.append(b);
+  });
+  $("pickExtra").hidden = !extra; $("pickExtra").innerHTML = ""; if (extra) $("pickExtra").append(extra);
+  box.parentElement.hidden = !options.length;
+  $("pickSheet").showModal();
+}
+
+function renderListView() {
+  // saved views as tabs ("All" resets)
+  const tabs = $("savedViews"); tabs.innerHTML = "";
+  const all = el("button", "chip", "All"); all.type = "button"; all.setAttribute("aria-pressed", sameFilter(filt, DEFAULT_FILTER));
+  all.onclick = () => { $("searchBox").value = ""; setFilter({ ...DEFAULT_FILTER }); };
+  tabs.append(all);
+  savedViews.forEach((v) => {
+    const c = el("button", "chip", v.name); c.type = "button"; c.setAttribute("aria-pressed", sameFilter(filt, v.f));
+    c.onclick = () => { $("searchBox").value = v.f.q || ""; setFilter({ ...v.f }); };
+    let t; c.addEventListener("pointerdown", () => { t = setTimeout(() => manageView(v), 550); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => c.addEventListener(ev, () => clearTimeout(t)));
+    c.addEventListener("contextmenu", (e) => { e.preventDefault(); manageView(v); });
+    tabs.append(c);
+  });
+  // filter chips
+  const chips = $("filterChips"); chips.innerHTML = "";
+  const chip = (label, on, fn) => { const b = el("button", "fchip" + (on ? " on" : "")); b.type = "button"; b.append(el("span", "", label), ico("chev")); b.onclick = fn; chips.append(b); };
+  chip(PERIODS[filt.period], filt.period !== "month", () => openPick("Period", Object.entries(PERIODS), filt.period, (v) => setFilter({ period: v })));
+  chip(filt.cat || "All categories", !!filt.cat, () => openPick("Category", [["", "All categories"], ...CATS.map((c) => [c.name, c.name]), [UNCAT, UNCAT]], filt.cat, (v) => setFilter({ cat: v })));
+  chip(filt.min ? "Over " + fmt(filt.min) : "Any amount", !!filt.min, () => openPick("Amount", MINS.map((m) => [m, m ? "Over " + fmt(m) : "Any amount"]), filt.min, (v) => setFilter({ min: v })));
+  chip(SORTS[filt.sort], filt.sort !== "new", () => openPick("Sort", Object.entries(SORTS), filt.sort, (v) => setFilter({ sort: v })));
+  const isSaved = savedViews.some((v) => sameFilter(filt, v.f));
+  if (!sameFilter(filt, DEFAULT_FILTER) && !isSaved) {
+    const s = el("button", "fchip save"); s.type = "button"; s.append(ico("plus"), el("span", "", "Save view")); s.onclick = saveViewPrompt; chips.append(s);
+  }
+  // results
+  const items = filtered();
+  $("resultSum").innerHTML = "";
+  $("resultSum").append(el("span", "", items.length + (items.length === 1 ? " payment" : " payments")), el("b", "", fmt(items.reduce((s, e) => s + e.amount, 0))));
+  const box = $("resultList"); box.innerHTML = "";
+  if (!items.length) { const c = el("div", "card"); c.append(emptyState("tab-pie", "No matching payments", "Try a different period, category or search.")); box.append(c); return; }
+  if (filt.sort === "new" || filt.sort === "old") {   // grouped by day, like the rest of the app
+    const groups = [];
+    items.slice(0, 400).forEach((e) => { const k = dayKey(e.ts); let g = groups[groups.length - 1]; if (!g || g.k !== k) groups.push((g = { k, ts: e.ts, items: [] })); g.items.push(e); });
+    groups.forEach((g) => {
+      const wrap = el("div"); wrap.style.cssText = "display:flex;flex-direction:column;gap:14px";
+      const head = el("div", "day");
+      head.append(el("span", "", new Date(g.ts).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: new Date(g.ts).getFullYear() === new Date().getFullYear() ? undefined : "numeric" })),
+        el("span", "", fmt(g.items.reduce((s, x) => s + x.amount, 0))));
+      const card = el("div", "card flush"); g.items.forEach((e) => card.append(payRow(e, "time")));
+      wrap.append(head, card); box.append(wrap);
+    });
+  } else {
+    const card = el("div", "card flush"); items.slice(0, 400).forEach((e) => card.append(payRow(e, "date"))); box.append(card);
+  }
+}
+let searchTimer;
+$("searchBox").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => setFilter({ q: $("searchBox").value }), 200); });
+
+function saveViewPrompt() {
+  const wrap = el("div", "stack"), inp = el("input", "field"), btn = el("button", "btn primary", "Save view"), err = el("div", "err");
+  inp.type = "text"; inp.maxLength = 30; inp.placeholder = "Name, e.g. Eating out this month"; btn.type = "button";
+  const parts = [filt.cat, filt.min ? "over " + fmt(filt.min) : "", filt.q ? "“" + filt.q + "”" : "", PERIODS[filt.period].toLowerCase()].filter(Boolean);
+  inp.value = parts.join(" ").replace(/^./, (c) => c.toUpperCase()).slice(0, 30);
+  btn.onclick = () => {
+    const name = inp.value.trim();
+    if (!name) { err.textContent = "Give the view a name."; return; }
+    savedViews = [...savedViews, { id: newId("v"), name, f: { ...filt } }]; keep(K.views, savedViews);
+    $("pickSheet").close(); renderListView(); showToast("Saved view “" + name + "”");
+  };
+  wrap.append(inp, err, btn);
+  openPick("Save this view", [], null, () => {}, wrap);
+  setTimeout(() => inp.focus(), 50);
+}
+function manageView(v) {
+  openPick(v.name, [["delete", "Delete this view"]], null, () => {
+    savedViews = savedViews.filter((x) => x.id !== v.id); keep(K.views, savedViews); renderListView(); showToast("Deleted view “" + v.name + "”");
+  });
+}
+
+/* ======================================================================
+   Templates: saved entries you log with one tap (kept on this phone)
+   ====================================================================== */
+let templates = load(K.tpl, []);   // [{id, note, amount, cat}]
+let tplCurrent = null, pendingTpl = null;
+function useTemplate(t) {
+  if (t.amount > 0) {
+    const e = { id: newId("e"), amount: t.amount, cat: t.cat, note: t.note || "", ts: Date.now() };
+    putExpense(e);
+    showToast("Saved " + fmt(t.amount) + " · " + (t.note || catLabel(t.cat)), () => { delExpense(e.id); showToast("Removed"); });
+  } else openAdd({ tpl: t });   // amount changes each time: just ask for it
+}
+function openTemplate(t, from) {
+  tplCurrent = t;
+  $("tplTitle").textContent = t ? "Edit template" : "New template";
+  const base = t || from || {};
+  $("tplNote").value = base.note || ""; $("tplAmount").value = base.amount || "";
+  const cs = $("tplCat"); cs.innerHTML = ""; cs.append(new Option("Pick a category", ""));
+  CATS.forEach((c) => cs.append(new Option(c.name, c.name)));
+  cs.value = base.cat ? mainOf(base.cat) : ""; fillSubs(cs.value, subOf(base.cat), $("tplSub"));
+  $("tplErr").textContent = ""; $("tplDelete").hidden = !t; resetConfirm($("tplDelete"), "Delete");
+  $("tplSheet").showModal();
+}
+$("tplCat").onchange = () => fillSubs($("tplCat").value, "", $("tplSub"));
+$("tplSave").onclick = () => {
+  const note = $("tplNote").value.trim(), amount = $("tplAmount").value.trim() ? parseAmount($("tplAmount").value) : 0;
+  if (!$("tplCat").value) { $("tplErr").textContent = "Pick a category."; return; }
+  if ($("tplAmount").value.trim() && !(amount > 0)) { $("tplErr").textContent = "The amount should be a number, or leave it empty."; return; }
+  const cat = $("tplCat").value + ($("tplSub").value ? ": " + $("tplSub").value : "");
+  const t = { id: (tplCurrent && tplCurrent.id) || newId("t"), note: note || catLabel(cat), amount, cat };
+  templates = tplCurrent ? templates.map((x) => (x.id === t.id ? t : x)) : [...templates, t];
+  keep(K.tpl, templates); $("tplSheet").close(); renderQuick(); renderTplList();
+  showToast((tplCurrent ? "Updated" : "Added") + " template “" + t.note + "”");
+};
+armConfirm($("tplDelete"), "Delete", () => {
+  templates = templates.filter((x) => x.id !== tplCurrent.id); keep(K.tpl, templates);
+  $("tplSheet").close(); renderQuick(); renderTplList(); showToast("Deleted template");
+});
+$("edTpl").onclick = () => {
+  const cat = $("edCat").value ? $("edCat").value + ($("edSub").value ? ": " + $("edSub").value : "") : "";
+  $("editSheet").close();
+  openTemplate(null, { note: $("edNote").value.trim(), amount: parseAmount($("edAmount").value) || "", cat });
+};
+function renderTplList() {
+  const box = $("tplList"); box.innerHTML = "";
+  templates.forEach((t) => {
+    const r = el("button", "setrow"); r.type = "button";
+    const left = el("span", "tplrow"); left.append(tile(t.cat, "sm"), el("span", "", t.note));
+    r.append(left, el("small", "", t.amount ? fmt(t.amount) : "ask amount")); r.onclick = () => { $("setSheet").close(); openTemplate(t); };
+    box.append(r);
+  });
+  const add = el("button", "setrow tap", "+ New template"); add.type = "button"; add.onclick = () => { $("setSheet").close(); openTemplate(null); };
+  box.append(add);
+}
+/* ---------- tabs, month nav, navigation bars ---------- */
+function showTab(which) {
+  $("logScreen").hidden = which !== "log"; $("sumScreen").hidden = which !== "sum"; $("lentScreen").hidden = which !== "lent";
+  $("tabLog").setAttribute("aria-selected", which === "log"); $("tabSum").setAttribute("aria-selected", which === "sum");
+  $("tabLent").setAttribute("aria-selected", which === "lent");
+  $("main").scrollTop = 0; onScroll();
+}
+function openSpending() { monthOffset = 0; renderAll(); showTab("sum"); }
+$("tabLog").onclick = () => { renderLogCards(); showTab("log"); };
+$("tabSum").onclick = openSpending;
+$("tabLent").onclick = () => { renderLoans(); showTab("lent"); };
+const stepMonth = (d) => { const n = monthOffset + d; if (n > 0 || n < -60) return; monthOffset = n; buzz(); renderSpending(); };
+$("prevM").onclick = () => stepMonth(-1);
+$("nextM").onclick = () => stepMonth(1);
+$("note").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+$("logBtn").onclick = () => openAdd();
+$("seeAllBtn").onclick = openSpending;
+$("gMonth").onclick = openSpending;
+document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); renderTplList(); $("setSheet").showModal(); }));
+
+// Swipe the month card left/right to change month
+(() => {
+  let x0 = null, y0 = 0;
+  $("sumHero").addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  $("sumHero").addEventListener("touchend", (e) => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) stepMonth(dx < 0 ? 1 : -1);
+  });
+})();
+
+// Navigation bar turns frosted (and shows the small title) once the large title scrolls away
+function onScroll() {
+  const y = $("main").scrollTop;
+  document.querySelectorAll(".screen:not([hidden]) .navbar").forEach((n) => n.classList.toggle("scrolled", y > 30));
+}
+$("main").addEventListener("scroll", onScroll, { passive: true });
+
+// Drag a sheet's grabber down to close it
+document.querySelectorAll("dialog.sheet").forEach((d) => {
+  const g = d.querySelector(".grab"); if (!g) return;
+  let y0 = null;
+  g.addEventListener("pointerdown", (e) => { y0 = e.clientY; g.setPointerCapture(e.pointerId); d.style.transition = "none"; });
+  g.addEventListener("pointermove", (e) => { if (y0 == null) return; const dy = Math.max(0, e.clientY - y0); d.style.transform = dy ? "translateY(" + dy + "px)" : ""; });
+  const end = (e) => { if (y0 == null) return; const dy = e.clientY - y0; y0 = null; d.style.transition = ""; d.style.transform = ""; if (dy > 80) d.close(); };
+  g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
+});
+
+let toastTimer;
+function showToast(msg, action, isError, label) {
+  $("toastMsg").textContent = msg;
+  $("toast").classList.toggle("error", !!isError);
+  $("toastBtn").hidden = !action;
+  if (action && !isError && !label) buzz();
+  $("toastBtn").textContent = label || "Undo";
+  $("toastBtn").onclick = () => { $("toast").hidden = true; action && action(); };
+  $("toast").hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => ($("toast").hidden = true), isError ? 6000 : label ? 15000 : 4000);
+}
+
+// A link ending in #250 opens with ₹250 filled in (MacroDroid can use this)
+function readHash() {
+  const m = location.hash.match(/^#(?:log-)?(\d{1,7}(?:\.\d{1,2})?)$/);
+  if (!m) return;
+  showTab("log"); openAdd({ amount: m[1], step: 2 });
+  try { history.replaceState(null, "", location.pathname); } catch {}
+}
+window.addEventListener("hashchange", readHash);
+
+// Opened from an app-icon shortcut (?go=…), Share (?text=…), or a reminder notification
+function readLaunch() {
+  const q = new URLSearchParams(location.search);
+  const shared = [q.get("title"), q.get("text"), q.get("url")].filter(Boolean).join(" ").trim();
+  const go = q.get("go");
+  if (!shared && !go) return;
+  try { history.replaceState(null, "", location.pathname); } catch {}
+  if (shared) { showTab("log"); openFromShare(shared); return; }
+  if (go === "quick") { showTab("log"); openQuick(); }
+  else if (go === "lent") { renderLoans(); showTab("lent"); $("lendAmt").focus(); }
+  else if (go === "week") openSpending();
+  else if (go === "add" || go === "log") { showTab("log"); openAdd(); }
+  else showTab("log");
+}
+
+
+/* ---------- install + offline support ---------- */
+let installEvent = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvent = e; $("installBtn").hidden = PREVIEW; });
+$("installBtn").onclick = async () => { if (!installEvent) return; installEvent.prompt(); await installEvent.userChoice; installEvent = null; $("installBtn").hidden = true; };
+window.addEventListener("appinstalled", () => { $("installBtn").hidden = true; });
+
+if (!PREVIEW && !VIEWER && "serviceWorker" in navigator && location.protocol === "https:") {
+  // Updates: check whenever the app comes back to the screen (Android often resumes it instead of restarting),
+  // and once a new version has taken over, reload into it — unless you're in the middle of an entry.
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+    const check = () => { if (navigator.onLine) reg.update().catch(() => {}); };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) check(); });
+    setInterval(() => { if (!document.hidden) check(); }, 30 * 60e3);
+  }).catch(() => {});
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloading) return;   // first install: nothing to refresh
+    const busy = [...document.querySelectorAll("dialog")].some((d) => d.open) || amountStr || $("lendAmt").value;
+    if (busy) showToast("A new version of Pocket Ledger is ready.", () => { reloading = true; location.reload(); }, false, "Reload");
+    else { reloading = true; location.reload(); }
+  });
+}
+if (!PREVIEW && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // ask the phone not to clear this app's data
+
+/* ---------- read-only viewer: spending fetched with the sheet's view-only key ---------- */
+let viewBusy = false, viewProblem = "";
+// The link carries the script address and view key after "#", which browsers never send to any server
+function readViewLink() {
+  const q = new URLSearchParams(location.hash.slice(1)), src = q.get("src"), v = q.get("v");
+  if (!src || !v) return;
+  keep(K.view, src + (src.includes("?") ? "&" : "?") + "view=" + encodeURIComponent(v));
+  try { history.replaceState(null, "", location.pathname); } catch {}
+}
+async function pullView() {
+  if (!load(K.view, "")) { viewProblem = "no-link"; renderViewNote(); return; }
+  if (viewBusy) return;
+  viewBusy = true; renderViewNote();
+  try {
+    const data = await readReply(await fetch(load(K.view, ""), { redirect: "follow" }));
+    // replace the whole list each time, so edits and deletions on the owner's side show up too
+    expenses = (data.expenses || []).filter((e) => e.id)
+      .map((e) => ({ id: e.id, ts: e.ts, amount: Number(e.amount), cat: e.cat === "Uncategorised" ? "" : e.cat || "", note: e.note || "" })).sort(byNewest);
+    keep(K.ex, expenses); keep(K.last, Date.now());
+    viewProblem = "";
+    renderAll();
+  } catch (err) { viewProblem = problemOf(err); }
+  viewBusy = false; renderViewNote();
+}
+function renderViewNote() {
+  const box = $("viewNote"), last = load(K.last, 0);
+  box.hidden = false; box.innerHTML = "";
+  const msg = viewProblem === "no-link" ? "This link is incomplete. Ask for the full link again."
+    : viewProblem === "bad key" ? "This link has been switched off."
+    : viewBusy ? "Updating…"
+    : viewProblem ? "Couldn't update" + (last ? ", showing data from " + ago(last) : "")
+    : last ? "Updated " + ago(last) : "";
+  box.append(el("span", "", "Read-only · " + msg));
+  if (!viewBusy && viewProblem !== "no-link" && viewProblem !== "bad key") {
+    const b = el("button", "linkbtn", "Refresh"); b.type = "button"; b.onclick = pullView; box.append(b);
+  }
+}
+function startViewer() {
+  openSpending(); renderViewNote(); pullView();
+  window.addEventListener("hashchange", () => { readViewLink(); pullView(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - load(K.last, 0) > 60e3) pullView(); });
+  setInterval(() => { if (!document.hidden) pullView(); }, 5 * 60e3);
+}
+
+// Start: load the saved lists first, then draw the app (the app ignores taps until this is done)
+(async () => {
+await openStore();
+
+// Preview link only: made-up sample data so every screen has something to show; sync stays off
+if (PREVIEW) {
+  $("previewPill").hidden = false;
+  $("connectBox").innerHTML = '<span class="sub">This is a preview with sample data. Sync is switched off here, so it can\'t touch your real Google Sheet.</span>';
+  if (!expenses.length) {
+    const now = Date.now(), cats = [["Food: Eating out", 420, "Biryani"], ["Food: Snacks & chai", 20, "chai"], ["Groceries: Supermarket", 1250, "DMart"],
+      ["Transport: Auto & cab", 140, "Uber"], ["Bills: Electricity", 1340, ""], ["Bills: Mobile recharge", 299, "Jio"], ["Shopping: Clothes", 1899, "Shoes"],
+      ["Fun: Subscriptions", 199, "Netflix"], ["Health: Medicines", 260, ""], ["Transport: Fuel", 500, ""], ["Food: Snacks & chai", 20, "chai"]];
+    const ex = [];
+    for (let m = 0; m < 6; m++) for (let i = 0; i < 14; i++) {
+      const c = cats[(i + m) % cats.length];
+      ex.push({ id: "s" + m + "_" + i, amount: Math.round(c[1] * (0.7 + ((i * 7 + m * 3) % 9) / 10)), cat: c[0], note: c[2], ts: now - m * 30 * DAY - i * 2.1 * DAY - 3600e3 });
+    }
+    ex.push({ id: "c1", amount: 20, cat: "Food: Snacks & chai", note: "chai", ts: now - 1800e3 });
+    expenses = ex.sort((a, b) => b.ts - a.ts); keep(K.ex, expenses);
+    loans = [
+      { id: "l1", friend: "Rahul", amount: 5000, type: "lent", note: "Monthly", ts: now - 52 * DAY },
+      { id: "l2", friend: "Rahul", amount: 2000, type: "repaid", note: "", ts: now - 40 * DAY },
+      { id: "l3", friend: "Priya", amount: 3000, type: "lent", note: "Rent help", ts: now - 33 * DAY },
+      { id: "l4", friend: "Priya", amount: 1000, type: "repaid", note: "", ts: now - 5 * DAY },
+    ].sort((a, b) => b.ts - a.ts); keep(K.ln, loans);
+    friends = [{ id: "f1", name: "Rahul", phone: "", monthly: 5000, day: 1, note: "", updated: now }, { id: "f2", name: "Priya", phone: "", monthly: 0, day: 0, note: "", updated: now }];
+    keep(K.fr, friends);
+  }
+}
+
+applyTheme();
+setupDateBox("when");
+setupDateBox("lendWhen");
+renderAll();
+updateRemUI();
+document.querySelector(".app").inert = false;
+if (VIEWER) { readViewLink(); startViewer(); }
+else { readHash(); readLaunch(); }
+flush();
+// Friend profiles wait for a newer sheet script; check its version now and then so they go as soon as it's updated
+if (outbox.some((o) => !sendable(o)) && syncLink() && navigator.onLine) pullFromSheet(true);
+})();
+</script>
+</body>
+</html>

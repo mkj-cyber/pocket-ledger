@@ -2,7 +2,7 @@
 // The app's own files are served from the phone first (instant even on a weak network)
 // and refreshed in the background, so a new version shows up on the next open.
 // Bump VERSION whenever the app changes so old copies get cleaned up.
-const VERSION = "pl-v11";
+const VERSION = "pl-v12";
 const KEEP = [VERSION, "pl-fonts", "pl-state"];   // pl-state holds the reminder settings written by the app
 const APP_FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png",
   "./sc-quick.png", "./sc-log.png", "./sc-lent.png", "./sc-week.png"];
@@ -26,7 +26,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
 
   // App files: answer from the phone straight away, update the stored copy in the background
-  if (url.origin === self.location.origin) {
+  if (url.origin === self.location.origin && !url.pathname.includes("/view/")) {   // the read-only viewer (view/) is its own page
     event.respondWith(
       caches.open(VERSION).then(async (cache) => {
         const key = req.mode === "navigate" ? "./index.html" : req;

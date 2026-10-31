@@ -292,6 +292,10 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .4); animation: fadeIn .3s; }
 .sheet .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .sheet .close { width: 30px; height: 30px; border-radius: 50%; background: var(--fill); color: var(--fg2); display: grid; place-items: center; font-size: 14px; }
 .sheet .err { color: var(--red); font-size: 14px; min-height: 17px; }
+/* read-only viewer: Spending only, nothing to tap that changes data */
+.viewer .tabs, .viewer #sumScreen [data-settings], .viewer .swipehint { display: none !important; }
+.viewnote { display: flex; align-items: center; gap: 10px; color: var(--fg2); font-size: 14px; margin: -4px 2px 2px; }
+.viewnote .linkbtn { font-size: 14px; }
 .fsedit > summary { list-style: none; cursor: pointer; color: var(--fg2); font-size: 15px; font-weight: 500; padding: 10px 2px; }
 .fsedit > summary::-webkit-details-marker { display: none; }
 .fsedit > summary::after { content: " ›"; }
@@ -630,6 +634,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
         <div class="acts"><button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button></div>
       </div>
       <h1 class="large">Spending</h1>
+      <div class="viewnote" id="viewNote" hidden></div>
       <div class="seg viewseg" id="viewSeg" role="group" aria-label="View">
         <button type="button" data-view="overview" aria-pressed="true">Overview</button>
         <button type="button" data-view="calendar" aria-pressed="false">Calendar</button>
@@ -678,7 +683,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
         <div class="legend" id="cmpLegend"></div>
         <div class="rows" id="catRows"></div>
       </div>
-      <div class="sechead"><span>Payments</span><span style="text-transform:none">Swipe to edit or delete</span></div>
+      <div class="sechead"><span>Payments</span><span class="swipehint" style="text-transform:none">Swipe to edit or delete</span></div>
       <div id="list" class="stack" style="display:flex;flex-direction:column;gap:14px"></div>
       </div>
     </section>
@@ -1013,6 +1018,9 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 // The preview link (…/pocket-ledger-preview/) uses its own sample data and never syncs,
 // so trying a new design can't touch real payments or the Google Sheet.
 const PREVIEW = /pocket-ledger-preview/.test(location.pathname);
+// The read-only link (…/pocket-ledger/view/) shows only Spending, from the sheet's view-only key. It never writes anything.
+const VIEWER = /\/view\/(index\.html)?$/.test(location.pathname);
+if (VIEWER) document.documentElement.classList.add("viewer");
 const CUR = "₹";
 const CATS = [
   { name: "Food", c: "--c-food", icon: "food", subs: ["Eating out", "Food delivery", "Snacks & chai", "Office lunch"] },
@@ -1093,10 +1101,10 @@ function emptyState(icon, title, text) {
 }
 
 /* ---------- saved on the phone ---------- */
-const P = PREVIEW ? "pv-" : "pl-";
+const P = PREVIEW ? "pv-" : VIEWER ? "vw-" : "pl-";
 const K = { ex: P + "expenses", ln: P + "loans", fr: P + "friends", out: P + "outbox", link: P + "sync-link", last: P + "last-sync",
   sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent",
-  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter" };
+  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src" };
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 
 /* ---------- IndexedDB for the lists that keep growing ----------
@@ -1200,7 +1208,7 @@ function setupDateBox(id) {
    or newer; until then they wait safely in the outbox.
    ====================================================================== */
 let flushing = false, flushTimer = null, syncProblem = "";
-const syncLink = () => (PREVIEW ? "" : load(K.link, ""));   // the preview never syncs
+const syncLink = () => (PREVIEW || VIEWER ? "" : load(K.link, ""));   // the preview and the viewer never sync
 const sheetVersion = () => load(K.srv, 1);
 const sendable = (o) => o.kind !== "f" || sheetVersion() >= 2;
 
@@ -1643,6 +1651,7 @@ function fillSubs(main, sub, s = $("edSub")) {
   s.disabled = !c;
 }
 function openEdit(e) {
+  if (VIEWER) return;
   edCurrent = e;
   $("edAmount").value = e.amount;
   const cs = $("edCat"); cs.innerHTML = "";
@@ -2072,7 +2081,7 @@ function renderSpending() {
   renderCalendar(r); renderListView();
 
   const list = $("list"); list.innerHTML = "";
-  if (!inMonth.length) { const c = el("div", "card"); c.append(emptyState("tab-log", "No payments here yet", "Go to Log, type the amount and tap a category. It shows up here right away.")); list.append(c); }
+  if (!inMonth.length) { const c = el("div", "card"); c.append(emptyState("tab-log", "No payments here yet", VIEWER ? "Nothing was spent in this month." : "Go to Log, type the amount and tap a category. It shows up here right away.")); list.append(c); }
   const todayK = dayKey(Date.now());
   const days = [];
   inMonth.forEach((e) => { const k = dayKey(e.ts); let g = days[days.length - 1]; if (!g || g.k !== k) days.push((g = { k, ts: e.ts, items: [] })); g.items.push(e); });
@@ -2103,6 +2112,7 @@ function payRow(e, when) {
   t.append(el("div", "", e.note || catLabel(e.cat) || UNCAT),
     el("small", "", (e.note ? (e.cat ? mainOf(e.cat) + (subOf(e.cat) ? " · " + subOf(e.cat) : "") : UNCAT) + " · " : (subOf(e.cat) ? mainOf(e.cat) + " · " : "")) + whenText));
   it.append(tile(e.cat), t, el("span", "amt", fmt(e.amount)));
+  if (VIEWER) { const r = el("div", "row"); r.append(...it.childNodes); sw.append(r); return sw; }   // read-only: no tap, no swipe
   it.onclick = () => openEdit(e);
   sw.append(ed, de, it);
   makeSwipe(sw, it, () => openEdit(e), () => { delExpense(e.id); showToast("Deleted " + fmt(e.amount) + " · " + catLabel(e.cat), () => { putExpense(e); showToast("Restored"); }); });
@@ -2262,7 +2272,7 @@ function openFromShare(text) {
 const REM = P + "remind";
 let stateTimer = null;
 function writeState() {
-  if (PREVIEW) return;
+  if (PREVIEW || VIEWER) return;
   clearTimeout(stateTimer);
   stateTimer = setTimeout(async () => {
     if (!("caches" in window)) return;
@@ -2629,7 +2639,7 @@ window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); inst
 $("installBtn").onclick = async () => { if (!installEvent) return; installEvent.prompt(); await installEvent.userChoice; installEvent = null; $("installBtn").hidden = true; };
 window.addEventListener("appinstalled", () => { $("installBtn").hidden = true; });
 
-if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") {
+if (!PREVIEW && !VIEWER && "serviceWorker" in navigator && location.protocol === "https:") {
   // Updates: check whenever the app comes back to the screen (Android often resumes it instead of restarting),
   // and once a new version has taken over, reload into it — unless you're in the middle of an entry.
   const hadController = !!navigator.serviceWorker.controller;
@@ -2647,6 +2657,50 @@ if (!PREVIEW && "serviceWorker" in navigator && location.protocol === "https:") 
   });
 }
 if (!PREVIEW && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});   // ask the phone not to clear this app's data
+
+/* ---------- read-only viewer: spending fetched with the sheet's view-only key ---------- */
+let viewBusy = false, viewProblem = "";
+// The link carries the script address and view key after "#", which browsers never send to any server
+function readViewLink() {
+  const q = new URLSearchParams(location.hash.slice(1)), src = q.get("src"), v = q.get("v");
+  if (!src || !v) return;
+  keep(K.view, src + (src.includes("?") ? "&" : "?") + "view=" + encodeURIComponent(v));
+  try { history.replaceState(null, "", location.pathname); } catch {}
+}
+async function pullView() {
+  if (!load(K.view, "")) { viewProblem = "no-link"; renderViewNote(); return; }
+  if (viewBusy) return;
+  viewBusy = true; renderViewNote();
+  try {
+    const data = await readReply(await fetch(load(K.view, ""), { redirect: "follow" }));
+    // replace the whole list each time, so edits and deletions on the owner's side show up too
+    expenses = (data.expenses || []).filter((e) => e.id)
+      .map((e) => ({ id: e.id, ts: e.ts, amount: Number(e.amount), cat: e.cat === "Uncategorised" ? "" : e.cat || "", note: e.note || "" })).sort(byNewest);
+    keep(K.ex, expenses); keep(K.last, Date.now());
+    viewProblem = "";
+    renderAll();
+  } catch (err) { viewProblem = problemOf(err); }
+  viewBusy = false; renderViewNote();
+}
+function renderViewNote() {
+  const box = $("viewNote"), last = load(K.last, 0);
+  box.hidden = false; box.innerHTML = "";
+  const msg = viewProblem === "no-link" ? "This link is incomplete. Ask for the full link again."
+    : viewProblem === "bad key" ? "This link has been switched off."
+    : viewBusy ? "Updating…"
+    : viewProblem ? "Couldn't update" + (last ? ", showing data from " + ago(last) : "")
+    : last ? "Updated " + ago(last) : "";
+  box.append(el("span", "", "Read-only · " + msg));
+  if (!viewBusy && viewProblem !== "no-link" && viewProblem !== "bad key") {
+    const b = el("button", "linkbtn", "Refresh"); b.type = "button"; b.onclick = pullView; box.append(b);
+  }
+}
+function startViewer() {
+  openSpending(); renderViewNote(); pullView();
+  window.addEventListener("hashchange", () => { readViewLink(); pullView(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - load(K.last, 0) > 60e3) pullView(); });
+  setInterval(() => { if (!document.hidden) pullView(); }, 5 * 60e3);
+}
 
 // Start: load the saved lists first, then draw the app (the app ignores taps until this is done)
 (async () => {
@@ -2684,8 +2738,8 @@ setupDateBox("lendWhen");
 renderAll();
 updateRemUI();
 document.querySelector(".app").inert = false;
-readHash();
-readLaunch();
+if (VIEWER) { readViewLink(); startViewer(); }
+else { readHash(); readLaunch(); }
 flush();
 // Friend profiles wait for a newer sheet script; check its version now and then so they go as soon as it's updated
 if (outbox.some((o) => !sendable(o)) && syncLink() && navigator.onLine) pullFromSheet(true);
