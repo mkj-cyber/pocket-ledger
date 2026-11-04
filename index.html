@@ -18,7 +18,7 @@ try {
   const p = /pocket-ledger-preview/.test(location.pathname) ? "pv-" : /\/view\/(index\.html)?$/.test(location.pathname) ? "" : "pl-";
   if (p && JSON.parse(localStorage.getItem(p + "style")) === "nothing") {
     document.documentElement.dataset.style = "nothing";
-    document.write('<link rel="stylesheet" id="nothingFonts" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap">');
+    document.write('<link rel="stylesheet" id="nothingFonts" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500&display=swap">');
   }
 } catch {}
 </script>
@@ -606,95 +606,100 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 .chip.tpl.add { box-shadow: inset 0 0 0 1.5px var(--fg3); color: var(--fg); padding-left: 12px; }
 #logScreen .logbtn { margin-top: 6px; }
 #recentList { margin-bottom: 4px; }
-
 /* ======================================================================
-   "Nothing" style (Settings → Appearance → Style), after nothing.tech / Nothing OS 5:
-   Geist for text, Geist Mono 11px capitals for labels and buttons, a serif for headings,
-   dot matrix (Doto) only for big numbers and "( 01 )" counters, near-black #040404 with
-   #181818 cards, small 8px corners, a faint dot grid, and red used only as a dot.
+   "Nothing" style (Settings → Appearance → Style), after Nothing OS.
+   A strict system so every screen reads the same:
+   - one typeface (Geist) in two weights, 400 and 500;
+   - dot matrix (Doto) only for the one big total on a screen;
+   - one label style: 11px capitals, grey; one corner size (16px); one card padding (16px);
+   - everything left-aligned; near-black #040404 with #181818 cards, a faint dot grid,
+     dotted bars, and red used only as a small dot.
    ====================================================================== */
 :root[data-style="nothing"] {
-  --bg: #F4F4F4; --card: #FFFFFF; --card2: #ECECEC; --fg: #040404; --fg2: #6B6D6D; --fg3: #B9BBBB; --sep: rgba(4, 4, 4, .09);
+  --bg: #F4F4F4; --card: #FFFFFF; --card2: #ECECEC; --fg: #040404; --fg2: #6B6D6D; --fg3: #B9BBBB; --sep: rgba(4, 4, 4, .08);
   --fill: #ECECEC; --prev: #D8D9D9; --sheet: #F4F4F4; --sheetcard: #FFFFFF; --tilebg: #F1F1F1; --bar: rgba(244, 244, 244, .9);
-  --accent: #040404; --accent-ink: #FFFFFF; --nred: #D71921; --dot: rgba(4, 4, 4, .10); --round: 8px;
-  --font: "Geist", system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, monospace;
-  --serif: "Instrument Serif", Georgia, serif; --dotfont: "Doto", ui-monospace, monospace;
+  --accent: #040404; --accent-ink: #FFFFFF; --nred: #D71921; --dot: rgba(4, 4, 4, .09); --round: 16px;
+  --font: "Geist", system-ui, sans-serif; --dotfont: "Doto", ui-monospace, monospace;
   &[data-theme="dark"] {
-    --bg: #040404; --card: #181818; --card2: #222222; --fg: #FFFFFF; --fg2: #9B9D9D; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
-    --fill: #222222; --prev: #3A3B3B; --sheet: #101010; --sheetcard: #1C1C1C; --tilebg: #242424; --bar: rgba(4, 4, 4, .88);
-    --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .13);
+    --bg: #040404; --card: #141414; --card2: #1E1E1E; --fg: #FFFFFF; --fg2: #8E9090; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
+    --fill: #1E1E1E; --prev: #353636; --sheet: #0E0E0E; --sheetcard: #181818; --tilebg: #1E1E1E; --bar: rgba(4, 4, 4, .88);
+    --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .11);
   }
   @media (prefers-color-scheme: dark) { &:not([data-theme="light"]) {
-    --bg: #040404; --card: #181818; --card2: #222222; --fg: #FFFFFF; --fg2: #9B9D9D; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
-    --fill: #222222; --prev: #3A3B3B; --sheet: #101010; --sheetcard: #1C1C1C; --tilebg: #242424; --bar: rgba(4, 4, 4, .88);
-    --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .13);
+    --bg: #040404; --card: #141414; --card2: #1E1E1E; --fg: #FFFFFF; --fg2: #8E9090; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
+    --fill: #1E1E1E; --prev: #353636; --sheet: #0E0E0E; --sheetcard: #181818; --tilebg: #1E1E1E; --bar: rgba(4, 4, 4, .88);
+    --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .11);
   } }
 
-  & body { font-family: var(--font); background-color: var(--bg); background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 22px 22px; }
-  .card, .summary, .strip { border-radius: var(--round); box-shadow: none; }
+  /* one typeface, two weights */
+  & body { font-family: var(--font); letter-spacing: -.005em; background-color: var(--bg);
+    background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 20px 20px; }
+  & :is(b, strong, h1, h2, h3, .cardtitle, .row .amt, .strip .t div, .pill, .btn, .pbtn, .chip, .logbtn, .crow .amt, .crow .name, .fname, .bal) { font-weight: 500; }
+  .chart text { font-family: var(--font); font-size: 11px; }
 
-  /* headings: serif, normal case */
-  .large, .navbar .brand, .cardtitle { font-family: var(--serif); font-weight: 400; letter-spacing: 0; }
-  .large { font-size: 44px; line-height: 1; }
-  .navbar .brand { font-size: 26px; }
-  .navbar .small, .sheet h3 { font-family: var(--serif); font-weight: 400; font-size: 22px; }
-  .cardtitle { font-size: 22px; }
+  /* titles */
+  .large { font-size: 30px; font-weight: 400; letter-spacing: -.02em; }
+  .navbar .brand { font-size: 20px; font-weight: 500; }
+  .navbar .small, .sheet h3, .ptitle { font-weight: 500; }
+  .cardtitle { font-size: 15px; }
 
-  /* big numbers: dot matrix */
-  .summary .sbig, .total, .sheet .bigbal { font-family: var(--dotfont); font-weight: 900; font-size: 56px; letter-spacing: .02em; line-height: 1; }
-  .ssplit b, .week .big { font-family: var(--dotfont); font-weight: 900; font-size: 26px; letter-spacing: .02em; }
+  /* one label style: 11px capitals, grey */
+  .sechead, .summary .slabel, .ssplit small, .hint, .day, .legend, .callegend, .calhead, .ptitle.sm, .tab {
+    font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--fg2); }
+  .sechead { padding: 0 4px; }
+  .sechead button, .preview-pill, .statuspill { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--fg); }
+  .tab { font-size: 10px; }
 
-  /* labels and buttons: Geist Mono 11px capitals */
-  .sechead, .summary .slabel, .ssplit small, .hint, .day, .tab, .seg button, .monthbar h2, .legend, .delta, .sdelta,
-  .statuspill, .viewnote, .chip, .callegend, .calhead, .pill, .logbtn, .btn, .linkbtn {
-    font-family: var(--mono); text-transform: uppercase; letter-spacing: .04em; }
-  .sechead, .day, .hint, .summary .slabel, .ssplit small, .legend, .delta, .sdelta, .callegend, .calhead, .seg button, .chip, .pill { font-size: 11px; font-weight: 400; }
-  .monthbar h2 { font-size: 12px; font-weight: 500; }
-  .tab { font-size: 9.5px; }
-  .sechead button, .linkbtn { font-size: 11px; }
+  /* one big total per screen, in dot matrix */
+  .summary .sbig, #mTotal, #owedTotal, .sheet .bigbal, .amount .val {
+    font-family: var(--dotfont); font-weight: 900; font-size: 52px; letter-spacing: .02em; line-height: 1; }
+  .amount .cur { font-weight: 400; }
+  .ssplit b, .week .big { font-size: 20px; font-weight: 500; letter-spacing: -.01em; }
 
-  /* "( 01 )" counters before section titles, in dot matrix */
-  .screen { counter-reset: sec; }
-  .sechead > span:first-child::before { counter-increment: sec; content: "( " counter(sec, decimal-leading-zero) " )\00a0\00a0"; font-family: var(--dotfont); font-weight: 900; font-size: 12px; color: var(--fg); }
+  /* cards: same corners, padding and outline everywhere; left-aligned */
+  .card, .strip, .pcard, .cardin { border-radius: var(--round); box-shadow: none; }
+  .card, .strip { border: 1px solid var(--sep); }
+  .card:not(.flush) { padding: 16px; }
+  .strip { padding: 10px 10px 10px 16px; }
+  .summary { align-items: flex-start; text-align: left; padding: 16px; gap: 6px; }
+  .summary .ssplit { margin-top: 12px; padding-top: 12px; }
+  .summary .ssplit > span { align-items: flex-start; }
+  .summary .ssplit > span + span { padding-left: 16px; }
+  .tile { border-radius: 10px; }
 
-  /* buttons: solid ink with mono capitals; quiet ones outlined */
-  .logbtn { border-radius: 999px; font-size: 12px; letter-spacing: .1em; box-shadow: none; height: 50px; }
-  .pill { border-radius: 999px; }
-  .pill:not(.primary) { background: transparent; border: 1px solid var(--sep); }
-  .seg { border-radius: 999px; background: transparent; border: 1px solid var(--sep); padding: 3px; }
-  .seg button { border-radius: 999px; height: 30px; }
+  /* buttons: pills, filled for the main action, outlined otherwise; normal case */
+  .pill, .chip, .logbtn, .seg, .seg button { border-radius: 999px; }
+  .pill { font-size: 13px; }
+  .pill:not(.primary), .chip { background: transparent; border: 1px solid var(--sep); }
+  .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .logbtn { font-size: 15px; box-shadow: none; }
+  .btn, .pbtn { border-radius: 999px; font-size: 15px; white-space: nowrap; }
+  .amt-field span, .amt-field input { font-weight: 500; }
+  .btn:not(.primary):not(.danger), .pbtn:not(.primary) { background: transparent; border: 1px solid var(--sep); }
+  .seg { background: transparent; border: 1px solid var(--sep); padding: 3px; }
+  .seg button { font-size: 13px; }
   .seg button[aria-pressed="true"] { background: var(--fg) !important; color: var(--bg); box-shadow: none; font-weight: 500; }
-  .chip { border-radius: 6px; background: transparent; border: 1px solid var(--sep); }
-  .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
-  .tile { border-radius: 6px; }
 
-  /* one red dot: the selected tab, today, the current month, going over */
+  /* red only as a small dot: the selected tab, and the current month in the chart */
   .tab[aria-selected="true"] { color: var(--fg); position: relative; }
   .tab[aria-selected="true"]::after { content: ""; position: absolute; top: -5px; width: 5px; height: 5px; border-radius: 50%; background: var(--nred); }
   .chart .bar.on { fill: var(--fg); }
-  .chart text { font-family: var(--mono); font-size: 10px; text-transform: uppercase; }
-  .chart text.on { fill: var(--nred); }
+  .chart text.on { fill: var(--fg); font-weight: 500; }
   .delta.up { color: var(--nred); }
 
-  /* dot-matrix bars */
+  /* dotted bars, like the Glyph lights */
   .week .days i { border-radius: 0; background: radial-gradient(circle, var(--fg3) 2px, transparent 2.3px) center bottom / 6px 6px; }
   .week .days i.today { background: radial-gradient(circle, var(--fg) 2px, transparent 2.3px) center bottom / 6px 6px; }
   .bars i { height: 5px; border-radius: 0; background: radial-gradient(circle, var(--fg) 2px, transparent 2.3px) left center / 6px 5px !important; }
   .bars i.prev { background: radial-gradient(circle, var(--prev) 2px, transparent 2.3px) left center / 6px 5px !important; }
 
-  .tabs { border-top: 1px solid var(--sep); }
-
-  /* "What is the amount?" prompt and number pad */
-  .pcard { border-radius: var(--round); }
-  .ptitle { font-family: var(--serif); font-size: 24px; font-weight: 400; }
-  .ptitle.sm { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
-  .amount .val, .amount .cur { font-family: var(--dotfont); font-weight: 900; }
-  .pbtn { font-family: var(--mono); text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
-  .pbtn:not(.primary) { background: transparent; border: 1px solid var(--sep); }
+  /* number pad */
   .kbd { --kbd: var(--bg); --key: var(--card); --keyshadow: transparent; }
-  .kbd .key { font-family: var(--mono); font-size: 22px; border-radius: var(--round); border: 1px solid var(--sep); }
+  .kbd .key { font-size: 24px; font-weight: 400; border-radius: 12px; border: 1px solid var(--sep); }
   .kbd .key small { display: none; }
   .kbd .key.flat { border-color: transparent; }
+
+  .tabs { border-top: 1px solid var(--sep); }
 }
 </style>
 </head>
@@ -2444,7 +2449,7 @@ function applyTheme() {
 function loadNothingFonts() {
   if (document.getElementById("nothingFonts")) return;
   const l = document.createElement("link"); l.id = "nothingFonts"; l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap";
+  l.href = "https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500&display=swap";
   document.head.append(l);
 }
 document.querySelectorAll("#styleSeg button").forEach((b) => (b.onclick = () => { keep(K.style, b.dataset.styleChoice); buzz(); applyTheme(); renderAll(); }));
