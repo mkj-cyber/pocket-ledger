@@ -12,6 +12,16 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script>
+// Put the chosen style on before the first paint, so there's no flash of the other look (same storage prefix as the app)
+try {
+  const p = /pocket-ledger-preview/.test(location.pathname) ? "pv-" : /\/view\/(index\.html)?$/.test(location.pathname) ? "" : "pl-";
+  if (p && JSON.parse(localStorage.getItem(p + "style")) === "nothing") {
+    document.documentElement.dataset.style = "nothing";
+    document.write('<link rel="stylesheet" id="nothingFonts" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap">');
+  }
+} catch {}
+</script>
 <style>
 /* Layout: iOS-style. Grouped inset lists on a grey ground, coloured icon tiles, large titles,
    a frosted tab bar, sheets that slide up. Apple system colours; the accent colour is the user's choice. */
@@ -596,6 +606,96 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 .chip.tpl.add { box-shadow: inset 0 0 0 1.5px var(--fg3); color: var(--fg); padding-left: 12px; }
 #logScreen .logbtn { margin-top: 6px; }
 #recentList { margin-bottom: 4px; }
+
+/* ======================================================================
+   "Nothing" style (Settings → Appearance → Style), after nothing.tech / Nothing OS 5:
+   Geist for text, Geist Mono 11px capitals for labels and buttons, a serif for headings,
+   dot matrix (Doto) only for big numbers and "( 01 )" counters, near-black #040404 with
+   #181818 cards, small 8px corners, a faint dot grid, and red used only as a dot.
+   ====================================================================== */
+:root[data-style="nothing"] {
+  --bg: #F4F4F4; --card: #FFFFFF; --card2: #ECECEC; --fg: #040404; --fg2: #6B6D6D; --fg3: #B9BBBB; --sep: rgba(4, 4, 4, .09);
+  --fill: #ECECEC; --prev: #D8D9D9; --sheet: #F4F4F4; --sheetcard: #FFFFFF; --tilebg: #F1F1F1; --bar: rgba(244, 244, 244, .9);
+  --accent: #040404; --accent-ink: #FFFFFF; --nred: #D71921; --dot: rgba(4, 4, 4, .10); --round: 8px;
+  --font: "Geist", system-ui, sans-serif; --mono: "Geist Mono", ui-monospace, monospace;
+  --serif: "Instrument Serif", Georgia, serif; --dotfont: "Doto", ui-monospace, monospace;
+  &[data-theme="dark"] {
+    --bg: #040404; --card: #181818; --card2: #222222; --fg: #FFFFFF; --fg2: #9B9D9D; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
+    --fill: #222222; --prev: #3A3B3B; --sheet: #101010; --sheetcard: #1C1C1C; --tilebg: #242424; --bar: rgba(4, 4, 4, .88);
+    --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .13);
+  }
+  @media (prefers-color-scheme: dark) { &:not([data-theme="light"]) {
+    --bg: #040404; --card: #181818; --card2: #222222; --fg: #FFFFFF; --fg2: #9B9D9D; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
+    --fill: #222222; --prev: #3A3B3B; --sheet: #101010; --sheetcard: #1C1C1C; --tilebg: #242424; --bar: rgba(4, 4, 4, .88);
+    --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .13);
+  } }
+
+  & body { font-family: var(--font); background-color: var(--bg); background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 22px 22px; }
+  .card, .summary, .strip { border-radius: var(--round); box-shadow: none; }
+
+  /* headings: serif, normal case */
+  .large, .navbar .brand, .cardtitle { font-family: var(--serif); font-weight: 400; letter-spacing: 0; }
+  .large { font-size: 44px; line-height: 1; }
+  .navbar .brand { font-size: 26px; }
+  .navbar .small, .sheet h3 { font-family: var(--serif); font-weight: 400; font-size: 22px; }
+  .cardtitle { font-size: 22px; }
+
+  /* big numbers: dot matrix */
+  .summary .sbig, .total, .sheet .bigbal { font-family: var(--dotfont); font-weight: 900; font-size: 56px; letter-spacing: .02em; line-height: 1; }
+  .ssplit b, .week .big { font-family: var(--dotfont); font-weight: 900; font-size: 26px; letter-spacing: .02em; }
+
+  /* labels and buttons: Geist Mono 11px capitals */
+  .sechead, .summary .slabel, .ssplit small, .hint, .day, .tab, .seg button, .monthbar h2, .legend, .delta, .sdelta,
+  .statuspill, .viewnote, .chip, .callegend, .calhead, .pill, .logbtn, .btn, .linkbtn {
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+  .sechead, .day, .hint, .summary .slabel, .ssplit small, .legend, .delta, .sdelta, .callegend, .calhead, .seg button, .chip, .pill { font-size: 11px; font-weight: 400; }
+  .monthbar h2 { font-size: 12px; font-weight: 500; }
+  .tab { font-size: 9.5px; }
+  .sechead button, .linkbtn { font-size: 11px; }
+
+  /* "( 01 )" counters before section titles, in dot matrix */
+  .screen { counter-reset: sec; }
+  .sechead > span:first-child::before { counter-increment: sec; content: "( " counter(sec, decimal-leading-zero) " )\00a0\00a0"; font-family: var(--dotfont); font-weight: 900; font-size: 12px; color: var(--fg); }
+
+  /* buttons: solid ink with mono capitals; quiet ones outlined */
+  .logbtn { border-radius: 999px; font-size: 12px; letter-spacing: .1em; box-shadow: none; height: 50px; }
+  .pill { border-radius: 999px; }
+  .pill:not(.primary) { background: transparent; border: 1px solid var(--sep); }
+  .seg { border-radius: 999px; background: transparent; border: 1px solid var(--sep); padding: 3px; }
+  .seg button { border-radius: 999px; height: 30px; }
+  .seg button[aria-pressed="true"] { background: var(--fg) !important; color: var(--bg); box-shadow: none; font-weight: 500; }
+  .chip { border-radius: 6px; background: transparent; border: 1px solid var(--sep); }
+  .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+  .tile { border-radius: 6px; }
+
+  /* one red dot: the selected tab, today, the current month, going over */
+  .tab[aria-selected="true"] { color: var(--fg); position: relative; }
+  .tab[aria-selected="true"]::after { content: ""; position: absolute; top: -5px; width: 5px; height: 5px; border-radius: 50%; background: var(--nred); }
+  .chart .bar.on { fill: var(--fg); }
+  .chart text { font-family: var(--mono); font-size: 10px; text-transform: uppercase; }
+  .chart text.on { fill: var(--nred); }
+  .delta.up { color: var(--nred); }
+
+  /* dot-matrix bars */
+  .week .days i { border-radius: 0; background: radial-gradient(circle, var(--fg3) 2px, transparent 2.3px) center bottom / 6px 6px; }
+  .week .days i.today { background: radial-gradient(circle, var(--fg) 2px, transparent 2.3px) center bottom / 6px 6px; }
+  .bars i { height: 5px; border-radius: 0; background: radial-gradient(circle, var(--fg) 2px, transparent 2.3px) left center / 6px 5px !important; }
+  .bars i.prev { background: radial-gradient(circle, var(--prev) 2px, transparent 2.3px) left center / 6px 5px !important; }
+
+  .tabs { border-top: 1px solid var(--sep); }
+
+  /* "What is the amount?" prompt and number pad */
+  .pcard { border-radius: var(--round); }
+  .ptitle { font-family: var(--serif); font-size: 24px; font-weight: 400; }
+  .ptitle.sm { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .amount .val, .amount .cur { font-family: var(--dotfont); font-weight: 900; }
+  .pbtn { font-family: var(--mono); text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+  .pbtn:not(.primary) { background: transparent; border: 1px solid var(--sep); }
+  .kbd { --kbd: var(--bg); --key: var(--card); --keyshadow: transparent; }
+  .kbd .key { font-family: var(--mono); font-size: 22px; border-radius: var(--round); border: 1px solid var(--sep); }
+  .kbd .key small { display: none; }
+  .kbd .key.flat { border-color: transparent; }
+}
 </style>
 </head>
 <body>
@@ -887,6 +987,10 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
           <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
           <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
         </div></div>
+        <div class="setrow"><span>Style</span><div class="seg" id="styleSeg" style="width:13em;grid-template-columns:repeat(2,1fr)" role="group" aria-label="Style">
+          <button type="button" data-style-choice="classic" aria-pressed="true">Classic</button>
+          <button type="button" data-style-choice="nothing" aria-pressed="false">Nothing</button>
+        </div></div>
         <div class="setrow" hidden><span>Accent colour</span><div class="swatches" id="accentRow"></div></div>
       </div>
     </div>
@@ -1104,7 +1208,7 @@ function emptyState(icon, title, text) {
 const P = PREVIEW ? "pv-" : VIEWER ? "vw-" : "pl-";
 const K = { ex: P + "expenses", ln: P + "loans", fr: P + "friends", out: P + "outbox", link: P + "sync-link", last: P + "last-sync",
   sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent",
-  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src" };
+  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src", style: P + "style" };
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 
 /* ---------- IndexedDB for the lists that keep growing ----------
@@ -2331,7 +2435,19 @@ function applyTheme() {
   document.documentElement.style.removeProperty("--accent");   // monochrome: black in light mode, white in dark mode
   document.querySelectorAll("#themeSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themeChoice === t));
   document.querySelectorAll("#accentRow .swatch").forEach((b) => b.setAttribute("aria-pressed", b.dataset.accent === a));
+  const style = VIEWER ? "classic" : load(K.style, "classic");   // the shared read-only view keeps the classic look
+  if (style === "nothing") { loadNothingFonts(); document.documentElement.dataset.style = "nothing"; }
+  else document.documentElement.removeAttribute("data-style");
+  document.querySelectorAll("#styleSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.styleChoice === style));
 }
+// Nothing's typefaces load only once that style is picked (the offline cache keeps them after that)
+function loadNothingFonts() {
+  if (document.getElementById("nothingFonts")) return;
+  const l = document.createElement("link"); l.id = "nothingFonts"; l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap";
+  document.head.append(l);
+}
+document.querySelectorAll("#styleSeg button").forEach((b) => (b.onclick = () => { keep(K.style, b.dataset.styleChoice); buzz(); applyTheme(); renderAll(); }));
 Object.entries(ACCENTS).forEach(([name, [light]]) => {
   const b = el("button", "swatch"); b.type = "button"; b.dataset.accent = name; b.style.setProperty("--sw", light);
   b.setAttribute("aria-label", name[0].toUpperCase() + name.slice(1));
