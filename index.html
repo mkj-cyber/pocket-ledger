@@ -587,16 +587,18 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
    Home refinements (v9): one summary card, readable greys, status in words
    ====================================================================== */
 :root { --fg2: #6B6B6B; }   /* 4.5:1+ on the light grey ground and on white cards (WCAG AA) */
-.summary { width: 100%; align-items: center; text-align: center; padding: 22px 16px 18px; gap: 4px; transition: transform .12s; }
+/* Home summary as one slim card: this month on the left, week and year beside it, the comparison underneath */
+.summary { width: 100%; display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "lbl wk yr" "big wk yr" "delta delta delta";
+  align-items: end; text-align: left; padding: 14px 16px; gap: 2px 0; transition: transform .12s; }
 .summary:active { transform: scale(.985); }
-.summary .slabel { font-size: 14px; color: var(--fg2); font-weight: 500; }
-.summary .sbig { font-size: 40px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.15; }
-.summary .sdelta { font-size: 14px; color: var(--fg2); font-variant-numeric: tabular-nums; }
-.summary .ssplit { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-top: 14px; padding-top: 14px; border-top: .5px solid var(--sep); }
-.summary .ssplit > span { display: flex; flex-direction: column; gap: 2px; align-items: center; }
-.summary .ssplit > span + span { border-left: .5px solid var(--sep); }
+.summary .slabel { grid-area: lbl; font-size: 13px; color: var(--fg2); font-weight: 500; }
+.summary .sbig { grid-area: big; font-size: 30px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.summary .sdelta { grid-area: delta; font-size: 13px; color: var(--fg2); font-variant-numeric: tabular-nums; margin-top: 6px; }
+.summary .ssplit { display: contents; }
+#gWeek { grid-area: wk; } #gYear { grid-area: yr; }
+.summary .ssplit > span { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; align-self: stretch; justify-content: flex-end; padding: 0 0 2px 12px; margin-left: 12px; border-left: .5px solid var(--sep); }
 .summary .ssplit small { font-size: 13px; color: var(--fg2); }
-.summary .ssplit b { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.summary .ssplit b { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .statuspill { margin-left: 6px; font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--card); color: var(--fg); white-space: nowrap; }
 .statuspill.err { background: var(--red); color: #fff; }
 .ppicks { display: flex; flex-direction: column; gap: 8px; border-top: .5px solid var(--sep); padding-top: 12px; margin-top: 2px; }
@@ -604,8 +606,30 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 .ppicks .quick { margin-inline: -16px; padding-inline: 16px; }
 .ppicks .chip { background: var(--sheetcard); }
 .chip.tpl.add { box-shadow: inset 0 0 0 1.5px var(--fg3); color: var(--fg); padding-left: 12px; }
-#logScreen .logbtn { margin-top: 6px; }
 #recentList { margin-bottom: 4px; }
+/* ======================================================================
+/* ======================================================================
+   Two accents, each with one meaning (after Nothing OS), in both styles:
+   red = needs your attention, yellow = today / now. Only ever a dot, a bar or a number.
+   The faint dot grid sits behind every screen.
+   ====================================================================== */
+:root { --nred: #D71921; --nyellow: #FFC700; --dot: rgba(0, 0, 0, .07); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nred: #FF453A; --dot: rgba(255, 255, 255, .09); } }
+:root[data-theme="dark"] { --nred: #FF453A; --dot: rgba(255, 255, 255, .09); }
+body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 20px 20px; }
+.week .days i.today { background: var(--nyellow); }
+.chart .bar.on { fill: var(--nyellow); }
+.calday.today .n { text-decoration-color: var(--nyellow); text-decoration-thickness: 3px; }
+.sdelta.up, .delta.up, .strip small.due { color: var(--nred); }
+.statuspill.err { background: var(--nred); }
+/* the payments list moved to Home, so Insights shows only the charts */
+:root:not(.viewer) #ovPayHead, :root:not(.viewer) #list { display: none; }
+#homeList #listView { display: flex; flex-direction: column; gap: 12px; }
+#homeList #filterChips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+#homeList #filterChips > * { flex: none; white-space: nowrap; }
+#homeList #filterChips::-webkit-scrollbar { display: none; }
+#savedViews:has(> :only-child) { display: none; }   /* just "All": nothing to switch between yet */
+.summary .ssplit small { white-space: nowrap; }
 /* ======================================================================
    "Nothing" style (Settings → Appearance → Style), after Nothing OS.
    A strict system so every screen reads the same:
@@ -651,20 +675,18 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
   .tab { font-size: 10px; }
 
   /* one big total per screen, in dot matrix */
-  .summary .sbig, #mTotal, #owedTotal, .sheet .bigbal, .amount .val {
+  #mTotal, #owedTotal, .sheet .bigbal, .amount .val {
     font-family: var(--dotfont); font-weight: 900; font-size: 52px; letter-spacing: .02em; line-height: 1; }
   .amount .cur { font-weight: 400; }
-  .ssplit b, .week .big { font-size: 20px; font-weight: 500; letter-spacing: -.01em; }
+  .week .big { font-size: 20px; font-weight: 500; letter-spacing: -.01em; }
+  .ssplit b { font-size: 16px; font-weight: 500; }
 
   /* cards: same corners, padding and outline everywhere; left-aligned */
   .card, .strip, .pcard, .cardin { border-radius: var(--round); box-shadow: none; }
   .card, .strip { border: 1px solid var(--sep); }
   .card:not(.flush) { padding: 16px; }
   .strip { padding: 10px 10px 10px 16px; }
-  .summary { align-items: flex-start; text-align: left; padding: 16px; gap: 6px; }
-  .summary .ssplit { margin-top: 12px; padding-top: 12px; }
-  .summary .ssplit > span { align-items: flex-start; }
-  .summary .ssplit > span + span { padding-left: 16px; }
+  .summary .sbig { font-family: var(--dotfont); font-weight: 900; font-size: 34px; letter-spacing: .02em; line-height: 1; }
   .tile { border-radius: 10px; }
 
   /* buttons: pills, filled for the main action, outlined otherwise; normal case */
@@ -680,16 +702,16 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
   .seg button { font-size: 13px; }
   .seg button[aria-pressed="true"] { background: var(--fg) !important; color: var(--bg); box-shadow: none; font-weight: 500; }
 
-  /* red only as a small dot: the selected tab, and the current month in the chart */
+  /* the selected tab gets a yellow dot (now); red stays for "needs attention" */
   .tab[aria-selected="true"] { color: var(--fg); position: relative; }
-  .tab[aria-selected="true"]::after { content: ""; position: absolute; top: -5px; width: 5px; height: 5px; border-radius: 50%; background: var(--nred); }
-  .chart .bar.on { fill: var(--fg); }
+  .tab[aria-selected="true"]::after { content: ""; position: absolute; top: -5px; width: 5px; height: 5px; border-radius: 50%; background: var(--nyellow); }
+  .chart .bar.on { fill: var(--nyellow); }
   .chart text.on { fill: var(--fg); font-weight: 500; }
   .delta.up { color: var(--nred); }
 
   /* dotted bars, like the Glyph lights */
   .week .days i { border-radius: 0; background: radial-gradient(circle, var(--fg3) 2px, transparent 2.3px) center bottom / 6px 6px; }
-  .week .days i.today { background: radial-gradient(circle, var(--fg) 2px, transparent 2.3px) center bottom / 6px 6px; }
+  .week .days i.today { background: radial-gradient(circle, var(--nyellow) 2px, transparent 2.3px) center bottom / 6px 6px; }
   .bars i { height: 5px; border-radius: 0; background: radial-gradient(circle, var(--fg) 2px, transparent 2.3px) left center / 6px 5px !important; }
   .bars i.prev { background: radial-gradient(circle, var(--prev) 2px, transparent 2.3px) left center / 6px 5px !important; }
 
@@ -728,17 +750,18 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
       </button>
       <div id="logCards" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="quick" id="quickRow" hidden></div>
-      <div class="sechead"><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
-      <div class="card flush" id="recentList"></div>
+      <div class="sechead" hidden><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
+      <div class="card flush" id="recentList" hidden></div>
+      <div id="homeList"></div>
       <button class="logbtn" type="button" id="logBtn"><svg class="i"><use href="#i-plus"/></svg>Log expense</button>
     </section>
 
     <!-- ================= SPENDING ================= -->
     <section class="screen" id="sumScreen" hidden>
-      <div class="navbar"><span class="small">Spending</span>
+      <div class="navbar"><span class="small" id="sumSmall">Insights</span>
         <div class="acts"><button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button></div>
       </div>
-      <h1 class="large">Spending</h1>
+      <h1 class="large" id="sumTitle">Insights</h1>
       <div class="viewnote" id="viewNote" hidden></div>
       <div class="seg viewseg" id="viewSeg" role="group" aria-label="View">
         <button type="button" data-view="overview" aria-pressed="true">Overview</button>
@@ -788,7 +811,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
         <div class="legend" id="cmpLegend"></div>
         <div class="rows" id="catRows"></div>
       </div>
-      <div class="sechead"><span>Payments</span><span class="swipehint" style="text-transform:none">Swipe to edit or delete</span></div>
+      <div class="sechead" id="ovPayHead"><span>Payments</span><span class="swipehint" style="text-transform:none">Swipe to edit or delete</span></div>
       <div id="list" class="stack" style="display:flex;flex-direction:column;gap:14px"></div>
       </div>
     </section>
@@ -828,7 +851,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" id="tabLog" aria-selected="true"><svg class="i"><use href="#i-house"/></svg>Home</button>
-    <button class="tab" role="tab" id="tabSum" aria-selected="false"><svg class="i"><use href="#i-tab-pie"/></svg>Spending</button>
+    <button class="tab" role="tab" id="tabSum" aria-selected="false"><svg class="i"><use href="#i-tab-pie"/></svg>Insights</button>
     <button class="tab" role="tab" id="tabLent" aria-selected="false"><svg class="i"><use href="#i-tab-people"/></svg>Lent</button>
   </nav>
 </div>
@@ -1548,7 +1571,7 @@ function dueCard(f) {
   a.setAttribute("aria-label", "Clear the reminder for " + f.name); b.setAttribute("aria-label", "Remind me again next month about " + f.name);
   acts.append(a, b);
   const c = el("div", "strip"), t = el("div", "t");
-  t.append(el("div", "", f.name), el("small", "", when));
+  t.append(el("div", "", f.name), el("small", "due", when));
   c.append(avatar(f.name), t, acts);
   return c;
 }
@@ -2253,6 +2276,7 @@ function renderHeader() {
     const p = Math.round((100 * (month - before)) / before);
     d.textContent = (p === 0 ? "Same as" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs") + " the same days in " + prev.label;
   }
+  d.classList.toggle("up", !!before && month > before);   // red: spending more than last month
 }
 function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
 
@@ -2466,10 +2490,18 @@ darkQuery.addEventListener("change", applyTheme);
    Views on Spending (inspired by Notion): Overview, Calendar, List
    ====================================================================== */
 let spendView = "overview", calSel = null;
+// Your payments list lives on Home; the shared read-only view keeps it under Spending → List
+const LIST_ON_HOME = !VIEWER;
+if (LIST_ON_HOME) {
+  $("homeList").append($("listView")); $("listView").hidden = false;
+  $("viewSeg").querySelector('[data-view="list"]').remove(); $("viewSeg").style.gridTemplateColumns = "repeat(2, 1fr)";
+}
 function setView(v) {
+  if (LIST_ON_HOME && v === "list") v = "overview";
   spendView = v;
   document.querySelectorAll("#viewSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === v));
-  $("ovView").hidden = v !== "overview"; $("calView").hidden = v !== "calendar"; $("listView").hidden = v !== "list";
+  $("ovView").hidden = v !== "overview"; $("calView").hidden = v !== "calendar";
+  if (!LIST_ON_HOME) $("listView").hidden = v !== "list";
   $("monthBar").hidden = v === "list";   // the List view has its own period filter
   renderSpending();
 }
@@ -2817,6 +2849,7 @@ function renderViewNote() {
   }
 }
 function startViewer() {
+  $("sumTitle").textContent = $("sumSmall").textContent = "Spending";
   openSpending(); renderViewNote(); pullView();
   window.addEventListener("hashchange", () => { readViewLink(); pullView(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - load(K.last, 0) > 60e3) pullView(); });
