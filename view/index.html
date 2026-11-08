@@ -764,7 +764,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
 .logbtn { z-index: 3; }
 
 /* lesser actions on those cards are quiet text */
-:is(:root, :root[data-style="nothing"]) #logCards .pill:not(.primary) { background: none; border: 0; box-shadow: none; padding: 0 6px; font-weight: 500; color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+:is(:root, :root[data-style="nothing"]) :is(#logCards, #lentCards) .pill:not(.primary) { background: none; border: 0; box-shadow: none; padding: 0 6px; font-weight: 500; color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
 
 /* Nothing style: the bottom bar floats as its own panel */
 :root[data-style="nothing"] {
@@ -914,6 +914,23 @@ dialog.prompt { --sheet: var(--pr-card); --sheetcard: var(--pr-inner); }
 dialog.prompt .pcard { --card: var(--pr-inner); --fill: var(--pr-inner); box-shadow: 0 0 0 1px var(--pr-ring), 0 24px 70px rgba(0, 0, 0, .5); }
 dialog.prompt::backdrop { background: rgba(0, 0, 0, .68); }
 dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 1; }
+
+/* Lending */
+.owes { margin-top: 6px; font-size: 16px; font-weight: 500; }
+.fcard .fsub { grid-column: 2 / -1; white-space: normal; }
+.settledfold > summary { list-style: none; cursor: pointer; padding: 14px 16px; font-size: 14px; color: var(--fg2); }
+.settledfold > summary::-webkit-details-marker { display: none; }
+.settledfold > summary::after { content: " ›"; }
+.settledfold[open] > summary::after { content: " ⌄"; }
+.settledfold { border-top: .5px solid var(--sep); }
+#lendFull { justify-self: start; text-align: left; font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+#btnBorrowed { width: 100%; }
+#lendSheet { overflow-x: clip; }
+#lendSheet .amt-field { flex-direction: row; align-items: baseline; padding-left: 0; }
+#lendSheet .amt-field input { width: 100%; }
+.strip .t .who { display: flex; min-width: 0; }
+.strip .t .who .n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.strip .t .who .a { flex: none; white-space: pre; }
 </style>
 </head>
 <body>
@@ -1030,23 +1047,12 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
         <div class="hint">Friends owe you</div>
         <div class="total" id="owedTotal">₹0</div>
         <div class="sub" id="lentSub"></div>
+        <div class="owes" id="youOwe" hidden></div>
       </div>
       <div id="lentCards" style="display:flex;flex-direction:column;gap:8px"></div>
-      <div class="card lend-form">
-        <label class="amt-field"><span>₹</span><input id="lendAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Amount"></label>
-        <div class="chips" id="friendChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-        <div class="noterow">
-          <input class="note" id="lendNote" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done">
-          <input class="when" id="lendWhen" type="date" aria-label="Date of loan or payback">
-        </div>
-        <div class="btnrow">
-          <button class="btn primary" id="btnLent" type="button">I lent this</button>
-          <button class="btn" id="btnRepaid" type="button">They paid back</button>
-        </div>
-        <div class="banner" id="lendMsg" style="margin:0"></div>
-      </div>
       <div class="sechead"><span>Friends</span><span style="text-transform:none">Tap for profile &amp; history</span></div>
       <div class="card flush" id="friendList"></div>
+      <button class="logbtn" type="button" id="lendAdd" aria-label="Add a lending entry"><svg class="i"><use href="#i-plus"/></svg></button>
     </section>
   </main>
 
@@ -1145,7 +1151,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
     <div class="head"><h3>Edit entry</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
     <div class="two">
       <label>Friend<select class="field" id="leFriend"></select></label>
-      <label>Type<select class="field" id="leType"><option value="lent">I lent</option><option value="repaid">They paid back</option></select></label>
+      <label>Type<select class="field" id="leType"><option value="lent">I lent</option><option value="repaid">They paid back</option><option value="borrowed">I borrowed</option></select></label>
     </div>
     <label>Amount<input class="field big" id="leAmount" type="text" inputmode="decimal" autocomplete="off"></label>
     <label>Note<input class="field" id="leNote" type="text" maxlength="80" autocomplete="off"></label>
@@ -1156,6 +1162,28 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 </dialog>
 
 <!-- Friend profile + history -->
+<dialog class="sheet" id="lendSheet">
+  <div class="grab"></div>
+  <div class="stack">
+    <div class="head"><h3 id="lendTitle">New entry</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+      <div class="card lend-form">
+        <label class="amt-field"><span>₹</span><input id="lendAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Amount"></label>
+        <div class="chips" id="friendChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        <div class="noterow">
+          <input class="note" id="lendNote" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done">
+          <input class="when" id="lendWhen" type="date" aria-label="Date of loan or payback">
+        </div>
+        <button class="linkbtn" type="button" id="lendFull" hidden></button>
+        <div class="btnrow">
+          <button class="btn primary" id="btnLent" type="button">I lent this</button>
+          <button class="btn" id="btnRepaid" type="button">They paid back</button>
+        </div>
+        <button class="btn" type="button" id="btnBorrowed">I borrowed</button>
+        <div class="banner" id="lendMsg" style="margin:0"></div>
+      </div>
+  </div>
+</dialog>
+
 <dialog class="sheet" id="friendSheet">
   <div class="grab"></div>
   <div class="stack">
@@ -1630,7 +1658,7 @@ function sheetRow(kind, r) {
   if (kind === "f") return { id: r.id, name: r.name, phone: r.phone || "", monthly: Number(r.monthly) || 0, day: Number(r.day) || 0, note: r.note || "", updated: r.updated || Date.now() };
   const d = new Date(r.ts), p = (n) => String(n).padStart(2, "0");
   const base = { id: r.id, ts: r.ts, date: isoDay(d), time: p(d.getHours()) + ":" + p(d.getMinutes()), month: d.getFullYear() + "-" + p(d.getMonth() + 1), amount: r.amount, note: r.note || "" };
-  return kind === "e" ? { ...base, cat: r.cat || "Uncategorised" } : { ...base, friend: r.friend, type: r.type === "lent" ? "Lent" : "Paid back" };
+  return kind === "e" ? { ...base, cat: r.cat || "Uncategorised" } : { ...base, friend: r.friend, type: r.type === "lent" ? "Lent" : r.type === "borrowed" ? "Borrowed" : "Paid back" };
 }
 
 async function flush() {
@@ -1668,7 +1696,7 @@ async function pullFromSheet(quiet) {
     const newE = (data.expenses || []).filter((e) => e.id && !haveE.has(e.id) && !deleting.has(e.id))
       .map((e) => ({ id: e.id, ts: e.ts, amount: Number(e.amount), cat: e.cat === "Uncategorised" ? "" : e.cat || "", note: e.note || "" }));
     const newL = (data.loans || []).filter((l) => l.id && !haveL.has(l.id) && !deleting.has(l.id))
-      .map((l) => ({ id: l.id, ts: l.ts, amount: Number(l.amount), friend: l.friend, type: l.type === "Lent" ? "lent" : "repaid", note: l.note || "" }));
+      .map((l) => ({ id: l.id, ts: l.ts, amount: Number(l.amount), friend: l.friend, type: l.type === "Lent" ? "lent" : l.type === "Borrowed" ? "borrowed" : "repaid", note: l.note || "" }));
     const newF = (data.friends || []).filter((f) => f.id && !haveF.has(f.id) && !deleting.has(f.id) && !friends.some((x) => x.name === f.name))
       .map((f) => ({ id: f.id, name: f.name, phone: f.phone || "", monthly: Number(f.monthly) || 0, day: Number(f.day) || 0, note: f.note || "", updated: f.updated || 0 }));
     expenses = expenses.concat(newE).sort(byNewest); keep(K.ex, expenses);
@@ -1784,11 +1812,12 @@ function allFriends() {
 function friendStats(name) {
   const items = loans.filter((l) => l.friend === name);
   const lent = items.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0);
-  const back = items.filter((l) => l.type !== "lent").reduce((t, l) => t + l.amount, 0);
+  const back = items.filter((l) => l.type === "repaid").reduce((t, l) => t + l.amount, 0);
+  const borrowed = items.filter((l) => l.type === "borrowed").reduce((t, l) => t + l.amount, 0);
   const cur = calMonth(0);
   const mLent = items.filter((l) => l.type === "lent" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
-  const mBack = items.filter((l) => l.type !== "lent" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
-  return { items, lent, back, bal: lent - back, mLent, mBack, last: items.length ? items[0].ts : 0 };
+  const mBack = items.filter((l) => l.type === "repaid" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
+  return { items, lent, back, borrowed, bal: lent - back - borrowed, mLent, mBack, last: items.length ? items[0].ts : 0 };
 }
 
 /* Lending reminders. A profile's "day" holds the reminder date as yyyymmdd (e.g. 20261105), which the sheet stores
@@ -1813,7 +1842,9 @@ function lendingDue() {
 }
 function setReminder(f, date) { putFriend({ ...f, monthly: 0, day: date ? dateNum(date) : 0 }); }
 const shortDate = (d) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-function dueCard(f) {
+// A friend and what they owe: a long name shortens, the amount never does
+function whoLine(name, owed) { const d = el("div", "who"); d.append(el("span", "n", name)); if (owed > 0) d.append(el("span", "a", " · " + fmt(owed))); return d; }
+function dueCard(f, withAmount) {
   const d = remindDate(f);
   const when = "Due " + (dayKey(+d) === dayKey(Date.now()) ? "today" : shortDate(d));
   const acts = el("div", "acts");
@@ -1824,7 +1855,7 @@ function dueCard(f) {
   a.setAttribute("aria-label", "Clear the reminder for " + f.name); b.setAttribute("aria-label", "Remind me again next month about " + f.name);
   acts.append(a, b);
   const c = el("div", "strip"), t = el("div", "t");
-  t.append(el("div", "", f.name), el("small", "due", when));
+  t.append(whoLine(f.name, withAmount ? friendStats(f.name).bal : 0), el("small", "due", when));
   c.append(avatar(f.name), t, acts);
   return c;
 }
@@ -1834,21 +1865,23 @@ function renderLoans() {
   const people = allFriends();
   if (selFriend && !people.some((f) => f.name === selFriend)) selFriend = null;
   if (!selFriend && people.length) selFriend = people[0].name;
-  let owed = 0, mLent = 0, mBack = 0;
+  let owed = 0, iOwe = 0, mLent = 0, mBack = 0;
   const stats = {};
-  people.forEach((f) => { const s = (stats[f.name] = friendStats(f.name)); owed += Math.max(0, s.bal); mLent += s.mLent; mBack += s.mBack; });
+  people.forEach((f) => { const s = (stats[f.name] = friendStats(f.name)); owed += Math.max(0, s.bal); iOwe += Math.max(0, -s.bal); mLent += s.mLent; mBack += s.mBack; });
   countTo($("owedTotal"), owed);
+  $("youOwe").hidden = !iOwe; $("youOwe").textContent = "You owe " + fmt(iOwe);
   $("lentSub").textContent = cur.label + ": lent " + fmt(mLent) + " · got back " + fmt(mBack);
 
   // reminders: monthly loans due, and balances with no activity for 30+ days
   const cards = $("lentCards"); cards.innerHTML = "";
-  lendingDue().forEach((f) => cards.appendChild(dueCard(f)));
-  people.filter((f) => stats[f.name].bal > 0 && stats[f.name].last && Date.now() - stats[f.name].last > 30 * DAY).forEach((f) => {
+  const dueNow = lendingDue(), dueNames = new Set(dueNow.map((f) => f.name));   // one card per friend
+  dueNow.forEach((f) => cards.appendChild(dueCard(f, true)));
+  people.filter((f) => !dueNames.has(f.name) && stats[f.name].bal > 0 && stats[f.name].last && Date.now() - stats[f.name].last > 30 * DAY).forEach((f) => {
     const s = stats[f.name], c = el("div", "strip"), t = el("div", "t");
-    t.append(el("div", "", f.name + " still owes " + fmt(s.bal)), el("small", "", "Nothing logged for " + Math.floor((Date.now() - s.last) / DAY) + " days"));
+    t.append(whoLine(f.name, s.bal), el("small", "", "Still owes · " + Math.floor((Date.now() - s.last) / DAY) + " days"));
     const acts = el("div", "acts"), b = el("button", "pill primary", "Payback"); b.type = "button";
     b.setAttribute("aria-label", "Record a payback from " + f.name);
-    b.onclick = () => { selFriend = f.name; renderLoans(); $("lendAmt").focus(); };
+    b.onclick = () => openLend(f.name, "repaid");
     acts.append(b); c.append(avatar(f.name), t, acts); cards.appendChild(c);
   });
 
@@ -1856,7 +1889,7 @@ function renderLoans() {
   people.forEach((f) => {
     const c = el("button", "chip"); c.type = "button"; c.setAttribute("aria-pressed", f.name === selFriend);
     c.append(avatar(f.name, true), el("span", "", f.name));
-    c.onclick = () => { selFriend = f.name; $("lendMsg").textContent = ""; renderLoans(); };
+    c.onclick = () => { selFriend = f.name; $("lendMsg").textContent = ""; overKey = ""; renderLoans(); };
     chips.appendChild(c);
   });
   const add = el("button", "chip add"); add.type = "button"; add.append(ico("plus"), el("span", "", "Add friend")); add.onclick = () => openFriend(null);
@@ -1864,30 +1897,74 @@ function renderLoans() {
 
   const list = $("friendList"); list.innerHTML = "";
   if (!people.length) list.append(emptyState("tab-people", "No friends here yet", "Tap the person button at the top to add a profile. Pick a reminder date to get a nudge on that day."));
-  people.slice().sort((a, b) => stats[b.name].bal - stats[a.name].bal).forEach((f) => {
+  const isSettled = (f) => stats[f.name].bal === 0 && stats[f.name].items.length > 0;
+  const rowFor = (f) => {
     const s = stats[f.name];
     const card = el("button", "fcard"); card.type = "button"; card.onclick = () => openFriend(f);
     card.append(avatar(f.name), el("div", "fname", f.name),
       el("span", "bal" + (s.bal <= 0 ? " settled" : ""), s.bal > 0 ? "owes " + fmt(s.bal) : s.bal < 0 ? "you owe " + fmt(-s.bal) : s.items.length ? "settled" : ""),
       el("div", "fsub", s.lent ? "Paid back " + fmt(s.back) + " of " + fmt(s.lent) + (remindDate(f) ? " · reminder " + shortDate(remindDate(f)) : "") : remindDate(f) ? "Reminder " + shortDate(remindDate(f)) : "No entries yet"));
     if (s.lent) { const p = el("div", "progress"), i = el("i"); i.style.width = Math.min(100, (100 * s.back) / s.lent) + "%"; p.append(i); card.append(p); }
-    list.appendChild(card);
-  });
+    return card;
+  };
+  const sorted = people.slice().sort((a, b) => stats[b.name].bal - stats[a.name].bal);
+  sorted.filter((f) => !isSettled(f)).forEach((f) => list.appendChild(rowFor(f)));
+  const done = sorted.filter(isSettled);
+  if (done.length) {
+    const d = el("details", "settledfold"); d.open = settledOpen; d.addEventListener("toggle", () => (settledOpen = d.open));
+    d.append(el("summary", "", "Settled (" + done.length + ")"));
+    done.forEach((f) => d.append(rowFor(f)));
+    list.append(d);
+  }
+  updateLendSheet();
 }
+let lendMode = "", overKey = "", settledOpen = false;
+function updateLendSheet() {
+  const owes = selFriend ? friendStats(selFriend).bal : 0;
+  $("lendTitle").textContent = lendMode === "lent" ? "Lend to " + selFriend : lendMode === "repaid" ? selFriend + " paid back" : "New entry";
+  $("friendChips").hidden = !!lendMode;
+  $("btnLent").hidden = lendMode === "repaid"; $("btnRepaid").hidden = lendMode === "lent"; $("btnBorrowed").hidden = !!lendMode;
+  $("btnLent").textContent = owes < 0 ? "I paid them back" : "I lent this";
+  $("lendFull").hidden = !(owes > 0) || lendMode === "lent";
+  $("lendFull").textContent = "Paid in full · " + fmt(Math.max(0, owes));
+}
+function openLend(friend, mode) {
+  if (friend) selFriend = friend;
+  lendMode = mode || ""; overKey = ""; $("lendMsg").textContent = "";
+  renderLoans();
+  if (!$("lendSheet").open) $("lendSheet").showModal();
+  $("lendAmt").focus();
+}
+$("lendAdd").onclick = () => openLend();
+$("lendSheet").addEventListener("close", () => { lendMode = ""; overKey = ""; $("lendMsg").textContent = ""; });
+$("lendFull").onclick = () => { $("lendAmt").value = String(friendStats(selFriend).bal); overKey = ""; $("lendMsg").textContent = ""; };
 
 function recordLoan(type) {
   const amount = parseAmount($("lendAmt").value);
   if (!amount || amount <= 0) { $("lendMsg").textContent = "Type the amount first"; $("lendAmt").focus(); return; }
   if (!selFriend) { $("lendMsg").textContent = "Add a friend first"; openFriend(null); return; }
-  const l = { id: newId("l"), friend: selFriend, amount, type, note: $("lendNote").value.trim(), ts: tsFrom("lendWhen") };
+  const before = friendStats(selFriend).bal;
+  if (type === "repaid") {   // more than they owe? ask once before it flips into money you owe
+    const owes = Math.max(0, before), key = selFriend + "|" + amount;
+    if (amount > owes && overKey !== key) {
+      overKey = key;
+      $("lendMsg").textContent = (owes ? selFriend + " only owes " + fmt(owes) : selFriend + " doesn't owe you anything") + ". Tap again to save " + fmt(amount) + " anyway.";
+      return;
+    }
+  }
+  overKey = "";
+  const l = { id: newId("l"), friend: selFriend, amount, type, note: $("lendNote").value.trim() || (type === "lent" && before < 0 ? "Paid back what I owed" : ""), ts: tsFrom("lendWhen") };
   putLoan(l);
   $("lendAmt").value = ""; $("lendNote").value = ""; $("lendMsg").textContent = "";
   document.activeElement && document.activeElement.blur();
   const s = friendStats(l.friend);
-  showToast((type === "lent" ? "Lent " : "Got back ") + fmt(amount) + " · " + l.friend + pastLabel(l.ts) + (s.bal > 0 ? " · owes " + fmt(s.bal) : ""), () => { delLoan(l.id); showToast("Removed"); });
+  if ($("lendSheet").open) $("lendSheet").close();
+  if ($("friendSheet").open && fsCurrent) openFriend(allFriends().find((x) => x.name === fsCurrent.name) || fsCurrent);
+  showToast((type === "lent" ? "Lent " : type === "borrowed" ? "Borrowed " : "Got back ") + fmt(amount) + " · " + l.friend + pastLabel(l.ts) + (s.bal > 0 ? " · owes " + fmt(s.bal) : s.bal < 0 ? " · you owe " + fmt(-s.bal) : ""), () => { delLoan(l.id); showToast("Removed"); });
 }
 $("btnLent").onclick = () => recordLoan("lent");
 $("btnRepaid").onclick = () => recordLoan("repaid");
+$("btnBorrowed").onclick = () => recordLoan("borrowed");
 $("addFriendBtn").onclick = () => openFriend(null);
 $("lendNote").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
 
@@ -1914,12 +1991,18 @@ function openFriend(f) {
     const acts = el("div", "btnrow");
     const lend = el("button", "btn primary", "Lend money"); lend.type = "button";
     const pay = el("button", "btn", "Record payback"); pay.type = "button";
-    const go = () => { $("friendSheet").close(); selFriend = f.name; showTab("lent"); renderLoans(); $("lendAmt").focus(); };
-    lend.onclick = go; pay.onclick = go;
+    lend.onclick = () => openLend(f.name, "lent"); pay.onclick = () => openLend(f.name, "repaid");
     acts.append(lend, pay); sum.append(acts);
     if (s.items.length) {
       const sh = el("button", "btn", "Share history"); sh.type = "button"; sh.id = "fsShare";
-      sh.onclick = () => pickSharePeriod(f); sum.append(sh);
+      sh.onclick = () => pickSharePeriod(f);
+      const row = el("div", "btnrow"); row.append(sh);
+      if (s.bal > 0) {
+        const rm = el("button", "btn", "Remind " + f.name); rm.type = "button"; rm.id = "fsNudge";
+        rm.onclick = () => shareText("Hi " + f.name + ", just a friendly reminder that " + fmt(friendStats(f.name).bal) + " is still pending from what I lent you. Thanks!");
+        row.append(rm);
+      }
+      sum.append(row);
     }
     // history, month by month, with what's still left from that month
     if (s.items.length) hist.append(el("div", "hint", "History · tap an entry to edit"));
@@ -1929,17 +2012,17 @@ function openFriend(f) {
       hist.append(head);
       m.items.forEach((l) => {
         const it = el("button", "item"); it.type = "button"; it.onclick = () => { $("friendSheet").close(); openLoan(l); };
-        const tag = el("span", "tag" + (l.type === "lent" ? "" : " back"), l.type === "lent" ? "Lent" : "Back");
+        const tag = el("span", "tag" + (l.type === "lent" ? "" : " back"), l.type === "lent" ? "Lent" : l.type === "borrowed" ? "Borrowed" : "Back");
         const what = el("div", "what");
         const dt = new Date(l.ts);
-        what.append(el("div", "", l.note || (l.type === "lent" ? "Lent to " + f.name : "Paid back")),
+        what.append(el("div", "", l.note || (l.type === "lent" ? "Lent to " + f.name : l.type === "borrowed" ? "Borrowed from " + f.name : "Paid back")),
           el("small", "", dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + ", " + dt.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })));
         it.append(tag, what, el("span", "amt", (l.type === "lent" ? "" : "+") + fmt(l.amount)));
         hist.append(it);
       });
     });
   }
-  $("friendSheet").showModal();
+  if (!$("friendSheet").open) $("friendSheet").showModal();
 }
 // Group a friend's entries by month; "left" = what's still unpaid from that month's loans (paybacks clear the oldest first)
 function monthsBreakdown(items) {
@@ -1949,7 +2032,7 @@ function monthsBreakdown(items) {
     let g = groups.find((x) => x.key === key);
     if (!g) groups.push((g = { key, label: d.toLocaleString("en-IN", { month: "short", year: "numeric" }), lent: 0, back: 0, items: [] }));
     g.items.push(l);
-    if (l.type === "lent") g.lent += l.amount; else g.back += l.amount;
+    if (l.type === "lent") g.lent += l.amount; else if (l.type === "repaid") g.back += l.amount;
   });
   groups.sort((a, b) => a.key - b.key);
   let pool = groups.reduce((t, g) => t + g.back, 0);
@@ -1991,9 +2074,9 @@ function historyText(f, from, to, label) {
   const items = s.items.filter((l) => l.ts >= from && l.ts < to).sort((a, b) => a.ts - b.ts);
   const day = (ts) => new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: new Date(ts).getFullYear() === yr ? undefined : "numeric" });
   const lines = [f.name + " · lending history", label, ""];
-  items.forEach((l) => lines.push(day(l.ts) + " · " + (l.type === "lent" ? "Lent " : "Paid back ") + fmt(l.amount) + (l.note && l.note !== "Monthly" ? " (" + l.note + ")" : "")));
+  items.forEach((l) => lines.push(day(l.ts) + " · " + (l.type === "lent" ? "Lent " : l.type === "borrowed" ? "Borrowed " : "Paid back ") + fmt(l.amount) + (l.note && l.note !== "Monthly" ? " (" + l.note + ")" : "")));
   if (!items.length) lines.push("Nothing in this period.");
-  const lent = items.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0), back = items.reduce((t, l) => t + (l.type === "lent" ? 0 : l.amount), 0);
+  const lent = items.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0), back = items.reduce((t, l) => t + (l.type === "repaid" ? l.amount : 0), 0);
   if (items.length) lines.push("", "Lent: " + fmt(lent), "Paid back: " + fmt(back));
   lines.push("", s.bal > 0 ? "Total still to pay back: " + fmt(s.bal) : s.bal < 0 ? "I owe you: " + fmt(-s.bal) : "All settled");
   return lines.join("\n");
@@ -2209,7 +2292,7 @@ $("addCancel").onclick = closeAdd;
 $("catCancel").onclick = closeAdd;
 $("clearAmt").onclick = () => setAmount("");
 $("stepBack").onclick = () => addStep(1);
-$("loanInstead").onclick = () => { const a = amountStr; closeAdd(); $("lendAmt").value = a; renderLoans(); showTab("lent"); };
+$("loanInstead").onclick = () => { const a = amountStr; closeAdd(); $("lendAmt").value = a; showTab("lent"); openLend(); };
 $("addSheet").addEventListener("cancel", () => setAmount(""));   // the phone's back button closes it
 
 function save(cat) {
@@ -3232,7 +3315,7 @@ function readLaunch() {
   try { history.replaceState(null, "", location.pathname); } catch {}
   if (shared) { showTab("log"); openFromShare(shared); return; }
   if (go === "quick") { showTab("log"); openQuick(); }
-  else if (go === "lent") { renderLoans(); showTab("lent"); $("lendAmt").focus(); }
+  else if (go === "lent") { showTab("lent"); openLend(); }
   else if (go === "week") openSpending();
   else if (go === "add" || go === "log") { showTab("log"); openAdd(); }
   else showTab("log");
