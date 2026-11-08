@@ -866,11 +866,6 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
 #mSplit { margin-top: 6px; font-variant-numeric: tabular-nums; }
 #mSplit:empty, #insightLine:empty { display: none; }
 
-/* a suggested category */
-.suggest { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 14px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-size: 16px; font-weight: 600; text-align: left; }
-.suggest .tile { background: transparent; color: inherit; }
-.suggest small { margin-left: auto; font-size: 13px; font-weight: 400; opacity: .7; }
-
 /* nothing smaller than 11 */
 .tab { font-size: 11px; }
 .calday .v { font-size: 11px; }
@@ -896,6 +891,22 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
   & :is(.row small, .sub, .delta, .day, .sechead, .hint, .resultsum, .brow small, .summary .sdelta, .summary .slabel, .legend, .callegend) { font-size: 13px; }
   & .day { text-transform: none; letter-spacing: 0; }
 }
+
+/* Two tabs: Insights opens from the big number */
+:root:not(.viewer) #tabSum { display: none; }
+nav.tabs { grid-template-columns: repeat(2, 1fr); }
+.viewer #sumBack { display: none; }
+#sumScreen .navbar .acts { margin-left: auto; }
+.summary { position: relative; }
+.summary .schev { position: absolute; top: 16px; right: 14px; font-size: 16px; color: var(--fg3); }
+::view-transition-group(total) { animation-duration: .32s; animation-timing-function: var(--ease); }
+
+/* One-screen logging: tap a category to save */
+.qcats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.qcats button { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 84px; padding: 10px 1px 8px; border-radius: 14px; background: var(--sheetcard); font-size: 11.5px; font-weight: 500; color: var(--fg); transition: transform .18s var(--ease); }
+.qcats button:active { transform: scale(.97); transition: transform .08s linear; }
+.qcats button span:last-child { max-width: 100%; text-align: center; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.qcats:empty { display: none; }
 </style>
 </head>
 <body>
@@ -918,6 +929,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
         <span class="slabel" id="gMonthLbl">This Month</span>
         <b class="sbig" id="gMonthVal">₹0</b>
         <span class="sdelta" id="gDelta"></span>
+        <svg class="i schev" aria-hidden="true"><use href="#i-chev"/></svg>
         <span class="bb" id="gBudget" hidden></span>
         <span class="ssplit">
           <span id="gWeek"><small>This Week</small><b id="gWeekVal">₹0</b></span>
@@ -935,6 +947,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
     <!-- ================= SPENDING ================= -->
     <section class="screen" id="sumScreen" hidden>
       <div class="navbar"><span class="small" id="sumSmall">Insights</span>
+        <button class="navbtn" type="button" id="sumBack" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
         <div class="acts"><button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button></div>
       </div>
       <h1 class="large" id="sumTitle">Insights</h1>
@@ -1047,7 +1060,8 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
       <button class="pclear" type="button" id="clearAmt" aria-label="Clear amount"><svg class="i"><use href="#i-x"/></svg></button>
     </div>
     <div class="banner" id="banner"></div>
-    <div class="pbtns"><button class="pbtn" type="button" id="addCancel">Cancel</button><button class="pbtn primary" type="button" id="addDone">Done</button></div>
+    <div class="qcats" id="quickCats"></div>
+    <div class="pbtns"><button class="pbtn" type="button" id="addCancel">Cancel</button><button class="pbtn" type="button" id="addDone">More</button></div>
     <div class="ppicks" id="promptPicksWrap" hidden><span class="ptitle sm">Or tap a recent one</span><div class="quick" id="promptPicks"></div></div>
   </div>
   <div class="pcard" id="stepCat" hidden>
@@ -1060,7 +1074,6 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
       <input class="note" id="note" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done" list="noteList">
       <input class="when" id="when" type="date" aria-label="Date of payment">
     </div>
-    <button class="suggest" type="button" id="suggestBtn" hidden></button>
     <div class="cats" id="cats"></div>
     <div class="subpanel" id="subPanel" hidden>
       <div class="subhead"><button type="button" id="subBack" aria-label="Back to categories"><svg class="i"><use href="#i-back"/></svg></button><span class="tile" id="subDot"></span><span id="subTitle"></span></div>
@@ -1447,7 +1460,7 @@ function paint(node, v) {
 let rollNumbers = false;   // true only while showing a change you just made
 function countTo(node, v) {
   const had = node.dataset.v !== undefined, from = Number(node.dataset.v || 0); node.dataset.v = v;
-  cancelAnimationFrame(node._raf);
+  cancelAnimationFrame(node._raf); clearTimeout(node._fin);
   paint(node, v);   // the correct figure is written first; the movement is only laid on top
   if (!rollNumbers || !had || from === v || document.hidden || !node.offsetParent || REDUCED()) return;
   const t0 = performance.now(), dur = 300;
@@ -1457,6 +1470,7 @@ function countTo(node, v) {
     if (k < 1) node._raf = requestAnimationFrame(step);
   };
   node._raf = requestAnimationFrame(step);
+  node._fin = setTimeout(() => { cancelAnimationFrame(node._raf); paint(node, Number(node.dataset.v)); }, dur + 120);   // always lands on the right figure, even if drawing pauses
 }
 function emptyState(icon, title, text) {
   const d = el("div", "empty-state");
@@ -2141,20 +2155,25 @@ function closeSubs() { $("cats").hidden = false; $("subPanel").hidden = true; $(
 $("subBack").onclick = closeSubs;
 
 /* ---------- Log an expense: "What is the amount?" → "What was it for?" ---------- */
-// What you usually log around this time of day (at least twice in the last 60 days)
-function likelyCat() {
+// Your four most likely categories: what you log around this time of day first, then what you log most
+function likelyCats(n) {
   const h = new Date().getHours(), since = Date.now() - 60 * DAY, by = {};
-  expenses.forEach((e) => { if (e.ts < since || !e.cat) return; const d = Math.abs(new Date(e.ts).getHours() - h); if (Math.min(d, 24 - d) <= 2) by[e.cat] = (by[e.cat] || 0) + 1; });
-  const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
-  return top && top[1] >= 2 ? top[0] : "";
+  expenses.forEach((e) => { if (e.ts < since || !e.cat) return; const d = Math.abs(new Date(e.ts).getHours() - h); by[e.cat] = (by[e.cat] || 0) + (Math.min(d, 24 - d) <= 2 ? 3 : 1); });
+  const ranked = Object.entries(by).sort((a, b) => b[1] - a[1]).map(([c]) => c), seen = new Set(), out = [];
+  for (const c of [...ranked, "Food", "Groceries", "Transport", "Bills", "Shopping", "Fun"]) {
+    if (seen.has(mainOf(c))) continue;
+    seen.add(mainOf(c)); out.push(c);
+    if (out.length === n) break;
+  }
+  return out;
 }
-function renderSuggest() {
-  const b = $("suggestBtn"), c = likelyCat(); b.hidden = !c; b.innerHTML = "";
-  if (c) { b.append(tile(c, "sm"), el("span", "", catLabel(c)), el("small", "", "Suggested")); b.onclick = () => save(c); }
+function renderQuickCats() {
+  const box = $("quickCats"); box.innerHTML = "";
+  if (pendingTpl) return;
+  likelyCats(4).forEach((c) => { const b = el("button"); b.type = "button"; b.append(tile(c, "sm"), el("span", "", catLabel(c))); b.onclick = () => save(c); box.append(b); });
 }
 function addStep(n) {
   $("stepAmount").hidden = n !== 1; $("pad").hidden = n !== 1; $("stepCat").hidden = n !== 2;
-  if (n === 2) renderSuggest();
   $("stepAmt").textContent = fmt(parseAmount(amountStr) || 0);
   closeSubs();
 }
@@ -2165,6 +2184,8 @@ function openAdd(pre = {}) {
   setAmount(pre.amount ? String(pre.amount) : ""); $("banner").textContent = "";
   $("note").value = pre.note || "";
   $("when").value = isoDay(new Date(pre.ts || Date.now())); $("when").dispatchEvent(new Event("change"));   // each new entry starts at today unless shared text said otherwise
+  $("addDone").textContent = pendingTpl ? "Save" : "More"; $("addDone").classList.toggle("primary", !!pendingTpl);
+  renderQuickCats();
   addStep(pre.amount && pre.step === 2 ? 2 : 1);
   if (!$("addSheet").open) $("addSheet").showModal();
   if (document.activeElement) document.activeElement.blur();   // no focus ring or pop-up keyboard on open
@@ -3103,13 +3124,32 @@ function renderTplList() {
   box.append(add);
 }
 /* ---------- tabs, month nav, navigation bars ---------- */
+let insightsPushed = false;
+function leaveInsights() { if (insightsPushed) { insightsPushed = false; try { history.back(); } catch {} } }
+window.addEventListener("popstate", () => { if (insightsPushed && !$("sumScreen").hidden) { insightsPushed = false; showTab("log"); } });
 function showTab(which) {
+  if (which !== "sum") leaveInsights();
   $("logScreen").hidden = which !== "log"; $("sumScreen").hidden = which !== "sum"; $("lentScreen").hidden = which !== "lent";
-  $("tabLog").setAttribute("aria-selected", which === "log"); $("tabSum").setAttribute("aria-selected", which === "sum");
+  $("tabLog").setAttribute("aria-selected", which === "log" || which === "sum"); $("tabSum").setAttribute("aria-selected", which === "sum");
   $("tabLent").setAttribute("aria-selected", which === "lent");
   $("main").scrollTop = 0; onScroll();
 }
-function openSpending() { monthOffset = 0; renderAll(); showTab("sum"); drawTrendOnce(); }
+function openSpending() {
+  const wasOpen = !$("sumScreen").hidden;
+  monthOffset = 0; renderAll(); showTab("sum"); drawTrendOnce();
+  if (!VIEWER && !wasOpen && !insightsPushed) { try { history.pushState({ insights: 1 }, ""); insightsPushed = true; } catch {} }   // Android's back gesture returns to Home
+}
+// The big number travels between Home and Insights
+function morphTotal(from, to, go) {
+  if (!document.startViewTransition || document.hidden || REDUCED() || $("main").scrollTop > 200) { go(); return; }
+  from.style.viewTransitionName = "total";
+  let done = false;
+  const run = () => { if (done) return; done = true; from.style.viewTransitionName = ""; to.style.viewTransitionName = "total"; go(); };
+  const vt = document.startViewTransition(run);
+  setTimeout(run, 300);   // a tap must always work, even if the animation can't run
+  vt.ready.catch(() => {});
+  vt.finished.catch(() => {}).then(() => { to.style.viewTransitionName = ""; });
+}
 $("tabLog").onclick = () => { renderLogCards(); showTab("log"); };
 $("tabSum").onclick = openSpending;
 $("tabLent").onclick = () => { renderLoans(); showTab("lent"); };
@@ -3119,7 +3159,8 @@ $("nextM").onclick = () => stepMonth(1);
 $("note").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
 $("logBtn").onclick = () => openAdd();
 $("seeAllBtn").onclick = openSpending;
-$("gMonth").onclick = openSpending;
+$("gMonth").onclick = () => morphTotal($("gMonthVal"), $("mTotal"), openSpending);
+$("sumBack").onclick = () => morphTotal($("mTotal"), $("gMonthVal"), () => showTab("log"));
 document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); renderTplList(); updateBuzzUI(); $("setSheet").showModal(); }));
 
 // Swipe the month card left/right to change month
