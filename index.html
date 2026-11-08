@@ -892,10 +892,8 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
   & .day { text-transform: none; letter-spacing: 0; }
 }
 
-/* Two tabs: Insights opens from the big number */
-:root:not(.viewer) #tabSum { display: none; }
-nav.tabs { grid-template-columns: repeat(2, 1fr); }
-.viewer #sumBack { display: none; }
+/* Insights is a tab again, and the big number opens it too */
+#sumBack { display: none; }
 #sumScreen .navbar .acts { margin-left: auto; }
 .summary { position: relative; }
 .summary .schev { position: absolute; top: 16px; right: 14px; font-size: 16px; color: var(--fg3); }
@@ -907,6 +905,15 @@ nav.tabs { grid-template-columns: repeat(2, 1fr); }
 .qcats button:active { transform: scale(.97); transition: transform .08s linear; }
 .qcats button span:last-child { max-width: 100%; text-align: center; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .qcats:empty { display: none; }
+
+/* The + screen stands clearly apart from what's behind it */
+:root { --pr-card: #FFFFFF; --pr-inner: #EFEFF4; --pr-ring: rgba(0, 0, 0, .06); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pr-card: #2C2C2E; --pr-inner: #3F3F42; --pr-ring: rgba(255, 255, 255, .16); } }
+:root[data-theme="dark"] { --pr-card: #2C2C2E; --pr-inner: #3F3F42; --pr-ring: rgba(255, 255, 255, .16); }
+dialog.prompt { --sheet: var(--pr-card); --sheetcard: var(--pr-inner); }
+dialog.prompt .pcard { --card: var(--pr-inner); --fill: var(--pr-inner); box-shadow: 0 0 0 1px var(--pr-ring), 0 24px 70px rgba(0, 0, 0, .5); }
+dialog.prompt::backdrop { background: rgba(0, 0, 0, .68); }
+dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 1; }
 </style>
 </head>
 <body>
@@ -3130,7 +3137,7 @@ window.addEventListener("popstate", () => { if (insightsPushed && !$("sumScreen"
 function showTab(which) {
   if (which !== "sum") leaveInsights();
   $("logScreen").hidden = which !== "log"; $("sumScreen").hidden = which !== "sum"; $("lentScreen").hidden = which !== "lent";
-  $("tabLog").setAttribute("aria-selected", which === "log" || which === "sum"); $("tabSum").setAttribute("aria-selected", which === "sum");
+  $("tabLog").setAttribute("aria-selected", which === "log"); $("tabSum").setAttribute("aria-selected", which === "sum");
   $("tabLent").setAttribute("aria-selected", which === "lent");
   $("main").scrollTop = 0; onScroll();
 }
