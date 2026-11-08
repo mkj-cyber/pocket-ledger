@@ -806,7 +806,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
 #logScreen .navbar .brand { transition: opacity .2s; }
 #logScreen .navbar.scrolled .brand { opacity: 0; }
 @supports (animation-timeline: scroll()) {
-  #logScreen .summary { animation: sumAway linear both; animation-timeline: scroll(nearest block); animation-range: 0 120px; }
+  #logScreen .summary { animation: sumAway linear both; animation-timeline: scroll(nearest block); animation-range: 0 90px; }
   @keyframes sumAway { to { opacity: 0; scale: .97; translate: 0 -6px; } }
 }
 
@@ -830,6 +830,72 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
   .bb.over .u { background: radial-gradient(circle, var(--nred) 2px, transparent 2.3px) left center / 6px 6px; }
   .bb .t { top: 0; bottom: 0; width: 6px; margin: 0; left: round(down, var(--t), 6px); border-radius: 0; background: radial-gradient(circle, var(--nyellow) 3px, transparent 3.2px) center / 6px 6px; }
 }
+
+/* ======================================================================
+   Apple-style redesign. Layout applies to both styles.
+   ====================================================================== */
+/* Home: one number, one line */
+.summary { grid-template-columns: 1fr; grid-template-areas: "lbl" "big" "delta" "bar"; }
+.summary .ssplit { display: none; }
+.money .cur { font-size: .62em; font-weight: 500; color: var(--fg2); margin-right: 2px; letter-spacing: 0; }
+#logScreen .navbar .brand { font-size: 34px; font-weight: 700; letter-spacing: -.025em; }
+:root[data-style="nothing"] #logScreen .navbar .brand { font-size: 30px; font-weight: 400; letter-spacing: -.02em; }
+#quickRow .chip.add { display: none; }
+#quickRow:not(:has(.chip:not(.add))) { display: none; }
+
+/* search and filters appear only when you search */
+#homeList #listView:not(.searching) :is(#searchBox, #filterChips, #savedViews, #resultSum) { display: none !important; }
+#searchToggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* one continuous list */
+#homeList #resultList { gap: 0 !important; background: var(--card); border-radius: var(--round); overflow: hidden; padding-block: 4px 8px; }
+:root[data-style="nothing"] #homeList #resultList { border: 1px solid var(--sep); }
+#homeList #resultList .card { background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+#homeList #resultList > div { gap: 0 !important; }
+#homeList #resultList .day { padding: 14px 16px 2px; margin: 0; }
+
+/* one round action */
+:is(:root, :root[data-style="nothing"]) .logbtn { align-self: flex-end; width: 56px; height: 56px; padding: 0; font-size: 0; gap: 0; border-radius: 50%; }
+.logbtn .i { font-size: 26px; }
+
+/* Insights: the same label position in every card, and a sentence first */
+.card > .sechead { padding: 0; margin: 0 0 12px; }
+.insight { font-size: 16px; font-weight: 500; margin-top: 8px; }
+:root:not(.viewer) #mSub, :root:not(.viewer) #weekCard { display: none; }
+.viewer #insightLine, .viewer #mSplit { display: none; }
+#mSplit { margin-top: 6px; font-variant-numeric: tabular-nums; }
+#mSplit:empty, #insightLine:empty { display: none; }
+
+/* a suggested category */
+.suggest { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 14px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-size: 16px; font-weight: 600; text-align: left; }
+.suggest .tile { background: transparent; color: inherit; }
+.suggest small { margin-left: auto; font-size: 13px; font-weight: 400; opacity: .7; }
+
+/* nothing smaller than 11 */
+.tab { font-size: 11px; }
+.calday .v { font-size: 11px; }
+
+/* Classic: Apple's greys, four text sizes, no dots */
+:root:not([data-style="nothing"]) {
+  --bg: #F5F5F7; --card: #FFFFFF; --card2: #F5F5F7; --fg: #1D1D1F; --fg2: #6E6E73; --fg3: #C7C7CC; --sep: rgba(0, 0, 0, .1);
+  --fill: #E8E8ED; --prev: #D2D2D7; --bar: #F5F5F7; --sheet: #F5F5F7; --sheetcard: #FFFFFF; --accent: #1D1D1F; --accent-ink: #FFFFFF; --tilebg: #F5F5F7;
+  &[data-theme="dark"] {
+    --bg: #000000; --card: #1C1C1E; --card2: #2C2C2E; --fg: #F5F5F7; --fg2: #98989D; --fg3: #48484A; --sep: rgba(255, 255, 255, .12);
+    --fill: #2C2C2E; --prev: #3A3A3C; --bar: #000000; --sheet: #1C1C1E; --sheetcard: #2C2C2E; --accent: #F5F5F7; --accent-ink: #1D1D1F; --tilebg: #2C2C2E;
+  }
+  @media (prefers-color-scheme: dark) { &:not([data-theme="light"]) {
+    --bg: #000000; --card: #1C1C1E; --card2: #2C2C2E; --fg: #F5F5F7; --fg2: #98989D; --fg3: #48484A; --sep: rgba(255, 255, 255, .12);
+    --fill: #2C2C2E; --prev: #3A3A3C; --bar: #000000; --sheet: #1C1C1E; --sheetcard: #2C2C2E; --accent: #F5F5F7; --accent-ink: #1D1D1F; --tilebg: #2C2C2E;
+  } }
+  & body::after { content: none; }
+  & :is(.summary .sbig, .total, .sheet .bigbal, .amount .val, .field.big) { font-size: 34px; font-weight: 600; letter-spacing: -.02em; }
+  & :is(.sheet h3, #monthName, .ptitle) { font-size: 20px; font-weight: 600; }
+  & :is(.row .t div, .row .amt, .setrow, .brow .top, .crow .name, .crow .amt, .btn, .pbtn, .pill, .chip, .cardtitle, .note, .field:not(.big)) { font-size: 16px; }
+  & .row .t div { font-weight: 400; }
+  & .row .amt { font-weight: 500; }
+  & :is(.row small, .sub, .delta, .day, .sechead, .hint, .resultsum, .brow small, .summary .sdelta, .summary .slabel, .legend, .callegend) { font-size: 13px; }
+  & .day { text-transform: none; letter-spacing: 0; }
+}
 </style>
 </head>
 <body>
@@ -843,6 +909,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
         <span class="preview-pill" id="previewPill" hidden>Preview</span>
         <button class="statuspill" type="button" id="syncPill" data-settings hidden></button>
         <div class="acts">
+          <button class="navbtn" type="button" id="searchToggle" aria-label="Search" aria-pressed="false"><svg class="i"><use href="#i-search"/></svg></button>
           <button class="navbtn" type="button" data-settings aria-label="Settings"><svg class="i"><use href="#i-sliders"/></svg></button>
         </div>
       </div>
@@ -862,7 +929,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
       <div class="sechead" hidden><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
       <div class="card flush" id="recentList" hidden></div>
       <div id="homeList"></div>
-      <button class="logbtn" type="button" id="logBtn"><svg class="i"><use href="#i-plus"/></svg>Log expense</button>
+      <button class="logbtn" type="button" id="logBtn" aria-label="Log expense"><svg class="i"><use href="#i-plus"/></svg>Log expense</button>
     </section>
 
     <!-- ================= SPENDING ================= -->
@@ -906,21 +973,22 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
       <div id="ovView" class="view" style="display:flex;flex-direction:column;gap:14px">
       <div class="card" id="sumHero">
         <div class="total" id="mTotal">₹0</div>
+        <div class="insight" id="insightLine"></div>
         <div class="sub" id="mSub"></div>
+        <div class="sub" id="mSplit"></div>
         <div class="donutwrap" id="donutWrap" hidden>
           <svg viewBox="0 0 140 140" id="donut" role="img" aria-label="Share of spending by category"></svg>
           <div class="legendlist" id="donutLegend"></div>
         </div>
       </div>
       <div class="card week" id="weekCard"></div>
-      <div id="budgetBlock" style="display:flex;flex-direction:column;gap:14px">
+      <div id="budgetBlock" class="card">
         <div class="sechead"><span>Budget</span><button type="button" id="budgetEdit">Edit</button></div>
-        <div class="card budgets" id="budgetList"></div>
+        <div class="budgets" id="budgetList"></div>
       </div>
-      <div class="sechead"><span>Last 6 months</span></div>
-      <div class="card"><svg class="chart" id="trend" viewBox="0 0 340 150" role="img" aria-label="Spending per month for the last 6 months"></svg></div>
-      <div class="sechead"><span id="cmpTitle">By category</span></div>
+      <div class="card"><div class="sechead"><span>Last 6 months</span></div><svg class="chart" id="trend" viewBox="0 0 340 150" role="img" aria-label="Spending per month for the last 6 months"></svg></div>
       <div class="card">
+        <div class="sechead"><span id="cmpTitle">By category</span></div>
         <div class="legend" id="cmpLegend"></div>
         <div class="rows" id="catRows"></div>
       </div>
@@ -992,6 +1060,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
       <input class="note" id="note" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done" list="noteList">
       <input class="when" id="when" type="date" aria-label="Date of payment">
     </div>
+    <button class="suggest" type="button" id="suggestBtn" hidden></button>
     <div class="cats" id="cats"></div>
     <div class="subpanel" id="subPanel" hidden>
       <div class="subhead"><button type="button" id="subBack" aria-label="Back to categories"><svg class="i"><use href="#i-back"/></svg></button><span class="tile" id="subDot"></span><span id="subTitle"></span></div>
@@ -1035,6 +1104,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
   <div class="grab"></div>
   <div class="stack">
     <div class="head"><h3>Edit payment</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="sub" id="edWhen"></div>
     <label>Amount<input class="field big" id="edAmount" type="text" inputmode="decimal" autocomplete="off"></label>
     <div class="two">
       <label>Category<select class="field" id="edCat"></select></label>
@@ -1231,6 +1301,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
@@ -1367,16 +1438,22 @@ function avatar(name, small) {
 const buzz = () => { try { if (load(K.buzz, true) && navigator.vibrate) navigator.vibrate(10); } catch {} };   // one light tick; can be turned off in Settings
 const REDUCED = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Numbers glide to their new value (skipped when the phone asks for reduced motion)
+["gMonthVal", "mTotal", "owedTotal"].forEach((id) => $(id).classList.add("money"));
+function paint(node, v) {
+  const t = fmt(v);
+  if (node.classList.contains("money") && t.includes("₹")) { node.innerHTML = t.replace("₹", '<span class="cur">₹</span>'); return; }
+  node.textContent = t;
+}
 let rollNumbers = false;   // true only while showing a change you just made
 function countTo(node, v) {
   const had = node.dataset.v !== undefined, from = Number(node.dataset.v || 0); node.dataset.v = v;
   cancelAnimationFrame(node._raf);
-  node.textContent = fmt(v);   // the correct figure is written first; the movement is only laid on top
+  paint(node, v);   // the correct figure is written first; the movement is only laid on top
   if (!rollNumbers || !had || from === v || document.hidden || !node.offsetParent || REDUCED()) return;
   const t0 = performance.now(), dur = 300;
   const step = (t) => {
     const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    node.textContent = fmt(k < 1 ? Math.round(from + (v - from) * e) : Number(node.dataset.v));
+    paint(node, k < 1 ? Math.round(from + (v - from) * e) : Number(node.dataset.v));
     if (k < 1) node._raf = requestAnimationFrame(step);
   };
   node._raf = requestAnimationFrame(step);
@@ -1948,6 +2025,7 @@ function openEdit(e) {
   fillSubs(cs.value, subOf(e.cat));
   $("edNote").value = e.note || ""; $("edDate").value = isoDay(new Date(e.ts)); $("edDate").max = isoDay(new Date());
   $("edErr").textContent = ""; resetConfirm($("edDelete"), "Delete");
+  const w = new Date(e.ts); $("edWhen").textContent = w.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) + " · " + w.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
   $("editSheet").showModal();
 }
 $("edCat").onchange = () => fillSubs($("edCat").value, "");
@@ -2063,8 +2141,20 @@ function closeSubs() { $("cats").hidden = false; $("subPanel").hidden = true; $(
 $("subBack").onclick = closeSubs;
 
 /* ---------- Log an expense: "What is the amount?" → "What was it for?" ---------- */
+// What you usually log around this time of day (at least twice in the last 60 days)
+function likelyCat() {
+  const h = new Date().getHours(), since = Date.now() - 60 * DAY, by = {};
+  expenses.forEach((e) => { if (e.ts < since || !e.cat) return; const d = Math.abs(new Date(e.ts).getHours() - h); if (Math.min(d, 24 - d) <= 2) by[e.cat] = (by[e.cat] || 0) + 1; });
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
+  return top && top[1] >= 2 ? top[0] : "";
+}
+function renderSuggest() {
+  const b = $("suggestBtn"), c = likelyCat(); b.hidden = !c; b.innerHTML = "";
+  if (c) { b.append(tile(c, "sm"), el("span", "", catLabel(c)), el("small", "", "Suggested")); b.onclick = () => save(c); }
+}
 function addStep(n) {
   $("stepAmount").hidden = n !== 1; $("pad").hidden = n !== 1; $("stepCat").hidden = n !== 2;
+  if (n === 2) renderSuggest();
   $("stepAmt").textContent = fmt(parseAmount(amountStr) || 0);
   closeSubs();
 }
@@ -2247,9 +2337,7 @@ function renderTrend() {
   trendMonths = months;
   const max = Math.max(...months.map((m) => m.v), 1);
   const slot = (W - left - right) / 6, bw = Math.min(28, slot - 16), ch = H - top - bottom;
-  const withData = months.filter((m) => m.v > 0 && m.o < 0), avg = withData.length ? withData.reduce((t, m) => t + m.v, 0) / withData.length : 0;
   let s = '<line class="base" x1="0" x2="' + W + '" y1="' + (H - bottom) + '" y2="' + (H - bottom) + '"/>';
-  if (avg) { const y = H - bottom - (ch * avg) / max; s += '<line class="avg" x1="0" x2="' + W + '" y1="' + y + '" y2="' + y + '"/><text x="' + W + '" y="' + (y - 4) + '" text-anchor="end">avg ' + fmtShort(avg) + "</text>"; }
   months.forEach((m, i) => {
     const cx = left + slot * i + slot / 2, h = m.v ? Math.max(6, (ch * m.v) / max) : 0, y = H - bottom - h, on = m.o === monthOffset;
     if (h) s += '<path class="bar' + (on ? " on" : "") + (m.o === 0 ? " now" : "") + '" d="M' + (cx - bw / 2) + "," + (H - bottom) + " V" + (y + 5) + " q0,-5 5,-5 h" + (bw - 10) + " q5,0 5,5 V" + (H - bottom) + ' Z"/>';
@@ -2277,7 +2365,7 @@ let trendMonths = [], trendDrawn = false;
     t.textContent = m.r.short + " " + fmt(m.v);
     t.setAttribute("x", Math.max(4, Math.min(W - 4, cx))); t.setAttribute("text-anchor", i === 0 ? "start" : i === 5 ? "end" : "middle");
     g.removeAttribute("display");
-    $("mTotal").textContent = fmt(m.v); $("monthName").textContent = m.r.label;
+    paint($("mTotal"), m.v); $("monthName").textContent = m.r.label;
   };
   const start = (e) => { on = used = true; last = -1; clearTimeout(hold); try { svg.setPointerCapture(id); } catch {} show(at(e)); };
   const stop = () => {
@@ -2285,7 +2373,7 @@ let trendMonths = [], trendDrawn = false;
     if (!on) return;
     on = false; last = -1;
     const g = $("scrubG"); if (g) g.setAttribute("display", "none");
-    $("mTotal").textContent = fmt(Number($("mTotal").dataset.v || 0)); $("monthName").textContent = monthRange(monthOffset).label;
+    paint($("mTotal"), Number($("mTotal").dataset.v || 0)); $("monthName").textContent = monthRange(monthOffset).label;
   };
   svg.addEventListener("pointerdown", (e) => { id = e.pointerId; x0 = e.clientX; y0 = e.clientY; used = false; hold = setTimeout(() => { if (id !== null) start(e); }, 220); });
   svg.addEventListener("pointermove", (e) => {
@@ -2434,6 +2522,17 @@ function renderCompare(r) {
     box.appendChild(row);
   });
   if (!names.length) box.append(el("div", "sub", "No spending in either month yet."));
+  let line = "";
+  if (monthOffset === 0) {
+    const o = Object.entries(budgets.cats).filter(([, v]) => v > 0).map(([k, v]) => budgetRow(k, v, k)).filter((b) => b.left < 0).sort((x, y) => x.left - y.left)[0];
+    if (o) line = o.name + " is " + fmt(-o.left) + " over budget.";
+  }
+  if (!line) {
+    const when = monthOffset === 0 ? "this time last month" : "the month before", diffs = names.filter((n) => old[n]).map((n) => ({ n, d: (cur[n] || 0) - old[n] }));
+    const up = diffs.filter((x) => x.d > 0).sort((x, y) => y.d - x.d)[0], down = diffs.filter((x) => x.d < 0).sort((x, y) => x.d - y.d)[0];
+    line = up ? up.n + " is up " + fmt(up.d) + " from " + when + "." : down ? down.n + " is down " + fmt(-down.d) + " from " + when + "." : names.length ? "Nothing to compare with yet." : "";
+  }
+  $("insightLine").textContent = line;
 }
 
 // iOS-style swipe actions: swipe left for Delete, right for Edit; a tap opens the editor
@@ -2492,6 +2591,7 @@ function renderSpending() {
   $("mSub").textContent = inMonth.length
     ? inMonth.length + (inMonth.length === 1 ? " payment" : " payments") + " · about " + fmt(Math.round(total / r.days)) + " a day"
     : "Nothing logged";
+  $("mSplit").textContent = monthOffset === 0 ? "This week " + fmt(sumIn(expenses, weekStart(Date.now()), Date.now() + 60e3)) + " · This year " + fmt(sumIn(expenses, +new Date(new Date().getFullYear(), 0, 1), Date.now() + 60e3)) : "";
   renderWeek(); renderBudgets(); renderTrend(); renderCompare(r);   // (the donut is left out of the monochrome design)
   renderCalendar(r); renderListView();
 
@@ -2531,12 +2631,9 @@ function payRow(e, when) {
   ed.append(el("span"), document.createTextNode("Edit")); ed.firstChild.append(ico("pencil")); ed.setAttribute("aria-label", "Edit");
   de.append(el("span"), document.createTextNode("Delete")); de.firstChild.append(ico("trash")); de.setAttribute("aria-label", "Delete");
   const it = el("button", "row"); it.type = "button";
-  const t = el("div", "t"), d = new Date(e.ts);
-  const whenText = when === "date"
-    ? (dayKey(e.ts) === dayKey(Date.now()) ? "Today" : dayKey(e.ts) === dayKey(Date.now() - DAY) ? "Yesterday" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }))
-    : d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
-  t.append(el("div", "", e.note || catLabel(e.cat) || UNCAT),
-    el("small", "", (e.note ? (e.cat ? mainOf(e.cat) + (subOf(e.cat) ? " · " + subOf(e.cat) : "") : UNCAT) + " · " : (subOf(e.cat) ? mainOf(e.cat) + " · " : "")) + whenText));
+  const t = el("div", "t"), detail = e.note ? (e.cat ? catLabel(e.cat) : UNCAT) : subOf(e.cat) ? mainOf(e.cat) : "";
+  t.append(el("div", "", e.note || catLabel(e.cat) || UNCAT));
+  if (detail) t.append(el("small", "", detail));
   it.append(tile(e.cat), t, el("span", "amt", fmt(e.amount)));
   if (VIEWER) { const r = el("div", "row"); r.append(...it.childNodes); sw.append(r); return sw; }   // read-only: no tap, no swipe
   it.onclick = () => morphEdit(it, e);
@@ -2573,6 +2670,7 @@ function renderHeader() {
     d.textContent = (p === 0 ? "Same as" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs") + (monthStart() === 1 ? " the same days in " + prev.label : " the same days last month");
   }
   d.classList.toggle("up", !!before && month > before);   // red: spending more than last month
+  if (budgets.total > 0) { const b = budgetRow("", budgets.total, ""); d.textContent = b.left < 0 ? fmt(-b.left) + " over budget" : fmt(b.left) + " left this month"; d.classList.toggle("up", b.left < 0); }
 }
 function renderChanged() { rollNumbers = true; try { renderAll(); } finally { rollNumbers = false; } }
 function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
@@ -2793,6 +2891,12 @@ if (LIST_ON_HOME) {
   $("homeList").append($("listView")); $("listView").hidden = false;
   $("viewSeg").querySelector('[data-view="list"]').remove(); $("viewSeg").style.gridTemplateColumns = "repeat(2, 1fr)";
 }
+function setSearching(on) {
+  if (!on && !sameFilter(filt, DEFAULT_FILTER)) { $("searchBox").value = ""; setFilter({ ...DEFAULT_FILTER }); }
+  $("listView").classList.toggle("searching", on); $("searchToggle").setAttribute("aria-pressed", on);
+  if (on) $("searchBox").focus();
+}
+$("searchToggle").onclick = () => setSearching(!$("listView").classList.contains("searching"));
 function setView(v) {
   if (LIST_ON_HOME && v === "list") v = "overview";
   spendView = v;
@@ -2874,6 +2978,7 @@ function openPick(title, options, current, onPick, extra) {
 }
 
 function renderListView() {
+  if (LIST_ON_HOME && !sameFilter(filt, DEFAULT_FILTER)) { $("listView").classList.add("searching"); $("searchToggle").setAttribute("aria-pressed", true); }   // never hide a filter that's on
   // saved views as tabs ("All" resets)
   const tabs = $("savedViews"); tabs.innerHTML = "";
   const all = el("button", "chip", "All"); all.type = "button"; all.setAttribute("aria-pressed", sameFilter(filt, DEFAULT_FILTER));
@@ -3031,7 +3136,7 @@ document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => {
 // Navigation bar turns frosted (and shows the small title) once the large title scrolls away
 function onScroll() {
   const y = $("main").scrollTop;
-  document.querySelectorAll(".screen:not([hidden]) .navbar").forEach((n) => n.classList.toggle("scrolled", y > (n.closest("#logScreen") ? 110 : 30)));
+  document.querySelectorAll(".screen:not([hidden]) .navbar").forEach((n) => n.classList.toggle("scrolled", y > (n.closest("#logScreen") ? 90 : 30)));
 }
 $("main").addEventListener("scroll", onScroll, { passive: true });
 
