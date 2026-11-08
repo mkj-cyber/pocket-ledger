@@ -615,7 +615,6 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); animation: fadeIn .25s
 :root { --nred: #D71921; --nyellow: #FFC700; --dot: rgba(0, 0, 0, .07); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --nred: #FF453A; --dot: rgba(255, 255, 255, .09); } }
 :root[data-theme="dark"] { --nred: #FF453A; --dot: rgba(255, 255, 255, .09); }
-body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 20px 20px; }
 .week .days i.today { background: var(--nyellow); }
 .chart .bar.on { fill: var(--accent); } .chart .bar.now { fill: var(--nyellow); }
 .calday.today .n { text-decoration-color: var(--nyellow); text-decoration-thickness: 3px; }
@@ -655,8 +654,7 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
   } }
 
   /* one typeface, two weights */
-  & body { font-family: var(--font); letter-spacing: -.005em; background-color: var(--bg);
-    background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 20px 20px; }
+  & body { font-family: var(--font); letter-spacing: -.005em; background-color: var(--bg); }
   & :is(b, strong, h1, h2, h3, .cardtitle, .row .amt, .strip .t div, .pill, .btn, .pbtn, .chip, .logbtn, .crow .amt, .crow .name, .fname, .bal) { font-weight: 500; }
   .chart text { font-family: var(--font); font-size: 11px; }
 
@@ -750,6 +748,31 @@ dialog.sheet.morph, dialog.sheet.morph::backdrop { transition: none; }
 .toast { bottom: calc(136px + env(safe-area-inset-bottom, 0px)); width: max-content; z-index: 6; white-space: nowrap; }
 #toastMsg { overflow: hidden; text-overflow: ellipsis; }
 
+/* wide, still dots that float over the cards and stop under the bars */
+body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  background-image: radial-gradient(circle, var(--floatdot) 1px, transparent 1.4px); background-size: 56px 56px; background-position: center top; }
+:root { --floatdot: rgba(128, 128, 128, .42); }
+
+/* reminders: one sideways row, with the next card peeking in */
+#logCards { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+  margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
+#logCards::-webkit-scrollbar { display: none; }
+#logCards:empty { display: none; }
+#logCards > * { flex: 0 0 calc(100% - 28px); min-width: 0; scroll-snap-align: start; }
+#logCards > :only-child { flex-basis: 100%; }
+
+.logbtn { z-index: 3; }
+
+/* lesser actions on those cards are quiet text */
+:is(:root, :root[data-style="nothing"]) #logCards .pill:not(.primary) { background: none; border: 0; box-shadow: none; padding: 0 6px; font-weight: 500; color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Nothing style: the bottom bar floats as its own panel */
+:root[data-style="nothing"] {
+  nav.tabs { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); width: auto; padding: 6px 8px; border-radius: 16px; border: 1px solid var(--sep); background: var(--card); }
+  .toast { bottom: calc(144px + env(safe-area-inset-bottom, 0px)); }
+  main { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}
+
 /* the saved tick */
 .toast .ok { display: none; background: var(--accent); color: var(--accent-ink); }
 .toast.done .ok { display: grid; }
@@ -834,7 +857,7 @@ dialog.sheet.morph, dialog.sheet.morph::backdrop { transition: none; }
           <span id="gYear"><small>This Year</small><b id="gYearVal">₹0</b></span>
         </span>
       </button>
-      <div id="logCards" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="logCards"></div>
       <div class="quick" id="quickRow" hidden></div>
       <div class="sechead" hidden><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
       <div class="card flush" id="recentList" hidden></div>
