@@ -1164,7 +1164,6 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
     <div class="group"><div class="cardin">
       <div class="setrow"><span>Remind me on</span><input class="when" id="fsRemind" type="date" aria-label="Reminder date"></div>
     </div></div>
-    <div id="fsHistory" class="stack" style="gap:0"></div>
     <details class="fsedit" id="fsEdit">
       <summary>Edit profile</summary>
       <div class="stack">
@@ -1175,6 +1174,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
         <div class="btnrow"><button class="btn danger" id="fsDelete" type="button">Remove profile</button><button class="btn primary" id="fsSave" type="button">Save profile</button></div>
       </div>
     </details>
+    <div id="fsHistory" class="stack" style="gap:0"></div>
   </div>
 </dialog>
 
@@ -1973,6 +1973,8 @@ armConfirm($("fsDelete"), "Remove profile", () => {
   delFriend(fsCurrent.id); $("friendSheet").close();
   showToast("Removed " + fsCurrent.name + "'s profile. Their loan history is kept.");
 });
+// Opening Edit profile always brings the form into view
+$("fsEdit").addEventListener("toggle", () => { if ($("fsEdit").open && fsCurrent) $("fsEdit").scrollIntoView({ block: "start", behavior: REDUCED() ? "auto" : "smooth" }); });
 function remindFromBox() { const v = $("fsRemind").value; return v ? Number(v.replace(/-/g, "")) : 0; }
 // On a saved friend the reminder date saves as soon as it's picked; a new friend's is saved with "Add friend"
 $("fsRemind").addEventListener("change", () => {
