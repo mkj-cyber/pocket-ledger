@@ -18,7 +18,7 @@ try {
   const p = /pocket-ledger-preview/.test(location.pathname) ? "pv-" : /\/view\/(index\.html)?$/.test(location.pathname) ? "" : "pl-";
   if (p && JSON.parse(localStorage.getItem(p + "style")) === "nothing") {
     document.documentElement.dataset.style = "nothing";
-    document.write('<link rel="stylesheet" id="nothingFonts" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500&display=swap">');
+    document.write('<link rel="stylesheet" id="nothingFonts" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap">');
   }
 } catch {}
 </script>
@@ -35,7 +35,7 @@ try {
   --sep: #C6C6C8;         /* separator */
   --fill: #E5E5EA;        /* system fill: keys, chips, tracks */
   --prev: #D1D1D6;        /* last month's bars */
-  --bar: rgba(249, 249, 249, .86);
+  --bar: rgba(249, 249, 249, 1);
   --sheet: #F2F2F7; --sheetcard: #FFFFFF;
   --accent: #007AFF;
   --accent-ink: #FFFFFF;
@@ -48,13 +48,13 @@ try {
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #000000; --card: #1C1C1E; --card2: #2C2C2E; --fg: #FFFFFF; --fg2: #98989F; --fg3: #5A5A5F; --sep: #38383A;
-  --fill: #2C2C2E; --prev: #3A3A3C; --bar: rgba(22, 22, 24, .86); --sheet: #1C1C1E; --sheetcard: #2C2C2E;
+  --fill: #2C2C2E; --prev: #3A3A3C; --bar: rgba(22, 22, 24, 1); --sheet: #1C1C1E; --sheetcard: #2C2C2E;
   --red: #FF453A; --green: #30D158; --orange: #FF9F0A;
   --c-food: #FF9F0A; --c-groc: #30D158; --c-trans: #5E5CE6; --c-shop: #FF375F; --c-bills: #BF5AF2; --c-fun: #64D2FF; --c-health: #FF453A; --c-other: #8E8E93;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #000000; --card: #1C1C1E; --card2: #2C2C2E; --fg: #FFFFFF; --fg2: #98989F; --fg3: #5A5A5F; --sep: #38383A;
-  --fill: #2C2C2E; --prev: #3A3A3C; --bar: rgba(22, 22, 24, .86); --sheet: #1C1C1E; --sheetcard: #2C2C2E;
+  --fill: #2C2C2E; --prev: #3A3A3C; --bar: rgba(22, 22, 24, 1); --sheet: #1C1C1E; --sheetcard: #2C2C2E;
   --red: #FF453A; --green: #30D158; --orange: #FF9F0A;
   --c-food: #FF9F0A; --c-groc: #30D158; --c-trans: #5E5CE6; --c-shop: #FF375F; --c-bills: #BF5AF2; --c-fun: #64D2FF; --c-health: #FF453A; --c-other: #8E8E93;
   color-scheme: dark;
@@ -89,7 +89,7 @@ main {
   min-height: 48px; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding-inline: max(16px, env(safe-area-inset-left, 0px));
   transition: background .2s, box-shadow .2s;
 }
-.navbar.scrolled { background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); box-shadow: 0 .5px 0 var(--sep); }
+.navbar.scrolled { background: var(--bar); box-shadow: 0 .5px 0 var(--sep); }
 .navbar .small { position: absolute; left: 50%; transform: translateX(-50%); font-weight: 600; font-size: 17px; opacity: 0; transition: opacity .2s; pointer-events: none; }
 .navbar.scrolled .small { opacity: 1; }
 .navbar .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; letter-spacing: -.02em; }
@@ -142,7 +142,7 @@ main {
 .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .ring circle { fill: none; stroke-width: 6; }
 .ring .track { stroke: var(--fill); }
-.ring .val { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .6s cubic-bezier(.2, .8, .2, 1); }
+.ring .val { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .6s var(--ease); }
 .ring span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .amount { display: flex; align-items: baseline; justify-content: center; gap: 4px; font-weight: 700; font-variant-numeric: tabular-nums; min-height: 64px; padding-top: 4px; }
 .amount .cur { font-size: 28px; color: var(--fg2); font-weight: 600; }
@@ -230,7 +230,7 @@ main {
 .delta.up { color: var(--red); }
 .delta.down { color: var(--green); }
 .bars { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 3px; }
-.bars i { display: block; height: 5px; border-radius: 3px; background: var(--cc); min-width: 2px; transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+.bars i { display: block; height: 5px; border-radius: 3px; background: var(--cc); min-width: 2px; transition: width .5s var(--ease); }
 .bars i.prev { background: var(--prev); }
 .subrows { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
 .subrows div { display: flex; justify-content: space-between; font-size: 14px; color: var(--fg2); font-variant-numeric: tabular-nums; }
@@ -249,7 +249,7 @@ main {
 
 /* swipe actions on list rows */
 .swipe { position: relative; overflow: hidden; background: var(--card); }
-.swipe .row { transition: transform .25s cubic-bezier(.2, .8, .2, 1); touch-action: pan-y; z-index: 1; }
+.swipe .row { transition: transform .25s var(--ease); touch-action: pan-y; z-index: 1; }
 .swipe .act { position: absolute; top: 0; bottom: 0; width: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #fff; font-weight: 600; font-size: 14px; opacity: 0; transition: opacity .15s; }
 .swipe.active .act { opacity: 1; }
 .swipe .act .i { font-size: 20px; margin: 0 auto 2px; }
@@ -281,7 +281,7 @@ main {
 .bal { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 .bal.settled { color: var(--green); font-weight: 500; }
 .progress { grid-column: 2 / -1; height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; margin-top: 4px; }
-.progress i { display: block; height: 100%; background: var(--green); border-radius: 2px; transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+.progress i { display: block; height: 100%; background: var(--green); border-radius: 2px; transition: width .6s var(--ease); }
 .tag { font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: var(--fill); color: var(--fg2); }
 .tag.back { color: var(--green); }
 
@@ -290,8 +290,7 @@ dialog.sheet {
   width: min(100%, 520px); max-width: 100vw; margin: auto auto 0; border: 0; border-radius: 14px 14px 0 0; background: var(--sheet); color: var(--fg);
   padding: 8px max(16px, env(safe-area-inset-left, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 92vh; overflow-y: auto;
 }
-dialog.sheet[open] { animation: sheetUp .36s cubic-bezier(.2, .9, .25, 1); }
-dialog.sheet::backdrop { background: rgba(0, 0, 0, .4); animation: fadeIn .3s; }
+dialog.sheet::backdrop { background: rgba(0, 0, 0, .4); }
 @keyframes sheetUp { from { transform: translateY(100%); } }
 @keyframes fadeIn { from { opacity: 0; } }
 .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--fg3); margin: 0 auto 10px; touch-action: none; }
@@ -359,7 +358,7 @@ select.field { appearance: none; background-image: linear-gradient(45deg, transp
 nav.tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: grid; grid-template-columns: repeat(3, 1fr); max-width: 520px; margin: 0 auto;
   padding: 6px max(10px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-right, 0px));
-  background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); box-shadow: 0 -.5px 0 var(--sep);
+  background: var(--bar); box-shadow: 0 -.5px 0 var(--sep);
 }
 .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 500; color: var(--fg2); padding: 2px 0; }
 .tab .i { font-size: 26px; }
@@ -368,9 +367,9 @@ nav.tabs {
 /* ---- Toast (saved / undo) ---- */
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 5;
-  background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  background: var(--bar);
   color: var(--fg); border-radius: 14px; padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .18), 0 0 0 .5px var(--sep); max-width: calc(100% - 32px); animation: toastIn .3s cubic-bezier(.2, .9, .25, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18), 0 0 0 .5px var(--sep); max-width: calc(100% - 32px); animation: toastIn .3s var(--ease);
 }
 .toast .ok { width: 22px; height: 22px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 13px; flex: none; }
 .toast.error .ok { background: var(--red); }
@@ -401,19 +400,19 @@ nav.tabs {
    ====================================================================== */
 :root {
   --bg: #F2F2F2; --card: #FFFFFF; --card2: #F2F2F2; --fg: #0A0A0A; --fg2: #8A8A8A; --fg3: #C2C2C2; --sep: #E6E6E6;
-  --fill: #EFEFEF; --prev: #D6D6D6; --bar: rgba(242, 242, 242, .88); --sheet: #F2F2F2; --sheetcard: #FFFFFF;
+  --fill: #EFEFEF; --prev: #D6D6D6; --bar: rgba(242, 242, 242, 1); --sheet: #F2F2F2; --sheetcard: #FFFFFF;
   --accent: #0A0A0A; --accent-ink: #FFFFFF; --tilebg: #F2F2F2; --round: 16px;
   --c-food: var(--fg); --c-groc: var(--fg); --c-trans: var(--fg); --c-shop: var(--fg); --c-bills: var(--fg); --c-fun: var(--fg); --c-health: var(--fg); --c-other: var(--fg);
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #000000; --card: #141414; --card2: #1E1E1E; --fg: #F5F5F5; --fg2: #8C8C8C; --fg3: #4A4A4A; --sep: #262626;
-  --fill: #1E1E1E; --prev: #3A3A3A; --bar: rgba(10, 10, 10, .88); --sheet: #141414; --sheetcard: #1E1E1E;
+  --fill: #1E1E1E; --prev: #3A3A3A; --bar: rgba(10, 10, 10, 1); --sheet: #141414; --sheetcard: #1E1E1E;
   --accent: #F5F5F5; --accent-ink: #0A0A0A; --tilebg: #1E1E1E;
   --c-food: var(--fg); --c-groc: var(--fg); --c-trans: var(--fg); --c-shop: var(--fg); --c-bills: var(--fg); --c-fun: var(--fg); --c-health: var(--fg); --c-other: var(--fg);
 } }
 :root[data-theme="dark"] {
   --bg: #000000; --card: #141414; --card2: #1E1E1E; --fg: #F5F5F5; --fg2: #8C8C8C; --fg3: #4A4A4A; --sep: #262626;
-  --fill: #1E1E1E; --prev: #3A3A3A; --bar: rgba(10, 10, 10, .88); --sheet: #141414; --sheetcard: #1E1E1E;
+  --fill: #1E1E1E; --prev: #3A3A3A; --bar: rgba(10, 10, 10, 1); --sheet: #141414; --sheetcard: #1E1E1E;
   --accent: #F5F5F5; --accent-ink: #0A0A0A; --tilebg: #1E1E1E;
   --c-food: var(--fg); --c-groc: var(--fg); --c-trans: var(--fg); --c-shop: var(--fg); --c-bills: var(--fg); --c-fun: var(--fg); --c-health: var(--fg); --c-other: var(--fg);
 }
@@ -487,10 +486,10 @@ dialog.prompt {
   background: transparent; color: var(--fg); overflow: hidden; display: none; flex-direction: column;
 }
 dialog.prompt[open] { display: flex; }
-dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: fadeIn .25s; }
+dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); animation: fadeIn .25s; }
 .pcard {
   width: calc(100% - 32px); max-width: 420px; margin: calc(env(safe-area-inset-top, 0px) + 14vh) auto 0; padding: 16px; border-radius: 26px;
-  background: var(--sheet); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); display: flex; flex-direction: column; gap: 12px; animation: popIn .28s cubic-bezier(.2, .9, .25, 1);
+  background: var(--sheet); box-shadow: 0 20px 60px rgba(0, 0, 0, .25); display: flex; flex-direction: column; gap: 12px; animation: popIn .28s var(--ease);
   max-height: calc(100% - 14vh - 24px); overflow-y: auto;
 }
 #stepCat.pcard { margin-top: calc(env(safe-area-inset-top, 0px) + 6vh); }
@@ -522,7 +521,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 /* iPhone-style number pad */
 .kbd {
   margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; background: var(--kbd);
-  padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px)); animation: kbdUp .3s cubic-bezier(.2, .9, .25, 1);
+  padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px)); animation: kbdUp .3s var(--ease);
 }
 @keyframes kbdUp { from { transform: translateY(100%); } }
 .kbd .key {
@@ -588,7 +587,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
    ====================================================================== */
 :root { --fg2: #6B6B6B; }   /* 4.5:1+ on the light grey ground and on white cards (WCAG AA) */
 /* Home summary as one slim card: this month on the left, week and year beside it, the comparison underneath */
-.summary { width: 100%; display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "lbl wk yr" "big wk yr" "delta delta delta";
+.summary { width: 100%; display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "lbl wk yr" "big wk yr" "delta delta delta" "bar bar bar";
   align-items: end; text-align: left; padding: 14px 16px; gap: 2px 0; transition: transform .12s; }
 .summary:active { transform: scale(.985); }
 .summary .slabel { grid-area: lbl; font-size: 13px; color: var(--fg2); font-weight: 500; }
@@ -618,7 +617,7 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); -webkit-backdrop-filte
 :root[data-theme="dark"] { --nred: #FF453A; --dot: rgba(255, 255, 255, .09); }
 body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 20px 20px; }
 .week .days i.today { background: var(--nyellow); }
-.chart .bar.on { fill: var(--nyellow); }
+.chart .bar.on { fill: var(--accent); } .chart .bar.now { fill: var(--nyellow); }
 .calday.today .n { text-decoration-color: var(--nyellow); text-decoration-thickness: 3px; }
 .sdelta.up, .delta.up, .strip small.due { color: var(--nred); }
 .statuspill.err { background: var(--nred); }
@@ -634,24 +633,24 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
    "Nothing" style (Settings → Appearance → Style), after Nothing OS.
    A strict system so every screen reads the same:
    - one typeface (Geist) in two weights, 400 and 500;
-   - dot matrix (Doto) only for the one big total on a screen;
+   - the same typeface for the one big total on a screen, just larger;
    - one label style: 11px capitals, grey; one corner size (16px); one card padding (16px);
    - everything left-aligned; near-black #040404 with #181818 cards, a faint dot grid,
      dotted bars, and red used only as a small dot.
    ====================================================================== */
 :root[data-style="nothing"] {
   --bg: #F4F4F4; --card: #FFFFFF; --card2: #ECECEC; --fg: #040404; --fg2: #6B6D6D; --fg3: #B9BBBB; --sep: rgba(4, 4, 4, .08);
-  --fill: #ECECEC; --prev: #D8D9D9; --sheet: #F4F4F4; --sheetcard: #FFFFFF; --tilebg: #F1F1F1; --bar: rgba(244, 244, 244, .9);
+  --fill: #ECECEC; --prev: #D8D9D9; --sheet: #F4F4F4; --sheetcard: #FFFFFF; --tilebg: #F1F1F1; --bar: rgba(244, 244, 244, 1);
   --accent: #040404; --accent-ink: #FFFFFF; --nred: #D71921; --dot: rgba(4, 4, 4, .09); --round: 16px;
-  --font: "Geist", system-ui, sans-serif; --dotfont: "Doto", ui-monospace, monospace;
+  --font: "Geist", system-ui, sans-serif;
   &[data-theme="dark"] {
     --bg: #040404; --card: #141414; --card2: #1E1E1E; --fg: #FFFFFF; --fg2: #8E9090; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
-    --fill: #1E1E1E; --prev: #353636; --sheet: #0E0E0E; --sheetcard: #181818; --tilebg: #1E1E1E; --bar: rgba(4, 4, 4, .88);
+    --fill: #1E1E1E; --prev: #353636; --sheet: #0E0E0E; --sheetcard: #181818; --tilebg: #1E1E1E; --bar: rgba(4, 4, 4, 1);
     --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .11);
   }
   @media (prefers-color-scheme: dark) { &:not([data-theme="light"]) {
     --bg: #040404; --card: #141414; --card2: #1E1E1E; --fg: #FFFFFF; --fg2: #8E9090; --fg3: #3C3D3D; --sep: rgba(255, 255, 255, .08);
-    --fill: #1E1E1E; --prev: #353636; --sheet: #0E0E0E; --sheetcard: #181818; --tilebg: #1E1E1E; --bar: rgba(4, 4, 4, .88);
+    --fill: #1E1E1E; --prev: #353636; --sheet: #0E0E0E; --sheetcard: #181818; --tilebg: #1E1E1E; --bar: rgba(4, 4, 4, 1);
     --accent: #FFFFFF; --accent-ink: #040404; --nred: #FF3B30; --dot: rgba(255, 255, 255, .11);
   } }
 
@@ -676,7 +675,7 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
 
   /* one big total per screen, in dot matrix */
   #mTotal, #owedTotal, .sheet .bigbal, .amount .val {
-    font-family: var(--dotfont); font-weight: 900; font-size: 52px; letter-spacing: .02em; line-height: 1; }
+    font-family: var(--font); font-weight: 500; font-size: 44px; letter-spacing: -.03em; line-height: 1.05; font-variant-numeric: tabular-nums; }
   .amount .cur { font-weight: 400; }
   .week .big { font-size: 20px; font-weight: 500; letter-spacing: -.01em; }
   .ssplit b { font-size: 16px; font-weight: 500; }
@@ -686,7 +685,7 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
   .card, .strip { border: 1px solid var(--sep); }
   .card:not(.flush) { padding: 16px; }
   .strip { padding: 10px 10px 10px 16px; }
-  .summary .sbig { font-family: var(--dotfont); font-weight: 900; font-size: 34px; letter-spacing: .02em; line-height: 1; }
+  .summary .sbig { font-size: 30px; font-weight: 500; letter-spacing: -.03em; line-height: 1.1; }
   .tile { border-radius: 10px; }
 
   /* buttons: pills, filled for the main action, outlined otherwise; normal case */
@@ -705,7 +704,7 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
   /* the selected tab gets a yellow dot (now); red stays for "needs attention" */
   .tab[aria-selected="true"] { color: var(--fg); position: relative; }
   .tab[aria-selected="true"]::after { content: ""; position: absolute; top: -5px; width: 5px; height: 5px; border-radius: 50%; background: var(--nyellow); }
-  .chart .bar.on { fill: var(--nyellow); }
+  .chart .bar.on { fill: var(--accent); } .chart .bar.now { fill: var(--nyellow); }
   .chart text.on { fill: var(--fg); font-weight: 500; }
   .delta.up { color: var(--nred); }
 
@@ -723,6 +722,91 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
 
   .tabs { border-top: 1px solid var(--sep); }
 }
+
+/* ======================================================================
+   v16: one motion style, quiet press response, budgets
+   ====================================================================== */
+:root { --ease: cubic-bezier(.32, .72, 0, 1); }
+
+/* sheets rise and settle the same way, and leave the same way */
+dialog.sheet { transform: translateY(100%); transition: transform .26s var(--ease), overlay .26s allow-discrete, display .26s allow-discrete; }
+dialog.sheet[open] { transform: none; transition-duration: .38s; }
+@starting-style { dialog.sheet[open] { transform: translateY(100%); } }
+dialog.sheet::backdrop { opacity: 0; transition: opacity .26s linear, overlay .26s allow-discrete, display .26s allow-discrete; }
+dialog.sheet[open]::backdrop { opacity: 1; }
+@starting-style { dialog.sheet[open]::backdrop { opacity: 0; } }
+dialog.sheet.morph, dialog.sheet.morph::backdrop { transition: none; }
+::view-transition-group(pay) { animation-duration: .28s; animation-timing-function: var(--ease); }
+::view-transition-old(pay), ::view-transition-new(pay) { animation-duration: .18s; height: 100%; object-fit: cover; object-position: top; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .2s; }
+
+/* press: a very slight sink, no colour flash; lets go straight away */
+:is(.row, .key, .btn, .pbtn, .pill, .chip, .navbtn, .logbtn, .cat, .crow, .calday, .summary, .setrow.tap) { transition: transform .18s var(--ease); -webkit-tap-highlight-color: transparent; }
+:is(.key, .btn, .pbtn, .pill, .chip, .navbtn, .logbtn, .cat, .calday):active { transform: scale(.97); opacity: 1; transition: transform .08s linear; }
+:is(.row, .crow, .summary, .setrow.tap):active { transform: scale(.99); opacity: 1; transition: transform .08s linear; }
+.key:active, .kbd .key:active, .kbd .key.flat:active { background: var(--key, var(--card)); }
+
+/* messages sit above the Log button, on one line */
+.toast { bottom: calc(136px + env(safe-area-inset-bottom, 0px)); width: max-content; z-index: 6; white-space: nowrap; }
+#toastMsg { overflow: hidden; text-overflow: ellipsis; }
+
+/* the saved tick */
+.toast .ok { display: none; background: var(--accent); color: var(--accent-ink); }
+.toast.done .ok { display: grid; }
+.toast.done .ok path, .toast.done .ok use { stroke-dasharray: 24; animation: tickDraw .26s var(--ease) both; }
+@keyframes tickDraw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+
+/* empty screens: one line of text */
+.empty-state { padding: 20px 16px; font-size: 14px; }
+
+/* regular rows and spacing */
+.row, .setrow { min-height: 56px; }
+.day { margin-bottom: -6px; }
+.empty-state b { color: var(--fg2); font-size: 14px; font-weight: 400; }
+
+/* chart: reads once, then stays still */
+.chart.draw .bar { transform-box: fill-box; transform-origin: bottom; animation: barRise .5s var(--ease) both; }
+.chart.draw .bar:nth-of-type(2) { animation-delay: 30ms; } .chart.draw .bar:nth-of-type(3) { animation-delay: 60ms; }
+.chart.draw .bar:nth-of-type(4) { animation-delay: 90ms; } .chart.draw .bar:nth-of-type(5) { animation-delay: 120ms; } .chart.draw .bar:nth-of-type(6) { animation-delay: 150ms; }
+@keyframes barRise { from { transform: scaleY(0); } }
+#trend { touch-action: pan-y; }
+.chart .scrubline { stroke: var(--fg); stroke-width: 1; }
+.chart text.scrubv { fill: var(--fg); font-weight: 600; font-size: 12px; }
+.crow.over .amt { color: var(--nred); }
+
+/* swipe far enough and the row deletes */
+.swipe .act.del { background: var(--nred); transition: opacity .15s, width .18s var(--ease); }
+.swipe.armed .act.del { width: 100%; }
+.swipe.gone .row { transition: transform .17s var(--ease) !important; }
+
+/* Home: the summary tightens away as the list scrolls; one quiet line stays in the top bar */
+#logScreen .navbar .brand { transition: opacity .2s; }
+#logScreen .navbar.scrolled .brand { opacity: 0; }
+@supports (animation-timeline: scroll()) {
+  #logScreen .summary { animation: sumAway linear both; animation-timeline: scroll(nearest block); animation-range: 0 120px; }
+  @keyframes sumAway { to { opacity: 0; scale: .97; translate: 0 -6px; } }
+}
+
+/* budget progress: a thin bar in Classic, a row of dots in Nothing */
+.bb { position: relative; display: block; height: 4px; border-radius: 2px; background: var(--fill); }
+.bb .u { position: absolute; inset: 0 auto 0 0; width: var(--u); border-radius: inherit; background: var(--accent); }
+.bb.over .u { background: var(--nred); }
+.bb .t { position: absolute; top: -3px; bottom: -3px; left: var(--t); width: 3px; margin-left: -1px; border-radius: 2px; background: var(--nyellow); }
+.summary .bb { grid-area: bar; margin-top: 12px; width: 100%; }
+.budgets { display: flex; flex-direction: column; gap: 16px; }
+.brow { display: flex; flex-direction: column; gap: 7px; }
+.brow .top { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 500; }
+.brow .left { font-variant-numeric: tabular-nums; }
+.brow .left.over { color: var(--nred); }
+.brow small { font-size: 12.5px; color: var(--fg2); font-variant-numeric: tabular-nums; }
+.budgetset input.field { width: 7.5em; text-align: right; padding-block: 6px; min-height: 38px; }
+.viewer #budgetBlock { display: none !important; }
+:root[data-style="nothing"] {
+  .bb { height: 6px; border-radius: 0; background: radial-gradient(circle, var(--fg3) 2px, transparent 2.3px) left center / 6px 6px; }
+  .bb .u { width: round(down, var(--u), 6px); border-radius: 0; background: radial-gradient(circle, var(--fg) 2px, transparent 2.3px) left center / 6px 6px; }
+  .bb.over .u { background: radial-gradient(circle, var(--nred) 2px, transparent 2.3px) left center / 6px 6px; }
+  .bb .t { top: 0; bottom: 0; width: 6px; margin: 0; left: round(down, var(--t), 6px); border-radius: 0; background: radial-gradient(circle, var(--nyellow) 3px, transparent 3.2px) center / 6px 6px; }
+}
 </style>
 </head>
 <body>
@@ -731,6 +815,7 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
     <!-- ================= HOME ================= -->
     <section class="screen" id="logScreen">
       <div class="navbar">
+        <span class="small" id="homeSmall"></span>
         <div class="brand"><span class="syncdot" id="syncDot" title="Backup status" hidden></span>Pocket Ledger</div>
         <span class="preview-pill" id="previewPill" hidden>Preview</span>
         <button class="statuspill" type="button" id="syncPill" data-settings hidden></button>
@@ -743,6 +828,7 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
         <span class="slabel" id="gMonthLbl">This Month</span>
         <b class="sbig" id="gMonthVal">₹0</b>
         <span class="sdelta" id="gDelta"></span>
+        <span class="bb" id="gBudget" hidden></span>
         <span class="ssplit">
           <span id="gWeek"><small>This Week</small><b id="gWeekVal">₹0</b></span>
           <span id="gYear"><small>This Year</small><b id="gYearVal">₹0</b></span>
@@ -804,6 +890,10 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
         </div>
       </div>
       <div class="card week" id="weekCard"></div>
+      <div id="budgetBlock" style="display:flex;flex-direction:column;gap:14px">
+        <div class="sechead"><span>Budget</span><button type="button" id="budgetEdit">Edit</button></div>
+        <div class="card budgets" id="budgetList"></div>
+      </div>
       <div class="sechead"><span>Last 6 months</span></div>
       <div class="card"><svg class="chart" id="trend" viewBox="0 0 340 150" role="img" aria-label="Spending per month for the last 6 months"></svg></div>
       <div class="sechead"><span id="cmpTitle">By category</span></div>
@@ -986,6 +1076,34 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
 </dialog>
 
 <!-- Template: a saved entry you can log with one tap -->
+<dialog class="sheet" id="budgetSheet">
+  <div class="grab"></div>
+  <div class="stack budgetset" style="gap:22px">
+    <div class="head"><h3>Budget</h3><button class="close" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Limit for the whole month</div>
+      <div class="cardin"><div class="setrow"><span>All spending</span><input class="field" id="bgTotal" inputmode="numeric" autocomplete="off" placeholder="No limit"></div></div>
+    </div>
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Limit by category</div>
+      <div class="cardin" id="bgCats"></div>
+    </div>
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Month</div>
+      <div class="cardin">
+        <div class="setrow"><span>Month starts on</span><select class="field" id="bgStart" style="width:6em"></select></div>
+        <div class="setrow"><span>Carry over unused budget</span><div class="seg" id="bgCarry" style="width:9em;grid-template-columns:repeat(2,1fr)" role="group" aria-label="Carry over">
+          <button type="button" data-carry="0" aria-pressed="true">Off</button>
+          <button type="button" data-carry="1" aria-pressed="false">On</button>
+        </div></div>
+      </div>
+      <div class="hint" style="padding:0 16px">Carry over adds only last month's unused amount. Limits are kept on this phone and are not sent to your Google Sheet.</div>
+    </div>
+    <div class="err" id="bgErr"></div>
+    <button class="btn primary" type="button" id="bgSave">Save</button>
+  </div>
+</dialog>
+
 <dialog class="sheet" id="tplSheet">
   <div class="grab"></div>
   <div class="stack">
@@ -1020,6 +1138,17 @@ body { background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); bac
           <button type="button" data-style-choice="nothing" aria-pressed="false">Nothing</button>
         </div></div>
         <div class="setrow" hidden><span>Accent colour</span><div class="swatches" id="accentRow"></div></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="hint" style="padding-left:16px">Spending</div>
+      <div class="cardin">
+        <button class="setrow tap" type="button" id="budgetOpen">Budget and month start</button>
+        <div class="setrow"><span>Vibration</span><div class="seg" id="buzzSeg" style="width:13em;grid-template-columns:repeat(2,1fr)" role="group" aria-label="Vibration">
+          <button type="button" data-buzz="on" aria-pressed="true">On</button>
+          <button type="button" data-buzz="off" aria-pressed="false">Off</button>
+        </div></div>
       </div>
     </div>
 
@@ -1212,23 +1341,26 @@ function avatar(name, small) {
   a.setAttribute("aria-hidden", "true");
   return a;
 }
-const buzz = () => { try { if (navigator.vibrate) navigator.vibrate(10); } catch {} };   // a light tap, like iOS haptics
+const buzz = () => { try { if (load(K.buzz, true) && navigator.vibrate) navigator.vibrate(10); } catch {} };   // one light tick; can be turned off in Settings
+const REDUCED = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Numbers glide to their new value (skipped when the phone asks for reduced motion)
+let rollNumbers = false;   // true only while showing a change you just made
 function countTo(node, v) {
-  const from = Number(node.dataset.v || 0); node.dataset.v = v;
+  const had = node.dataset.v !== undefined, from = Number(node.dataset.v || 0); node.dataset.v = v;
   cancelAnimationFrame(node._raf);
-  if (from === v || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) { node.textContent = fmt(v); return; }
-  const t0 = performance.now(), dur = 450;
+  node.textContent = fmt(v);   // the correct figure is written first; the movement is only laid on top
+  if (!rollNumbers || !had || from === v || document.hidden || !node.offsetParent || REDUCED()) return;
+  const t0 = performance.now(), dur = 300;
   const step = (t) => {
     const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    node.textContent = k < 1 ? fmt(Math.round(from + (v - from) * e)) : fmt(v);
+    node.textContent = fmt(k < 1 ? Math.round(from + (v - from) * e) : Number(node.dataset.v));
     if (k < 1) node._raf = requestAnimationFrame(step);
   };
   node._raf = requestAnimationFrame(step);
 }
 function emptyState(icon, title, text) {
-  const d = el("div", "empty-state"), t = el("span", "tile"); t.append(ico(icon));
-  d.append(t, el("b", "", title), el("span", "", text));
+  const d = el("div", "empty-state");
+  d.append(el("b", "", title));
   return d;
 }
 
@@ -1236,7 +1368,7 @@ function emptyState(icon, title, text) {
 const P = PREVIEW ? "pv-" : VIEWER ? "vw-" : "pl-";
 const K = { ex: P + "expenses", ln: P + "loans", fr: P + "friends", out: P + "outbox", link: P + "sync-link", last: P + "last-sync",
   sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent",
-  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src", style: P + "style" };
+  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src", style: P + "style", budget: P + "budgets", mstart: P + "month-start", buzz: P + "vibrate" };
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 
 /* ---------- IndexedDB for the lists that keep growing ----------
@@ -1299,10 +1431,10 @@ let friends = [];    // [{id, name, phone, monthly, day, note, updated}]
 let outbox = [];     // [{seq, op: "put" | "del", kind: "e" | "l" | "f", id, rec}]
 
 const byNewest = (a, b) => b.ts - a.ts;
-function putExpense(e) { expenses = [e, ...expenses.filter((x) => x.id !== e.id)].sort(byNewest); keep(K.ex, expenses); queue("put", "e", e); renderAll(); }
-function delExpense(id) { expenses = expenses.filter((x) => x.id !== id); keep(K.ex, expenses); queue("del", "e", { id }); renderAll(); }
-function putLoan(l) { loans = [l, ...loans.filter((x) => x.id !== l.id)].sort(byNewest); keep(K.ln, loans); queue("put", "l", l); renderAll(); }
-function delLoan(id) { loans = loans.filter((x) => x.id !== id); keep(K.ln, loans); queue("del", "l", { id }); renderAll(); }
+function putExpense(e) { expenses = [e, ...expenses.filter((x) => x.id !== e.id)].sort(byNewest); keep(K.ex, expenses); queue("put", "e", e); renderChanged(); }
+function delExpense(id) { expenses = expenses.filter((x) => x.id !== id); keep(K.ex, expenses); queue("del", "e", { id }); renderChanged(); }
+function putLoan(l) { loans = [l, ...loans.filter((x) => x.id !== l.id)].sort(byNewest); keep(K.ln, loans); queue("put", "l", l); renderChanged(); }
+function delLoan(id) { loans = loans.filter((x) => x.id !== id); keep(K.ln, loans); queue("del", "l", { id }); renderChanged(); }
 function putFriend(f) { f.updated = Date.now(); friends = [...friends.filter((x) => x.id !== f.id), f]; keep(K.fr, friends); queue("put", "f", f); renderAll(); }
 function delFriend(id) { friends = friends.filter((x) => x.id !== id); keep(K.fr, friends); queue("del", "f", { id }); renderAll(); }
 
@@ -1532,7 +1664,7 @@ function friendStats(name) {
   const items = loans.filter((l) => l.friend === name);
   const lent = items.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0);
   const back = items.filter((l) => l.type !== "lent").reduce((t, l) => t + l.amount, 0);
-  const cur = monthRange(0);
+  const cur = calMonth(0);
   const mLent = items.filter((l) => l.type === "lent" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
   const mBack = items.filter((l) => l.type !== "lent" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
   return { items, lent, back, bal: lent - back, mLent, mBack, last: items.length ? items[0].ts : 0 };
@@ -1550,7 +1682,7 @@ function remindDate(f) {
 }
 function addMonth(d) { const dim = new Date(d.getFullYear(), d.getMonth() + 2, 0).getDate(); return new Date(d.getFullYear(), d.getMonth() + 1, Math.min(d.getDate(), dim)); }
 function lendingDue() {
-  const now = new Date(), ym = now.getFullYear() + "-" + (now.getMonth() + 1), skips = load(K.skips, {}), cur = monthRange(0);
+  const now = new Date(), ym = now.getFullYear() + "-" + (now.getMonth() + 1), skips = load(K.skips, {}), cur = calMonth(0);
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   return friends.filter((f) => {
     const d = remindDate(f);
@@ -1577,7 +1709,7 @@ function dueCard(f) {
 }
 
 function renderLoans() {
-  const cur = monthRange(0);
+  const cur = calMonth(0);
   const people = allFriends();
   if (selFriend && !people.some((f) => f.name === selFriend)) selFriend = null;
   if (!selFriend && people.length) selFriend = people[0].name;
@@ -1861,7 +1993,6 @@ function setAmount(s) {
   $("amount").classList.toggle("empty", !s);
 }
 function press(k) {
-  if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
   let s = amountStr;
   if (k === "back") s = s.slice(0, -1);
   else if (k === ".") { if (!s.includes(".")) s = (s || "0") + "."; }
@@ -1928,7 +2059,6 @@ function openAdd(pre = {}) {
 function closeAdd() { if ($("addSheet").open) $("addSheet").close(); setAmount(""); $("banner").textContent = ""; pendingTpl = null; }
 $("addDone").onclick = () => {
   if (!(parseAmount(amountStr) > 0)) { const a = $("amount"); a.classList.remove("shake"); void a.offsetWidth; a.classList.add("shake"); $("banner").textContent = "Type the amount first"; return; }
-  buzz();
   if (pendingTpl) { const t = pendingTpl; pendingTpl = null; $("note").value = t.note || ""; save(t.cat); return; }
   addStep(2);
 };
@@ -2036,12 +2166,25 @@ function renderLogCards() {
    Spending screen
    ====================================================================== */
 let monthOffset = 0, openCats = new Set();
-function monthRange(offset) {
+// A plain calendar month (lending and reminders always use this)
+function calMonth(offset) {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
   const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 1);
   return { start: +start, end: +end, label: start.toLocaleString("en-IN", { month: "long", year: start.getFullYear() === now.getFullYear() ? undefined : "numeric" }),
     short: start.toLocaleString("en-IN", { month: "short" }), days: offset === 0 ? now.getDate() : Math.round((end - start) / DAY) };
+}
+const monthStart = () => (VIEWER ? 1 : Math.min(28, Math.max(1, Number(load(K.mstart, 1)) || 1)));
+const dayMon = (ts) => new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+// A spending month: starts on the day chosen under Budget (the 1st unless changed)
+function monthRange(offset) {
+  const s = monthStart();
+  if (s === 1) return calMonth(offset);
+  const now = new Date(), base = now.getDate() < s ? now.getMonth() - 1 : now.getMonth();
+  const start = new Date(now.getFullYear(), base + offset, s), end = new Date(now.getFullYear(), base + offset + 1, s);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return { start: +start, end: +end, label: dayMon(+start) + " – " + dayMon(end - DAY), short: start.toLocaleString("en-IN", { month: "short" }),
+    days: offset === 0 ? Math.round((today - start) / DAY) + 1 : Math.round((end - start) / DAY) };
 }
 
 function renderWeek() {
@@ -2078,6 +2221,7 @@ function renderTrend() {
   const svg = $("trend"), W = 340, H = 150, top = 22, bottom = 22, left = 4, right = 4;
   const months = [];
   for (let o = -5; o <= 0; o++) { const r = monthRange(o); months.push({ o, r, v: sumIn(expenses, r.start, r.end) }); }
+  trendMonths = months;
   const max = Math.max(...months.map((m) => m.v), 1);
   const slot = (W - left - right) / 6, bw = Math.min(28, slot - 16), ch = H - top - bottom;
   const withData = months.filter((m) => m.v > 0 && m.o < 0), avg = withData.length ? withData.reduce((t, m) => t + m.v, 0) / withData.length : 0;
@@ -2085,14 +2229,119 @@ function renderTrend() {
   if (avg) { const y = H - bottom - (ch * avg) / max; s += '<line class="avg" x1="0" x2="' + W + '" y1="' + y + '" y2="' + y + '"/><text x="' + W + '" y="' + (y - 4) + '" text-anchor="end">avg ' + fmtShort(avg) + "</text>"; }
   months.forEach((m, i) => {
     const cx = left + slot * i + slot / 2, h = m.v ? Math.max(6, (ch * m.v) / max) : 0, y = H - bottom - h, on = m.o === monthOffset;
-    if (h) s += '<path class="bar' + (on ? " on" : "") + '" d="M' + (cx - bw / 2) + "," + (H - bottom) + " V" + (y + 5) + " q0,-5 5,-5 h" + (bw - 10) + " q5,0 5,5 V" + (H - bottom) + ' Z"/>';
+    if (h) s += '<path class="bar' + (on ? " on" : "") + (m.o === 0 ? " now" : "") + '" d="M' + (cx - bw / 2) + "," + (H - bottom) + " V" + (y + 5) + " q0,-5 5,-5 h" + (bw - 10) + " q5,0 5,5 V" + (H - bottom) + ' Z"/>';
     s += '<text x="' + cx + '" y="' + (H - 6) + '" text-anchor="middle"' + (on ? ' class="on"' : "") + ">" + m.r.short + "</text>";
     if (on) s += '<text class="on" x="' + cx + '" y="' + (y - 6) + '" text-anchor="middle">' + fmtShort(m.v) + "</text>";
     s += '<rect class="hit" data-o="' + m.o + '" x="' + (left + slot * i) + '" y="0" width="' + slot + '" height="' + H + '"><title>' + m.r.label + ": " + fmt(m.v) + "</title></rect>";
   });
+  s += '<g id="scrubG" display="none"><line class="scrubline" y1="20" y2="' + (H - bottom) + '"/><text class="scrubv" y="12"></text></g>';
   svg.innerHTML = s;
   svg.querySelectorAll(".hit").forEach((r) => (r.onclick = () => { monthOffset = Number(r.dataset.o); renderSpending(); }));
 }
+
+// Press and drag along the chart to read each month; lifting the finger puts everything back
+let trendMonths = [], trendDrawn = false;
+(() => {
+  const svg = $("trend"), W = 340, slot = (W - 8) / 6;
+  let id = null, x0 = 0, y0 = 0, on = false, used = false, last = -1, hold = 0;
+  const at = (e) => { const b = svg.getBoundingClientRect(); return Math.max(0, Math.min(5, Math.floor((((e.clientX - b.left) / b.width) * W - 4) / slot))); };
+  const show = (i) => {
+    const m = trendMonths[i], g = $("scrubG"); if (!m || !g || i === last) return;
+    if (last !== -1) buzz();
+    last = i;
+    const cx = 4 + slot * i + slot / 2, t = g.querySelector("text"), l = g.querySelector("line");
+    l.setAttribute("x1", cx); l.setAttribute("x2", cx);
+    t.textContent = m.r.short + " " + fmt(m.v);
+    t.setAttribute("x", Math.max(4, Math.min(W - 4, cx))); t.setAttribute("text-anchor", i === 0 ? "start" : i === 5 ? "end" : "middle");
+    g.removeAttribute("display");
+    $("mTotal").textContent = fmt(m.v); $("monthName").textContent = m.r.label;
+  };
+  const start = (e) => { on = used = true; last = -1; clearTimeout(hold); try { svg.setPointerCapture(id); } catch {} show(at(e)); };
+  const stop = () => {
+    clearTimeout(hold); id = null;
+    if (!on) return;
+    on = false; last = -1;
+    const g = $("scrubG"); if (g) g.setAttribute("display", "none");
+    $("mTotal").textContent = fmt(Number($("mTotal").dataset.v || 0)); $("monthName").textContent = monthRange(monthOffset).label;
+  };
+  svg.addEventListener("pointerdown", (e) => { id = e.pointerId; x0 = e.clientX; y0 = e.clientY; used = false; hold = setTimeout(() => { if (id !== null) start(e); }, 220); });
+  svg.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== id) return;
+    if (on) { show(at(e)); return; }
+    const dx = Math.abs(e.clientX - x0), dy = Math.abs(e.clientY - y0);
+    if (dy > 8 && dy > dx) { clearTimeout(hold); id = null; }   // it's a scroll
+    else if (dx > 6) start(e);
+  });
+  svg.addEventListener("pointerup", stop); svg.addEventListener("pointercancel", stop);
+  svg.addEventListener("click", (e) => { if (used) { used = false; e.stopPropagation(); } }, true);   // a drag is not a tap
+})();
+function drawTrendOnce() {
+  if (trendDrawn || REDUCED() || document.hidden || spendView !== "overview" || VIEWER) return;
+  trendDrawn = true;
+  const s = $("trend"); s.classList.add("draw"); setTimeout(() => s.classList.remove("draw"), 800);
+}
+
+/* ---------- Budgets: monthly limits, kept on this phone ---------- */
+let budgets = { total: 0, cats: {}, carry: false, ...load(K.budget, {}) };
+function spentIn(cat, r) { return expenses.reduce((t, e) => t + (e.ts >= r.start && e.ts < r.end && (!cat || mainOf(e.cat) === cat) ? e.amount : 0), 0); }
+function budgetRow(name, limit, cat) {
+  const r = monthRange(0), used = spentIn(cat, r), before = spentIn(cat, monthRange(-1));
+  const carried = budgets.carry && before > 0 ? Math.max(0, limit - before) : 0, allowed = limit + carried;
+  return { name, limit, carried, allowed, used, left: allowed - used, pct: Math.min(100, (100 * used) / allowed), today: Math.min(100, (100 * (Date.now() - r.start)) / (r.end - r.start)) };
+}
+function budgetBar(b, node) {
+  const n = node || el("span", "bb");
+  n.className = "bb" + (b.left < 0 ? " over" : "");
+  n.style.setProperty("--u", b.pct + "%"); n.style.setProperty("--t", b.today + "%");
+  n.innerHTML = '<i class="u"></i><i class="t"></i>';
+  return n;
+}
+function renderHomeBudget() {
+  const n = $("gBudget");
+  n.hidden = VIEWER || !(budgets.total > 0);
+  if (!n.hidden) budgetBar(budgetRow("All spending", budgets.total, ""), n);
+}
+function renderBudgets() {
+  $("budgetBlock").hidden = VIEWER || monthOffset !== 0;
+  if ($("budgetBlock").hidden) return;
+  const box = $("budgetList"); box.innerHTML = "";
+  const rows = Object.entries(budgets.cats).filter(([, v]) => v > 0).map(([k, v]) => budgetRow(k, v, k)).sort((a, b) => b.used / b.allowed - a.used / a.allowed);
+  if (budgets.total > 0) rows.unshift(budgetRow("All spending", budgets.total, ""));
+  $("budgetEdit").hidden = !rows.length;
+  if (!rows.length) { const b = el("button", "setrow tap", "Set a monthly budget"); b.type = "button"; b.style.padding = "0"; b.onclick = openBudget; box.append(b); return; }
+  rows.forEach((b) => {
+    const row = el("div", "brow"), top = el("div", "top");
+    top.append(el("span", "", b.name), el("span", "left" + (b.left < 0 ? " over" : ""), b.left < 0 ? fmt(-b.left) + " over" : fmt(b.left) + " left"));
+    row.append(top, budgetBar(b), el("small", "", fmt(b.used) + " of " + fmt(b.allowed) + (b.carried ? " · " + fmt(b.carried) + " carried over" : "")));
+    box.append(row);
+  });
+}
+function openBudget() {
+  $("bgTotal").value = budgets.total || "";
+  const box = $("bgCats"); box.innerHTML = "";
+  CATS.forEach((c) => { const r = el("div", "setrow"), i = el("input", "field"); i.dataset.cat = c.name; i.inputMode = "numeric"; i.autocomplete = "off"; i.placeholder = "No limit"; i.value = budgets.cats[c.name] || ""; r.append(el("span", "", c.name), i); box.append(r); });
+  const st = $("bgStart"); if (!st.options.length) for (let d = 1; d <= 28; d++) st.append(new Option(String(d), String(d)));
+  st.value = String(monthStart());
+  setCarry(budgets.carry); $("bgErr").textContent = "";
+  $("budgetSheet").showModal();
+}
+function setCarry(on) { $("bgCarry").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", (b.dataset.carry === "1") === !!on)); }
+$("bgCarry").querySelectorAll("button").forEach((b) => (b.onclick = () => setCarry(b.dataset.carry === "1")));
+$("budgetEdit").onclick = openBudget;
+$("budgetOpen").onclick = () => { $("setSheet").close(); openBudget(); };
+$("bgSave").onclick = () => {
+  const num = (v) => { const t = String(v).trim(); return t === "" ? 0 : parseAmount(t); };
+  const total = num($("bgTotal").value), cats = {};
+  let bad = !(total >= 0);
+  $("bgCats").querySelectorAll("input").forEach((i) => { const v = num(i.value); if (!(v >= 0)) bad = true; else if (v > 0) cats[i.dataset.cat] = v; });
+  if (bad) { $("bgErr").textContent = "Limits must be numbers."; return; }
+  budgets = { total, cats, carry: $("bgCarry").querySelector('[data-carry="1"]').getAttribute("aria-pressed") === "true" };
+  keep(K.budget, budgets); keep(K.mstart, Number($("bgStart").value) || 1);
+  monthOffset = 0; calSel = null;
+  $("budgetSheet").close(); renderAll(); showToast("Budget updated");
+};
+function updateBuzzUI() { const on = load(K.buzz, true); $("buzzSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", (b.dataset.buzz === "on") === !!on)); }
+$("buzzSeg").querySelectorAll("button").forEach((b) => (b.onclick = () => { keep(K.buzz, b.dataset.buzz === "on"); updateBuzzUI(); buzz(); }));
 
 // Where the month's money went: a donut by category, labelled in the list beside it
 function renderDonut(inMonth, total) {
@@ -2123,11 +2372,11 @@ function renderDonut(inMonth, total) {
 function renderCompare(r) {
   const p = monthRange(monthOffset - 1);
   const pEnd = monthOffset === 0 ? Math.min(p.end, p.start + (Date.now() - r.start)) : p.end;
-  const pLabel = monthOffset === 0 ? p.short + " 1–" + new Date(pEnd - 1).getDate() : p.label;
+  const pLabel = monthStart() !== 1 ? (monthOffset === 0 ? dayMon(p.start) + " – " + dayMon(pEnd - 1) : p.label) : monthOffset === 0 ? p.short + " 1–" + new Date(pEnd - 1).getDate() : p.label;
   $("cmpTitle").textContent = "By category · vs " + pLabel;
   $("cmpLegend").innerHTML = "";
   const l1 = el("span"), l2 = el("span"), i1 = el("i"), i2 = el("i", "prev");
-  i1.style.background = "linear-gradient(90deg, var(--c-food), var(--c-trans), var(--c-bills))";
+  i1.style.background = "var(--accent)";
   l1.append(i1, r.label + (monthOffset === 0 ? " so far" : "")); l2.append(i2, pLabel);
   $("cmpLegend").append(l1, l2);
 
@@ -2152,6 +2401,7 @@ function renderCompare(r) {
     i1b.title = r.label + ": " + fmt(a); i2b.title = pLabel + ": " + fmt(b);
     bars.append(i1b, i2b);
     row.append(tile(n, "sm"), el("span", "name", n), el("span", "amt", fmt(a)), d, bars);
+    if (monthOffset === 0 && budgets.cats[n] > 0 && a > budgetRow(n, budgets.cats[n], n).allowed) row.classList.add("over");
     if (openCats.has(n) && subs[n]) {
       const sr = el("div", "subrows");
       Object.entries(subs[n]).sort((x, y) => y[1] - x[1]).forEach(([s, v]) => { const line = el("div"); line.append(el("span", "", s), el("b", "", fmt(v))); sr.append(line); });
@@ -2166,8 +2416,15 @@ function renderCompare(r) {
 // iOS-style swipe actions: swipe left for Delete, right for Edit; a tap opens the editor
 function makeSwipe(wrap, row, onEdit, onDel) {
   let x0 = 0, y0 = 0, dx = 0, open = 0, dragging = false, decided = false, moved = false;
+  let deleted = false;
+  const onceDel = () => { if (deleted) return; deleted = true; setTimeout(onDel, 170); };
   const set = (x) => { row.style.transform = x ? "translateX(" + x + "px)" : ""; wrap.classList.toggle("active", !!x); };
-  row.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; dx = open; dragging = true; decided = false; moved = false; });
+  let armed = false;
+  const arm = (a) => { if (a !== armed) { armed = a; wrap.classList.toggle("armed", a); if (a) buzz(); } };
+  row.addEventListener("pointerdown", (e) => {
+    if (e.clientX < 28 || e.clientX > innerWidth - 28) { dragging = false; return; }   // the screen edges belong to Android's back gesture
+    x0 = e.clientX; y0 = e.clientY; dx = open; dragging = true; decided = false; moved = false;
+  });
   row.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     const mx = e.clientX - x0, my = e.clientY - y0;
@@ -2178,14 +2435,17 @@ function makeSwipe(wrap, row, onEdit, onDel) {
       moved = true; row.style.transition = "none";
       try { row.setPointerCapture(e.pointerId); } catch {}
     }
-    dx = Math.max(-120, Math.min(120, mx + open)); set(dx);
+    dx = Math.max(-wrap.clientWidth, Math.min(120, mx + open)); set(dx); arm(dx < -wrap.clientWidth * .5);
   });
   const end = () => {
     if (!dragging) return;
     dragging = false; row.style.transition = "";
     if (!moved) return;
+    if (armed) {   // swiped past halfway: slide away, then delete (Undo restores the same entry)
+      arm(false); wrap.classList.add("gone", "active"); set(-wrap.clientWidth); open = 0; onceDel();
+      setTimeout(() => (moved = false), 0); return;
+    }
     open = dx < -45 ? -84 : dx > 45 ? 84 : 0; set(open);
-    if (open) buzz();
     setTimeout(() => (moved = false), 0);   // only the click that ends this swipe is ignored
   };
   row.addEventListener("pointerup", end); row.addEventListener("pointercancel", end);
@@ -2196,7 +2456,7 @@ function makeSwipe(wrap, row, onEdit, onDel) {
     if (open) { open = 0; set(0); e.stopPropagation(); }
   }, true);
   wrap.querySelector(".act.edit").onclick = () => { open = 0; set(0); onEdit(); };
-  wrap.querySelector(".act.del").onclick = () => { open = 0; set(0); onDel(); };
+  wrap.querySelector(".act.del").onclick = () => { if (deleted) return; deleted = true; open = 0; set(0); onDel(); };
 }
 
 function renderSpending() {
@@ -2209,7 +2469,7 @@ function renderSpending() {
   $("mSub").textContent = inMonth.length
     ? inMonth.length + (inMonth.length === 1 ? " payment" : " payments") + " · about " + fmt(Math.round(total / r.days)) + " a day"
     : "Nothing logged";
-  renderWeek(); renderTrend(); renderCompare(r);   // (the donut is left out of the monochrome design)
+  renderWeek(); renderBudgets(); renderTrend(); renderCompare(r);   // (the donut is left out of the monochrome design)
   renderCalendar(r); renderListView();
 
   const list = $("list"); list.innerHTML = "";
@@ -2229,6 +2489,17 @@ function renderSpending() {
   });
 }
 
+function morphEdit(row, e) {
+  if (!document.startViewTransition || document.hidden || REDUCED()) { openEdit(e); return; }
+  const sh = $("editSheet"); row.style.viewTransitionName = "pay"; sh.classList.add("morph");
+  let opened = false;
+  const open = () => { if (opened) return; opened = true; row.style.viewTransitionName = ""; sh.style.viewTransitionName = "pay"; openEdit(e); };
+  const vt = document.startViewTransition(open);
+  setTimeout(open, 300);   // a tap must always open the editor, even if the animation can't run
+  vt.ready.catch(() => {});
+  vt.finished.catch(() => {}).then(() => { sh.style.viewTransitionName = ""; sh.classList.remove("morph"); });
+}
+
 // One payment row: icon square, title + detail, amount. Tap to edit; swipe left to delete, right to edit.
 function payRow(e, when) {
   const sw = el("div", "swipe");
@@ -2245,7 +2516,7 @@ function payRow(e, when) {
     el("small", "", (e.note ? (e.cat ? mainOf(e.cat) + (subOf(e.cat) ? " · " + subOf(e.cat) : "") : UNCAT) + " · " : (subOf(e.cat) ? mainOf(e.cat) + " · " : "")) + whenText));
   it.append(tile(e.cat), t, el("span", "amt", fmt(e.amount)));
   if (VIEWER) { const r = el("div", "row"); r.append(...it.childNodes); sw.append(r); return sw; }   // read-only: no tap, no swipe
-  it.onclick = () => openEdit(e);
+  it.onclick = () => morphEdit(it, e);
   sw.append(ed, de, it);
   makeSwipe(sw, it, () => openEdit(e), () => { delExpense(e.id); showToast("Deleted " + fmt(e.amount) + " · " + catLabel(e.cat), () => { putExpense(e); showToast("Restored"); }); });
   return sw;
@@ -2268,16 +2539,19 @@ function renderHeader() {
   countTo($("gMonthVal"), month);
   countTo($("gYearVal"), sumIn(expenses, y0, now + 60e3));
   $("gMonthLbl").textContent = cur.label;
+  $("homeSmall").textContent = fmt(month) + " this month";
+  renderHomeBudget();
   // compare like with like: the 1st to today, against the same days last month
-  const days = new Date().getDate(), pEnd = Math.min(prev.end, prev.start + days * DAY), before = sumIn(expenses, prev.start, pEnd);
+  const days = cur.days, pEnd = Math.min(prev.end, prev.start + days * DAY), before = sumIn(expenses, prev.start, pEnd);
   const d = $("gDelta");
   if (!before) d.textContent = month ? "Nothing to compare with last month yet" : "Nothing logged yet this month";
   else {
     const p = Math.round((100 * (month - before)) / before);
-    d.textContent = (p === 0 ? "Same as" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs") + " the same days in " + prev.label;
+    d.textContent = (p === 0 ? "Same as" : (p > 0 ? "▲ " : "▼ ") + Math.abs(p) + "% vs") + (monthStart() === 1 ? " the same days in " + prev.label : " the same days last month");
   }
   d.classList.toggle("up", !!before && month > before);   // red: spending more than last month
 }
+function renderChanged() { rollNumbers = true; try { renderAll(); } finally { rollNumbers = false; } }
 function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); }
 
 /* ======================================================================
@@ -2443,7 +2717,7 @@ async function reminderOff() {
   try { const reg = await navigator.serviceWorker.ready; if (reg.periodicSync) await reg.periodicSync.unregister("pl-daily"); } catch {}
   setRem(""); updateRemUI();
 }
-$("remindBtn").onclick = () => { buzz(); (load(REM, false) ? reminderOff() : reminderOn()); };
+$("remindBtn").onclick = () => { (load(REM, false) ? reminderOff() : reminderOn()); };
 $("testNotifBtn").onclick = async () => {
   if (PREVIEW) return setRem("Notifications are switched off in the preview.", "err");
   if (!("Notification" in window) || !("serviceWorker" in navigator)) return setRem("This browser can't show notifications for web apps.", "err");
@@ -2473,14 +2747,14 @@ function applyTheme() {
 function loadNothingFonts() {
   if (document.getElementById("nothingFonts")) return;
   const l = document.createElement("link"); l.id = "nothingFonts"; l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Geist:wght@400;500&display=swap";
+  l.href = "https://fonts.googleapis.com/css2?family=Geist:wght@400;500&display=swap";
   document.head.append(l);
 }
-document.querySelectorAll("#styleSeg button").forEach((b) => (b.onclick = () => { keep(K.style, b.dataset.styleChoice); buzz(); applyTheme(); renderAll(); }));
+document.querySelectorAll("#styleSeg button").forEach((b) => (b.onclick = () => { keep(K.style, b.dataset.styleChoice); applyTheme(); renderAll(); }));
 Object.entries(ACCENTS).forEach(([name, [light]]) => {
   const b = el("button", "swatch"); b.type = "button"; b.dataset.accent = name; b.style.setProperty("--sw", light);
   b.setAttribute("aria-label", name[0].toUpperCase() + name.slice(1));
-  b.onclick = () => { keep(K.accent, name); buzz(); applyTheme(); };
+  b.onclick = () => { keep(K.accent, name); applyTheme(); };
   $("accentRow").append(b);
 });
 document.querySelectorAll("#themeSeg button").forEach((b) => (b.onclick = () => { keep(K.theme, b.dataset.themeChoice); applyTheme(); }));
@@ -2503,9 +2777,9 @@ function setView(v) {
   $("ovView").hidden = v !== "overview"; $("calView").hidden = v !== "calendar";
   if (!LIST_ON_HOME) $("listView").hidden = v !== "list";
   $("monthBar").hidden = v === "list";   // the List view has its own period filter
-  renderSpending();
+  renderSpending(); drawTrendOnce();
 }
-document.querySelectorAll("#viewSeg button").forEach((b) => (b.onclick = () => { buzz(); setView(b.dataset.view); }));
+document.querySelectorAll("#viewSeg button").forEach((b) => (b.onclick = () => setView(b.dataset.view)));
 
 /* ---------- Calendar: each day of the month, shaded by how much you spent ---------- */
 function renderCalendar(r) {
@@ -2519,12 +2793,12 @@ function renderCalendar(r) {
   }
   for (let i = 0; i < lead; i++) grid.append(el("span", "calday blank"));
   vals.forEach((v, d) => {
-    const t = new Date(first.getFullYear(), first.getMonth(), d + 1).getTime();
+    const dt = new Date(first.getFullYear(), first.getMonth(), first.getDate() + d), t = dt.getTime();
     const lv = !v ? 0 : max ? Math.min(4, 1 + Math.floor((3.999 * v) / max)) : 0;
     const b = el("button", "calday" + (lv ? " lv" + lv : "") + (t === todayStart ? " today" : "") + (t > todayStart ? " future" : ""));
     b.type = "button"; b.setAttribute("aria-pressed", t === calSel);
     b.setAttribute("aria-label", new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "long" }) + ": " + fmt(v));
-    b.append(el("span", "n", String(d + 1)), el("span", "v", v ? fmtShort(v) : ""));
+    b.append(el("span", "n", String(dt.getDate())), el("span", "v", v ? fmtShort(v) : ""));
     b.onclick = () => { calSel = t; renderCalendar(r); };
     grid.append(b);
   });
@@ -2707,18 +2981,18 @@ function showTab(which) {
   $("tabLent").setAttribute("aria-selected", which === "lent");
   $("main").scrollTop = 0; onScroll();
 }
-function openSpending() { monthOffset = 0; renderAll(); showTab("sum"); }
+function openSpending() { monthOffset = 0; renderAll(); showTab("sum"); drawTrendOnce(); }
 $("tabLog").onclick = () => { renderLogCards(); showTab("log"); };
 $("tabSum").onclick = openSpending;
 $("tabLent").onclick = () => { renderLoans(); showTab("lent"); };
-const stepMonth = (d) => { const n = monthOffset + d; if (n > 0 || n < -60) return; monthOffset = n; buzz(); renderSpending(); };
+const stepMonth = (d) => { const n = monthOffset + d; if (n > 0 || n < -60) return; monthOffset = n; renderSpending(); };
 $("prevM").onclick = () => stepMonth(-1);
 $("nextM").onclick = () => stepMonth(1);
 $("note").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
 $("logBtn").onclick = () => openAdd();
 $("seeAllBtn").onclick = openSpending;
 $("gMonth").onclick = openSpending;
-document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); renderTplList(); $("setSheet").showModal(); }));
+document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => { updateSyncUI(); updateRemUI(); applyTheme(); renderTplList(); updateBuzzUI(); $("setSheet").showModal(); }));
 
 // Swipe the month card left/right to change month
 (() => {
@@ -2734,7 +3008,7 @@ document.querySelectorAll("[data-settings]").forEach((b) => (b.onclick = () => {
 // Navigation bar turns frosted (and shows the small title) once the large title scrolls away
 function onScroll() {
   const y = $("main").scrollTop;
-  document.querySelectorAll(".screen:not([hidden]) .navbar").forEach((n) => n.classList.toggle("scrolled", y > 30));
+  document.querySelectorAll(".screen:not([hidden]) .navbar").forEach((n) => n.classList.toggle("scrolled", y > (n.closest("#logScreen") ? 110 : 30)));
 }
 $("main").addEventListener("scroll", onScroll, { passive: true });
 
@@ -2751,9 +3025,10 @@ document.querySelectorAll("dialog.sheet").forEach((d) => {
 let toastTimer;
 function showToast(msg, action, isError, label) {
   $("toastMsg").textContent = msg;
-  $("toast").classList.toggle("error", !!isError);
+  const done = !isError && !!action && /^Saved /.test(msg);   // the one saved tick
+  $("toast").classList.toggle("error", !!isError); $("toast").classList.toggle("done", done);
   $("toastBtn").hidden = !action;
-  if (action && !isError && !label) buzz();
+  if (done) buzz();
   $("toastBtn").textContent = label || "Undo";
   $("toastBtn").onclick = () => { $("toast").hidden = true; action && action(); };
   $("toast").hidden = false;
