@@ -1960,7 +1960,7 @@ $("fsSave").onclick = () => {
   const name = $("fsName").value.trim().replace(/\s+/g, " ");
   if (!name) { $("fsErr").textContent = "Type a name."; return; }
   const oldName = fsCurrent ? fsCurrent.name : null;
-  if (name !== oldName && allFriends().some((f) => f.name.toLowerCase() === name.toLowerCase())) { $("fsErr").textContent = name + " is already in your list."; return; }
+  if (allFriends().some((f) => f.name !== oldName && f.name.toLowerCase() === name.toLowerCase())) { $("fsErr").textContent = name + " is already in your list."; return; }
   const f = { id: (fsCurrent && fsCurrent.id) || newId("f"), name, phone: $("fsPhone").value.trim(), monthly: 0, day: remindFromBox(), note: $("fsNote").value.trim() };
   if (oldName && oldName !== name) loans.filter((l) => l.friend === oldName).forEach((l) => putLoan({ ...l, friend: name }));   // keep history under the new name
   putFriend(f);
