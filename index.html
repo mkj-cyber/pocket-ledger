@@ -931,6 +931,43 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 .strip .t .who { display: flex; min-width: 0; }
 .strip .t .who .n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .strip .t .who .a { flex: none; white-space: pre; }
+
+/* v24: backup line, note memory, forecast */
+.backupline { align-self: flex-start; display: flex; align-items: center; gap: 7px; min-height: 36px; margin: -6px 0; padding: 0 6px; font-size: 13px; color: var(--fg2); }
+.backupline::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--fg3); flex: none; }
+.backupline.wait::before { background: var(--nyellow); }
+.backupline.err, .backupline.warn { color: var(--fg); }
+.backupline.err::before, .backupline.warn::before { background: var(--nred); }
+#syncPill:not(.err) { display: none; }
+#restoreGo { width: 100%; }
+.notecat { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 14px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-size: 16px; font-weight: 600; text-align: left; }
+.notecat .tile { background: transparent; color: inherit; }
+#mForecast { margin-top: 4px; font-variant-numeric: tabular-nums; }
+#mForecast:empty, .viewer #mForecast { display: none; }
+#mForecast b { color: var(--nred); font-weight: 500; }
+
+/* v24: comfortable tap sizes and readable contrast on every screen */
+.navbtn { width: 40px; height: 40px; }
+.sheet .close { width: 36px; height: 36px; position: relative; }
+.sheet .close::after, .pclear::after { content: ""; position: absolute; inset: -6px; }
+.pclear { width: 28px; height: 28px; }
+.pill { height: 36px; }
+.seg button { height: 36px; }
+.chip, .fchip { min-height: 40px; }
+.sechead button, .plinks button, #edTpl, #lendFull { min-height: 40px; display: inline-flex; align-items: center; margin-block: -9px; }
+.pback { min-height: 40px; }
+.budgetset input.field { min-height: 44px; }
+.fsedit > summary { min-height: 44px; display: flex; align-items: center; gap: 4px; }
+.delta, .delta.down, .delta.same, .tag, .tag.back { color: var(--fg); }
+.monthbar .nav { width: 40px; height: 40px; }
+.btn.danger { background: var(--sheetcard); color: var(--nred); }
+.btn.danger.confirm { background: var(--nred); color: #fff; }
+.syncstate.ok { color: var(--fg2); }
+.syncstate.wait { color: var(--fg); }
+.syncstate.err { color: var(--nred); }
+.kbd .key small { display: none; }
+.avatar.sm { font-size: 11px; }
+.chip.tpl, .chip.tpl.add { box-shadow: none; }
 </style>
 </head>
 <body>
@@ -960,6 +997,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
           <span id="gYear"><small>This Year</small><b id="gYearVal">₹0</b></span>
         </span>
       </button>
+      <button class="backupline" type="button" id="backupLine" data-settings hidden></button>
       <div id="logCards"></div>
       <div class="quick" id="quickRow" hidden></div>
       <div class="sechead" hidden><span>Recent</span><button type="button" id="seeAllBtn">See all</button></div>
@@ -1013,6 +1051,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
         <div class="insight" id="insightLine"></div>
         <div class="sub" id="mSub"></div>
         <div class="sub" id="mSplit"></div>
+        <div class="sub" id="mForecast"></div>
         <div class="donutwrap" id="donutWrap" hidden>
           <svg viewBox="0 0 140 140" id="donut" role="img" aria-label="Share of spending by category"></svg>
           <div class="legendlist" id="donutLegend"></div>
@@ -1087,6 +1126,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
       <input class="note" id="note" type="text" maxlength="80" placeholder="Note (optional)" autocomplete="off" enterkeyhint="done" list="noteList">
       <input class="when" id="when" type="date" aria-label="Date of payment">
     </div>
+    <button class="notecat" type="button" id="noteCat" hidden></button>
     <div class="cats" id="cats"></div>
     <div class="subpanel" id="subPanel" hidden>
       <div class="subhead"><button type="button" id="subBack" aria-label="Back to categories"><svg class="i"><use href="#i-back"/></svg></button><span class="tile" id="subDot"></span><span id="subTitle"></span></div>
@@ -1121,7 +1161,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
     <label>Note<input class="field" id="qNote" type="text" maxlength="80" autocomplete="off" list="noteList" placeholder="What for? (optional)"></label>
     <label>Date<input class="field" id="qDate" type="date"></label>
     <div class="err" id="qErr"></div>
-    <div class="btnrow"><button class="btn" id="qSaveMore" type="button">Save &amp; add another</button><button class="btn primary" id="qSave" type="button">Save</button></div>
+    <div class="btnrow"><button class="btn" id="qSaveMore" type="button">Add another</button><button class="btn primary" id="qSave" type="button">Save</button></div>
   </div>
 </dialog>
 
@@ -1312,6 +1352,19 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
         <button class="setrow tap" id="changeLinkBtn" type="button" hidden>Change sync link</button>
       </div>
       <div class="syncstate" id="syncState"></div>
+    </div>
+
+    <div class="group" id="fileCard">
+      <div class="hint" style="padding-left:16px">Backup file</div>
+      <div class="cardin">
+        <button class="setrow tap" id="fileBackupBtn" type="button">Save a backup file</button>
+        <button class="setrow tap" id="fileRestoreBtn" type="button">Restore from a backup file</button>
+        <button class="setrow tap" id="snapRestoreBtn" type="button" hidden></button>
+        <input id="fileRestoreInput" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div class="syncstate" id="restoreState"></div>
+      <button class="btn primary" id="restoreGo" type="button" hidden>Restore now</button>
+      <div class="foot">A backup file holds everything: payments, lending, friends, templates and budgets. The app also keeps a weekly safety copy on this phone, which helps after a mistake but not if the phone is lost.</div>
     </div>
 
     <div class="group">
@@ -1517,7 +1570,7 @@ function emptyState(icon, title, text) {
 const P = PREVIEW ? "pv-" : VIEWER ? "vw-" : "pl-";
 const K = { ex: P + "expenses", ln: P + "loans", fr: P + "friends", out: P + "outbox", link: P + "sync-link", last: P + "last-sync",
   sheet: P + "sheet-url", srv: P + "sheet-version", week: P + "week-seen", skips: P + "reminder-skips", theme: P + "theme", accent: P + "accent",
-  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src", style: P + "style", budget: P + "budgets", mstart: P + "month-start", buzz: P + "vibrate" };
+  views: P + "saved-views", tpl: P + "templates", filt: P + "list-filter", view: P + "view-src", style: P + "style", budget: P + "budgets", mstart: P + "month-start", buzz: P + "vibrate", fileBk: P + "file-backup", shared: P + "shared-seen", recur: P + "recur-skips" };
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
 
 /* ---------- IndexedDB for the lists that keep growing ----------
@@ -1743,6 +1796,16 @@ function updateSyncUI() {
   else if (!linked && outbox.length) ptxt = "Not backed up";
   $("syncPill").textContent = ptxt; $("syncPill").hidden = !ptxt || PREVIEW; $("syncPill").classList.toggle("err", dot === "err");
   $("syncPill").setAttribute("aria-label", (ptxt || "Backed up") + ". Open backup settings");
+  let line = "", lcls = "";
+  if (!linked) {
+    const fb = load(K.fileBk, 0);
+    if (expenses.length || loans.length) { line = fb ? "On this phone only · backup file saved " + ago(fb) : "On this phone only · no backup yet"; lcls = fb && Date.now() - fb < 8 * DAY ? "" : "warn"; }
+  }
+  else if (dot === "err") { line = "Backup problem · tap to fix"; lcls = "err"; }
+  else if (flushing) { line = "Backing up…"; lcls = "wait"; }
+  else if (n) { line = n + " waiting to back up" + (navigator.onLine === false ? " · offline" : ""); lcls = "wait"; }
+  else line = "Backed up" + (last ? " · " + ago(last) : "");
+  $("backupLine").textContent = line; $("backupLine").className = "backupline" + (lcls ? " " + lcls : ""); $("backupLine").hidden = !line || PREVIEW;
   $("syncDot").title = msg || "Not backed up to a Google Sheet yet";
 }
 
@@ -1779,6 +1842,90 @@ function saveBlob(blob, name) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
+/* ---------- Backup file, restore, and a weekly safety copy kept on this phone ---------- */
+function backupData() { return { app: "pocket-ledger", v: 1, made: Date.now(), expenses, loans, friends, templates, budgets, monthStart: monthStart() }; }
+$("fileBackupBtn").onclick = () => {
+  saveBlob(new Blob([JSON.stringify(backupData())], { type: "application/json" }), "Pocket Ledger backup " + isoDay(new Date()) + ".json");
+  keep(K.fileBk, Date.now()); updateSyncUI();
+  showToast("Backup file saved. Keep a copy somewhere safe, like Google Drive.");
+};
+const normE = (e) => ({ id: String(e.id), amount: Number(e.amount), cat: String(e.cat || ""), note: String(e.note || ""), ts: Number(e.ts) });
+const normL = (l) => ({ id: String(l.id), friend: String(l.friend), amount: Number(l.amount), type: l.type, note: String(l.note || ""), ts: Number(l.ts) });
+const normF = (x) => ({ id: String(x.id), name: String(x.name), phone: String(x.phone || ""), monthly: Number(x.monthly) || 0, day: Number(x.day) || 0, note: String(x.note || "") });
+// What a backup holds that this phone doesn't (or holds differently). Restoring only ever adds or updates; it never deletes.
+function restorePlan(data) {
+  if (!data || data.app !== "pocket-ledger" || !Array.isArray(data.expenses) || !Array.isArray(data.loans)) return null;
+  const diff = (local, incoming, norm, ok) => {
+    const have = new Map(local.map((x) => [x.id, JSON.stringify(norm(x))]));
+    return incoming.filter((x) => x && x.id && ok(x)).map(norm).filter((x) => have.get(x.id) !== JSON.stringify(x));
+  };
+  const money = (x) => Number(x.amount) > 0 && Number(x.ts) > 0;
+  const e = diff(expenses, data.expenses, normE, money);
+  const l = diff(loans, data.loans, normL, (x) => money(x) && x.friend && ["lent", "repaid", "borrowed"].includes(x.type));
+  const fr = diff(friends, Array.isArray(data.friends) ? data.friends : [], normF, (x) => x.name).filter((x) => !friends.some((y) => y.name === x.name && y.id !== x.id));
+  return { data, e, l, f: fr, n: e.length + l.length + fr.length };
+}
+let restorePending = null, snap = null, snapOld = null;
+function showRestore(data, label) {
+  const p = restorePlan(data), st = $("restoreState");
+  restorePending = null; $("restoreGo").hidden = true;
+  if (!p) { st.className = "syncstate err"; st.textContent = "That isn't a Pocket Ledger backup file."; return; }
+  const when = new Date(data.made || Date.now()).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  st.className = "syncstate";
+  if (!p.n) { st.textContent = label + " from " + when + " has nothing new. Everything in it is already on this phone."; return; }
+  st.textContent = label + " from " + when + ": " + p.e.length + " payments, " + p.l.length + " lending entries and " + p.f.length + " friends are missing or different on this phone. Restoring adds them back. Nothing is deleted.";
+  restorePending = p; $("restoreGo").hidden = false;
+}
+function applyRestore(p) {
+  const merge = (local, inc) => { const m = new Map(local.map((x) => [x.id, x])); inc.forEach((x) => m.set(x.id, x)); return [...m.values()]; };
+  const fr = p.f.map((x) => ({ ...x, updated: Date.now() }));
+  expenses = merge(expenses, p.e).sort(byNewest); loans = merge(loans, p.l).sort(byNewest); friends = merge(friends, fr);
+  keep(K.ex, expenses); keep(K.ln, loans); keep(K.fr, friends);
+  // queue each restored entry once, by its own ID, so the sheet updates the same row and never adds a duplicate
+  const ids = { e: new Set(p.e.map((x) => x.id)), l: new Set(p.l.map((x) => x.id)), f: new Set(fr.map((x) => x.id)) };
+  outbox = outbox.filter((o) => !(ids[o.kind] && ids[o.kind].has(o.id)));
+  let seq = Date.now();
+  [["e", p.e], ["l", p.l], ["f", fr]].forEach(([kind, list]) => list.forEach((rec) => outbox.push({ seq: seq++ + Math.random(), op: "put", kind, id: rec.id, rec })));
+  keep(K.out, outbox);
+  const d = p.data;
+  if (Array.isArray(d.templates)) {
+    d.templates.forEach((t) => { if (t && t.id && t.cat && !templates.some((x) => x.id === t.id)) templates.push({ id: String(t.id), note: String(t.note || ""), amount: Number(t.amount) || 0, cat: String(t.cat) }); });
+    keep(K.tpl, templates);
+  }
+  if (d.budgets && !(budgets.total > 0) && !Object.keys(budgets.cats || {}).length) {
+    const cats = {}; Object.entries(d.budgets.cats || {}).forEach(([k, v]) => { if (CATS.some((c) => c.name === k) && Number(v) > 0) cats[k] = Number(v); });
+    budgets = { total: Number(d.budgets.total) > 0 ? Number(d.budgets.total) : 0, cats, carry: !!d.budgets.carry }; keep(K.budget, budgets);
+    keep(K.mstart, Math.min(28, Math.max(1, Number(d.monthStart) || 1)));
+  }
+  restorePending = null; $("restoreGo").hidden = true; $("restoreState").textContent = "";
+  renderAll(); renderTplList(); scheduleFlush(300);
+  showToast("Restored " + p.n + (p.n === 1 ? " entry." : " entries."));
+}
+$("fileRestoreBtn").onclick = () => $("fileRestoreInput").click();
+$("fileRestoreInput").onchange = async (ev) => {
+  const file = ev.target.files[0]; ev.target.value = "";
+  if (!file) return;
+  let data = null; try { data = JSON.parse(await file.text()); } catch {}
+  showRestore(data, "This file");
+};
+$("restoreGo").onclick = () => { if (restorePending) applyRestore(restorePending); };
+$("snapRestoreBtn").onclick = () => { const p = snap && restorePlan(snap); showRestore(p && !p.n && snapOld ? snapOld : snap, "The safety copy"); };
+// Once a week, keep a copy of everything inside the app's own storage (and the copy before it)
+async function safetyCopy() {
+  if (PREVIEW || VIEWER || !idb) return;
+  try {
+    snap = (await idbGet("__snap")) || null; snapOld = (await idbGet("__snap2")) || null;
+    const count = expenses.length + loans.length, had = snap ? snap.expenses.length + snap.loans.length : 0;
+    // never replace a copy with one holding far less: that's exactly when the old copy is needed
+    if (count && (!snap || Date.now() - snap.made > 7 * DAY) && count >= had / 2) {
+      if (snap) { await idbReq("readwrite", (st) => st.put(snap, "__snap2")); snapOld = snap; }
+      snap = backupData(); await idbReq("readwrite", (st) => st.put(snap, "__snap"));
+    }
+  } catch {}
+  const b = $("snapRestoreBtn"); b.hidden = !snap;
+  if (snap) b.textContent = "Restore the safety copy from " + new Date(snap.made).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
 function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 }
@@ -2267,6 +2414,7 @@ function renderQuickCats() {
 function addStep(n) {
   $("stepAmount").hidden = n !== 1; $("pad").hidden = n !== 1; $("stepCat").hidden = n !== 2;
   $("stepAmt").textContent = fmt(parseAmount(amountStr) || 0);
+  if (n === 2) renderNoteCat();
   closeSubs();
 }
 function openAdd(pre = {}) {
@@ -2309,6 +2457,21 @@ function save(cat) {
   if ($("addSheet").open) $("addSheet").close();
   showToast("Saved " + fmt(amount) + " · " + catLabel(cat) + pastLabel(e.ts), () => { delExpense(e.id); showToast("Removed"); });
 }
+
+// The category you usually pick for this note ("Biryani" → Eating out), learned from your own history
+function catForNote(note) {
+  const k = String(note || "").trim().toLowerCase();
+  if (k.length < 2) return "";
+  const by = {};
+  expenses.forEach((e) => { if (e.cat && (e.note || "").trim().toLowerCase() === k) by[e.cat] = (by[e.cat] || 0) + 1; });
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : "";
+}
+function renderNoteCat() {
+  const b = $("noteCat"), c = catForNote($("note").value); b.hidden = !c; b.innerHTML = "";
+  if (c) { b.append(tile(c, "sm"), el("span", "", "Save as " + catLabel(c))); b.onclick = () => save(c); }
+}
+$("note").addEventListener("input", renderNoteCat);
 
 /* Quick add: payments you repeat (same amount, category and note at least twice in 90 days) — one tap saves */
 function quickPicks() {
@@ -2382,9 +2545,42 @@ function weekDigest() {
   c.append(t, acts);
   return c;
 }
+// Payments that come round every month (rent, a subscription): seen in at least two of the last three months,
+// on about the same day and for about the same amount, and not logged yet this month. Nothing is ever added without a tap.
+const nth = (d) => d + (d % 10 === 1 && d !== 11 ? "st" : d % 10 === 2 && d !== 12 ? "nd" : d % 10 === 3 && d !== 13 ? "rd" : "th");
+function recurringDue() {
+  if (VIEWER) return [];
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth(), ym = y + "-" + (m + 1), skips = load(K.recur, {});
+  const from = +new Date(y, m - 3, 1), cur = +new Date(y, m, 1), groups = {};
+  expenses.forEach((e) => { if (e.ts < from || !e.cat || e.amount < 100) return; const k = (e.note || "").trim().toLowerCase() + "|" + e.cat; (groups[k] = groups[k] || []).push(e); });
+  const out = [];
+  Object.entries(groups).forEach(([k, items]) => {
+    if (skips[k] === ym || items.some((e) => e.ts >= cur)) return;
+    const byMonth = {}; items.forEach((e) => { const d = new Date(e.ts), i = d.getFullYear() * 12 + d.getMonth(); (byMonth[i] = byMonth[i] || []).push(e); });
+    const months = Object.keys(byMonth).map(Number);
+    if (months.length < 2 || !byMonth[y * 12 + m - 1] || months.some((i) => byMonth[i].length > 2)) return;
+    const latest = items.reduce((a, b) => (b.ts > a.ts ? b : a)), days = months.map((i) => new Date(byMonth[i][0].ts).getDate());
+    if (Math.max(...days) - Math.min(...days) > 6 || items.some((e) => Math.abs(e.amount - latest.amount) > latest.amount * 0.25)) return;
+    const day = Math.round(days.reduce((a, b) => a + b, 0) / days.length);
+    if (now.getDate() >= day - 2) out.push({ k, ym, day, amount: latest.amount, cat: latest.cat, note: latest.note || "" });
+  });
+  return out.sort((a, b) => a.day - b.day).slice(0, 3);
+}
+function recurCard(q) {
+  const c = el("div", "strip"), t = el("div", "t"), acts = el("div", "acts"), name = q.note || catLabel(q.cat);
+  const w = el("div", "who"); w.append(el("span", "n", name), el("span", "a", " · " + fmt(q.amount)));
+  t.append(w, el("small", "", "Usually around the " + nth(q.day)));
+  const a = el("button", "pill primary", "Add"), sk = el("button", "pill", "Skip"); a.type = sk.type = "button";
+  a.setAttribute("aria-label", "Add " + name + " " + fmt(q.amount)); sk.setAttribute("aria-label", "Skip " + name + " this month");
+  a.onclick = () => { const e = { id: newId("e"), amount: q.amount, cat: q.cat, note: q.note, ts: Date.now() }; putExpense(e); showToast("Saved " + fmt(q.amount) + " · " + name, () => { delExpense(e.id); showToast("Removed"); }); };
+  sk.onclick = () => { const all = load(K.recur, {}), kept = {}; Object.keys(all).forEach((x) => { if (all[x] === q.ym) kept[x] = q.ym; }); kept[q.k] = q.ym; keep(K.recur, kept); renderAll(); };
+  acts.append(a, sk); c.append(tile(q.cat), t, acts);
+  return c;
+}
 function renderLogCards() {
   const box = $("logCards"); box.innerHTML = "";
   lendingDue().forEach((f) => box.appendChild(dueCard(f)));
+  recurringDue().forEach((q) => box.appendChild(recurCard(q)));
   const d = weekDigest(); if (d) box.appendChild(d);
 }
 
@@ -2705,6 +2901,14 @@ function renderSpending() {
     ? inMonth.length + (inMonth.length === 1 ? " payment" : " payments") + " · about " + fmt(Math.round(total / r.days)) + " a day"
     : "Nothing logged";
   $("mSplit").textContent = monthOffset === 0 ? "This week " + fmt(sumIn(expenses, weekStart(Date.now()), Date.now() + 60e3)) + " · This year " + fmt(sumIn(expenses, +new Date(new Date().getFullYear(), 0, 1), Date.now() + 60e3)) : "";
+  // Month-end forecast: one-off items (bills, anything a quarter of the month) count once; everyday spending carries on at its pace
+  const fc = $("mForecast"), mLen = Math.round((r.end - r.start) / DAY); fc.textContent = "";
+  if (monthOffset === 0 && r.days >= 5 && r.days < mLen && inMonth.length >= 5) {
+    let once = 0; inMonth.forEach((e) => { if (mainOf(e.cat) === "Bills" || e.amount >= total * 0.25) once += e.amount; });
+    const est = Math.round((once + ((total - once) / r.days) * mLen) / 100) * 100;
+    fc.append("At this pace, about " + fmt(est) + " by the end of the month");
+    if (budgets.total > 0) { const cap = budgetRow("", budgets.total, "").allowed; if (est > cap) fc.append(" · ", el("b", "", fmt(est - cap) + " over budget")); else fc.append(" · within budget"); }
+  }
   renderWeek(); renderBudgets(); renderTrend(); renderCompare(r);   // (the donut is left out of the monochrome design)
   renderCalendar(r); renderListView();
 
@@ -2811,7 +3015,8 @@ function openQuick(pre = {}) {
   const cs = $("qCat"); cs.innerHTML = "";
   cs.append(new Option("Pick a category", ""));
   CATS.forEach((c) => cs.append(new Option(c.name, c.name)));
-  cs.value = pre.cat ? mainOf(pre.cat) : ""; fillSubs(cs.value, subOf(pre.cat), $("qSub"));
+  const startCat = pre.cat || catForNote(pre.note); qCatAuto = !pre.cat;
+  cs.value = startCat ? mainOf(startCat) : ""; fillSubs(cs.value, subOf(startCat), $("qSub"));
   fillQFriends(selFriend); $("qNewFriend").value = "";
   $("qNote").value = pre.note || "";
   $("qDate").max = isoDay(new Date()); $("qDate").value = isoDay(new Date(pre.ts || Date.now()));
@@ -2820,7 +3025,14 @@ function openQuick(pre = {}) {
   $("quickSheet").showModal();
 }
 document.querySelectorAll("#quickSheet .seg button").forEach((b) => (b.onclick = () => setQKind(b.dataset.kind)));
-$("qCat").onchange = () => fillSubs($("qCat").value, "", $("qSub"));
+let qCatAuto = true;   // true while the category is still the app's guess, not your pick
+$("qCat").onchange = () => { qCatAuto = false; fillSubs($("qCat").value, "", $("qSub")); };
+$("qSub").addEventListener("change", () => (qCatAuto = false));
+$("qNote").addEventListener("input", () => {
+  if (qKind !== "pay" || !qCatAuto) return;
+  const c = catForNote($("qNote").value); if (!c) return;
+  $("qCat").value = mainOf(c); fillSubs(mainOf(c), subOf(c), $("qSub"));
+});
 $("qFriend").onchange = () => { $("qNewFriendRow").hidden = $("qFriend").value !== "__new"; if (!$("qNewFriendRow").hidden) $("qNewFriend").focus(); };
 function quickSave(another) {
   const amount = parseAmount($("qAmount").value);
@@ -2834,6 +3046,7 @@ function quickSave(another) {
     const cat = $("qCat").value + ($("qSub").value ? ": " + $("qSub").value : "");
     const e = { id: newId("e"), amount, cat, note, ts };
     putExpense(e);
+    if (pendingShare) { keep(K.shared, [{ h: pendingShare, ts: Date.now() }, ...load(K.shared, []).filter((x) => x.h !== pendingShare)].slice(0, 60)); pendingShare = ""; }
     msg = "Saved " + fmt(amount) + " · " + catLabel(cat) + pastLabel(ts); undo = () => { delExpense(e.id); showToast("Removed"); };
   } else {
     let name = $("qFriend").value;
@@ -2896,14 +3109,22 @@ function parseShared(text) {
   if (d && !isNaN(d) && +d <= Date.now() && Date.now() - d < 90 * DAY && dayKey(+d) !== dayKey(Date.now())) out.ts = moveToDay(Date.now(), isoDay(d));
   return out;
 }
+const hashText = (t) => { let h = 5381; for (const ch of String(t).replace(/\s+/g, " ").trim().toLowerCase()) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0; return h.toString(36); };
+let pendingShare = "";
+$("quickSheet").addEventListener("close", () => (pendingShare = ""));
 function openFromShare(text) {
   const p = parseShared(text);
   const snippet = text.length > 110 ? text.slice(0, 110) + "…" : text;
-  let info;
+  const h = hashText(text), seen = load(K.shared, []).find((x) => x.h === h);
+  const twin = p.amount ? expenses.find((e) => e.amount === p.amount && dayKey(e.ts) === dayKey(p.ts || Date.now())) : null;
+  let info, warn = true;
   if (!p.amount) info = "Couldn't find an amount in what you shared, so type it in. Shared: “" + snippet + "”";
+  else if (seen) info = "You may have logged this already: you shared this same message on " + shortDate(new Date(seen.ts)) + ". Save only if it's a different payment.";
+  else if (twin) info = "You may have logged this already: " + fmt(twin.amount) + " · " + (twin.note || catLabel(twin.cat) || UNCAT) + " is saved on the same day. Save only if this is a second payment.";
   else if (p.credit) info = "This looks like money you received, not spent. Check before saving. Shared: “" + snippet + "”";
-  else info = "Filled in from what you shared. Pick a category and save.";
-  openQuick({ amount: p.amount || "", note: p.note, ts: p.ts || Date.now(), info, warn: !p.amount || p.credit });
+  else { warn = false; info = catForNote(p.note) ? "Filled in from what you shared, with the category you used before for " + p.note + ". Check and save." : "Filled in from what you shared. Pick a category and save."; }
+  openQuick({ amount: p.amount || "", note: p.note, ts: p.ts || Date.now(), info, warn });
+  pendingShare = p.amount ? h : "";
 }
 
 /* ======================================================================
@@ -3427,6 +3648,7 @@ setupDateBox("when");
 setupDateBox("lendWhen");
 renderAll();
 updateRemUI();
+safetyCopy();
 document.querySelector(".app").inert = false;
 if (VIEWER) { readViewLink(); startViewer(); }
 else { readHash(); readLaunch(); }
