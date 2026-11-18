@@ -1937,21 +1937,25 @@ async function safetyCopy() {
   if (snap) b.textContent = "Restore the safety copy from " + new Date(snap.made).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
-function loadScript(src) {
-  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+// The Excel library ships inside the app (same folder as this page), pinned to one exact file.
+// The browser refuses to run it if even one byte differs from this fingerprint.
+const XLSX_FILE = (VIEWER ? "../" : "./") + "xlsx.full.min.js";   // SheetJS 0.20.3, official build
+const XLSX_SRI = "sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT";
+function loadScript(src, integrity) {
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; if (integrity) s.integrity = integrity; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
 }
 $("excelBtn").onclick = async () => {
   const { ex, ln } = exportRows();
   const stamp = isoDay(new Date());
   const H1 = ["Date", "Time", "Month", "Amount", "Category", "Type", "Note"], H2 = ["Date", "Time", "Month", "Friend", "Type", "Amount", "Note"];
   try {
-    if (!window.XLSX) await loadScript("https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js")   // official SheetJS build (newest);
+    if (!window.XLSX) await loadScript(XLSX_FILE, XLSX_SRI);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([H1, ...ex]), "Expenses");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([H2, ...ln]), "Lending");
     saveBlob(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "Pocket Ledger " + stamp + ".xlsx");
   } catch {
-    // Offline: the Excel library can't load, so save a CSV (Excel opens it too)
+    // Fallback if the Excel library can't load (first use while offline), so save a CSV (Excel opens it too)
     const csv = (rows) => rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
     saveBlob(new Blob(["﻿" + csv([H1, ...ex]) + "\r\n\r\n" + csv([H2, ...ln])], { type: "text/csv" }), "Pocket Ledger " + stamp + ".csv");
     showToast("You're offline, so this saved a CSV file. Excel opens it too.");
