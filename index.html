@@ -968,6 +968,17 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 .kbd .key small { display: none; }
 .avatar.sm { font-size: 11px; }
 .chip.tpl, .chip.tpl.add { box-shadow: none; }
+
+/* settled rounds in a friend's profile */
+.roundhead { margin-top: 10px; }
+.roundfold { border-radius: var(--round); background: var(--sheetcard); margin-top: 8px; }
+.roundfold > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; padding: 8px 16px; font-size: 15px; font-weight: 500; }
+.roundfold > summary::-webkit-details-marker { display: none; }
+.roundfold > summary small { color: var(--fg2); font-size: 13px; font-weight: 400; white-space: nowrap; }
+.roundfold > summary small::after { content: "  ›"; white-space: pre; }
+.roundfold[open] > summary small::after { content: "  ⌄"; }
+.roundfold .day { padding: 6px 16px 2px; }
+.roundfold .item { background: none; }
 </style>
 </head>
 <body>
@@ -1964,7 +1975,25 @@ function friendStats(name) {
   const cur = calMonth(0);
   const mLent = items.filter((l) => l.type === "lent" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
   const mBack = items.filter((l) => l.type === "repaid" && l.ts >= cur.start && l.ts < cur.end).reduce((t, l) => t + l.amount, 0);
-  return { items, lent, back, borrowed, bal: lent - back - borrowed, mLent, mBack, last: items.length ? items[0].ts : 0 };
+  // split into rounds: each time the balance comes back to zero, the round so far is settled
+  const asc = items.slice().sort((a, b) => a.ts - b.ts || String(a.id).localeCompare(String(b.id))), closed = [];
+  let run = 0, open = [];
+  asc.forEach((l) => {
+    run = Math.round((run + (l.type === "lent" ? l.amount : -l.amount)) * 100) / 100;
+    open.push(l);
+    if (run === 0) { closed.push(open); open = []; }
+  });
+  const sumOf = (arr, t) => arr.filter((l) => l.type === t).reduce((x, l) => x + l.amount, 0);
+  const pack = (arr) => ({ items: arr.slice().reverse(), lent: sumOf(arr, "lent"), back: sumOf(arr, "repaid"), borrowed: sumOf(arr, "borrowed"), first: arr.length ? arr[0].type : "", from: arr.length ? arr[0].ts : 0, to: arr.length ? arr[arr.length - 1].ts : 0 });
+  return { items, lent, back, borrowed, bal: lent - back - borrowed, mLent, mBack, last: items.length ? items[0].ts : 0,
+    now: pack(open), rounds: closed.map(pack).reverse() };
+}
+// One line for where a friend stands in the current round
+function roundLine(s) {
+  const n = s.now;
+  if (n.lent) return "Paid back " + fmt(n.back) + " of " + fmt(n.lent);
+  if (n.borrowed) return "You borrowed " + fmt(n.borrowed) + (n.back ? " · gave back " + fmt(n.back) : "");
+  return s.rounds.length ? "Settled " + shortDate(new Date(s.rounds[0].to)) : "";
 }
 
 /* Lending reminders. A profile's "day" holds the reminder date as yyyymmdd (e.g. 20261105), which the sheet stores
@@ -2050,8 +2079,8 @@ function renderLoans() {
     const card = el("button", "fcard"); card.type = "button"; card.onclick = () => openFriend(f);
     card.append(avatar(f.name), el("div", "fname", f.name),
       el("span", "bal" + (s.bal <= 0 ? " settled" : ""), s.bal > 0 ? "owes " + fmt(s.bal) : s.bal < 0 ? "you owe " + fmt(-s.bal) : s.items.length ? "settled" : ""),
-      el("div", "fsub", s.lent ? "Paid back " + fmt(s.back) + " of " + fmt(s.lent) + (remindDate(f) ? " · reminder " + shortDate(remindDate(f)) : "") : remindDate(f) ? "Reminder " + shortDate(remindDate(f)) : "No entries yet"));
-    if (s.lent) { const p = el("div", "progress"), i = el("i"); i.style.width = Math.min(100, (100 * s.back) / s.lent) + "%"; p.append(i); card.append(p); }
+      el("div", "fsub", (() => { const line = roundLine(s), rd = remindDate(f); return line ? line + (rd ? " · reminder " + shortDate(rd) : "") : rd ? "Reminder " + shortDate(rd) : "No entries yet"; })()));
+    if (s.now.lent) { const p = el("div", "progress"), i = el("i"); i.style.width = Math.min(100, (100 * s.now.back) / s.now.lent) + "%"; p.append(i); card.append(p); }
     return card;
   };
   const sorted = people.slice().sort((a, b) => stats[b.name].bal - stats[a.name].bal);
@@ -2133,8 +2162,8 @@ function openFriend(f) {
   if (f) {
     const s = friendStats(f.name);
     sum.append(el("div", "bigbal", s.bal > 0 ? fmt(s.bal) : s.bal < 0 ? "You owe " + fmt(-s.bal) : "All settled"),
-      el("div", "sub", s.lent ? "Paid back " + fmt(s.back) + " of " + fmt(s.lent) + " lent (" + Math.round((100 * s.back) / s.lent) + "%)" : "Nothing lent yet"));
-    if (s.lent) { const p = el("div", "progress"), i = el("i"); p.style.gridColumn = "auto"; i.style.width = Math.min(100, (100 * s.back) / s.lent) + "%"; p.append(i); sum.append(p); }
+      el("div", "sub", s.now.lent ? "Paid back " + fmt(s.now.back) + " of " + fmt(s.now.lent) + " lent (" + Math.round((100 * s.now.back) / s.now.lent) + "%)" : roundLine(s) || "Nothing lent yet"));
+    if (s.now.lent) { const p = el("div", "progress"), i = el("i"); p.style.gridColumn = "auto"; i.style.width = Math.min(100, (100 * s.now.back) / s.now.lent) + "%"; p.append(i); sum.append(p); }
     const acts = el("div", "btnrow");
     const lend = el("button", "btn primary", "Lend money"); lend.type = "button";
     const pay = el("button", "btn", "Record payback"); pay.type = "button";
@@ -2151,23 +2180,31 @@ function openFriend(f) {
       }
       sum.append(row);
     }
-    // history, month by month, with what's still left from that month
-    if (s.items.length) hist.append(el("div", "hint", "History · tap an entry to edit"));
-    monthsBreakdown(s.items).forEach((m) => {
+    // history: what's open now, month by month; each settled round folded away below it
+    const entryRow = (l) => {
+      const it = el("button", "item"); it.type = "button"; it.onclick = () => { $("friendSheet").close(); openLoan(l); };
+      const tag = el("span", "tag" + (l.type === "lent" ? "" : " back"), l.type === "lent" ? "Lent" : l.type === "borrowed" ? "Borrowed" : "Back");
+      const what = el("div", "what"), dt = new Date(l.ts);
+      what.append(el("div", "", l.note || (l.type === "lent" ? "Lent to " + f.name : l.type === "borrowed" ? "Borrowed from " + f.name : "Paid back")),
+        el("small", "", dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + ", " + dt.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })));
+      it.append(tag, what, el("span", "amt", (l.type === "lent" ? "" : "+") + fmt(l.amount)));
+      return it;
+    };
+    const months = (list, into) => monthsBreakdown(list).forEach((m) => {
       const head = el("div", "day");
       head.append(el("span", "", m.label), el("span", "", "lent " + fmt(m.lent) + " · back " + fmt(m.back)));
-      hist.append(head);
-      m.items.forEach((l) => {
-        const it = el("button", "item"); it.type = "button"; it.onclick = () => { $("friendSheet").close(); openLoan(l); };
-        const tag = el("span", "tag" + (l.type === "lent" ? "" : " back"), l.type === "lent" ? "Lent" : l.type === "borrowed" ? "Borrowed" : "Back");
-        const what = el("div", "what");
-        const dt = new Date(l.ts);
-        what.append(el("div", "", l.note || (l.type === "lent" ? "Lent to " + f.name : l.type === "borrowed" ? "Borrowed from " + f.name : "Paid back")),
-          el("small", "", dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) + ", " + dt.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })));
-        it.append(tag, what, el("span", "amt", (l.type === "lent" ? "" : "+") + fmt(l.amount)));
-        hist.append(it);
-      });
+      into.append(head); m.items.forEach((l) => into.append(entryRow(l)));
     });
+    if (s.now.items.length) { hist.append(el("div", "hint", (s.rounds.length ? "Now" : "History") + " · tap an entry to edit")); months(s.now.items, hist); }
+    if (s.rounds.length) {
+      hist.append(el("div", "hint roundhead", "Settled"));
+      s.rounds.forEach((r) => {
+        const d = el("details", "roundfold"), sm = el("summary"), when = new Date(r.from), end = new Date(r.to);
+        const span = dayKey(r.from) === dayKey(r.to) ? shortDate(end) : shortDate(when) + " – " + shortDate(end);
+        sm.append(el("span", "", r.first === "borrowed" ? "Borrowed " + fmt(r.borrowed) + ", repaid in full" : "Lent " + fmt(r.lent) + ", paid back in full"), el("small", "", span));
+        d.append(sm); months(r.items, d); hist.append(d);
+      });
+    }
   }
   if (!$("friendSheet").open) $("friendSheet").showModal();
 }
@@ -2237,6 +2274,7 @@ function pickSharePeriod(f) {
   const range = (a, b) => new Date(a).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + " – " + new Date(b - 1).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const periods = {
     all: [0, Infinity, "All entries"],
+    now: [0, Infinity, "Since you last settled up"],
     this: [M(0), M(1), new Date(M(0)).toLocaleString("en-IN", { month: "long", year: "numeric" })],
     last: [M(-1), M(0), new Date(M(-1)).toLocaleString("en-IN", { month: "long", year: "numeric" })],
     three: [M(-2), M(1), range(M(-2), Math.min(M(1), Date.now() + 1))],
@@ -2252,7 +2290,9 @@ function pickSharePeriod(f) {
     $("pickSheet").close(); shareText(historyText(f, s, e, range(s, e)));
   };
   box.append(row, go);
-  openPick("Share " + f.name + "'s history", [["all", "Whole history"], ["this", "This month"], ["last", "Last month"], ["three", "Last 3 months"], ["pick", "Pick dates…"]], null,
+  const st = friendStats(f.name);
+  if (st.rounds.length && st.now.items.length) periods.now[0] = st.now.from;
+  openPick("Share " + f.name + "'s history", [...(st.rounds.length && st.now.items.length ? [["now", "Since you last settled up"]] : []), ["all", "Whole history"], ["this", "This month"], ["last", "Last month"], ["three", "Last 3 months"], ["pick", "Pick dates…"]], null,
     (k) => { if (k === "pick") { setTimeout(() => openPick("Share " + f.name + "'s history", [], null, null, box)); return; } const [s, e, label] = periods[k]; shareText(historyText(f, s, e, label)); });
 }
 
