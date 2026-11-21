@@ -192,6 +192,8 @@ main {
 .strip .t div { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .strip .t small { display: block; color: var(--fg2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .strip .acts, .card .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.strip.tall { flex-wrap: wrap; row-gap: 10px; }   /* three buttons: they get their own line under the name */
+.strip.tall .acts { flex-basis: 100%; padding-left: 50px; }
 .pill { height: 32px; padding: 0 14px; border-radius: 999px; font-weight: 600; font-size: 14px; background: var(--fill); color: var(--accent); }
 .pill.primary { background: var(--accent); color: var(--accent-ink); }
 
@@ -579,6 +581,8 @@ dialog.prompt::backdrop { background: rgba(0, 0, 0, .32); animation: fadeIn .25s
 .resultsum b { color: var(--fg); font-weight: 600; }
 .setrow .check { font-size: 18px; color: var(--fg); }
 .chip.tpl { box-shadow: inset 0 0 0 1.5px var(--fg); }
+.chip.repeat { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--fg); }
+.chip.repeat > .i { color: var(--accent); font-size: 15px; }
 .tplrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .tplrow small { color: var(--fg2); font-size: 13px; }
 
@@ -1050,7 +1054,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
       <!-- List view: search, filters and saved views -->
       <div id="listView" class="view" hidden>
         <div class="chips viewtabs" id="savedViews"></div>
-        <input class="note search" id="searchBox" type="search" placeholder="Search notes and categories" autocomplete="off" enterkeyhint="search">
+        <input class="note search" id="searchBox" type="search" placeholder="Search notes, categories, amounts, friends" autocomplete="off" enterkeyhint="search">
         <div class="chips" id="filterChips"></div>
         <div class="resultsum" id="resultSum"></div>
         <div id="resultList" style="display:flex;flex-direction:column;gap:14px"></div>
@@ -1409,6 +1413,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
@@ -2024,17 +2029,25 @@ function setReminder(f, date) { putFriend({ ...f, monthly: 0, day: date ? dateNu
 const shortDate = (d) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 // A friend and what they owe: a long name shortens, the amount never does
 function whoLine(name, owed) { const d = el("div", "who"); d.append(el("span", "n", name)); if (owed > 0) d.append(el("span", "a", " · " + fmt(owed))); return d; }
+// The friendly message sent when asking a friend to pay back
+const nudgeText = (f) => "Hi " + f.name + ", just a friendly reminder that " + fmt(friendStats(f.name).bal) + " is still pending from what I lent you. Thanks!";
 function dueCard(f, withAmount) {
   const d = remindDate(f);
   const when = "Due " + (dayKey(+d) === dayKey(Date.now()) ? "today" : shortDate(d));
   const acts = el("div", "acts");
-  const a = el("button", "pill primary", "Done"); a.type = "button";
+  if (friendStats(f.name).bal > 0) {   // ask them right from the card: opens the share sheet (WhatsApp, SMS…) with the message ready
+    const r = el("button", "pill primary", "Ask"); r.type = "button"; r.dataset.ask = f.name;
+    r.setAttribute("aria-label", "Send " + f.name + " a reminder to pay back");
+    r.onclick = () => shareText(nudgeText(f));
+    acts.append(r);
+  }
+  const a = el("button", "pill" + (acts.childNodes.length ? "" : " primary"), "Done"); a.type = "button";
   a.onclick = () => { setReminder(f, null); showToast("Reminder cleared", () => { putFriend({ ...f }); showToast("Restored"); }); };
   const b = el("button", "pill", "+1 month"); b.type = "button";
   b.onclick = () => { const n = addMonth(d); setReminder(f, n); showToast("Next reminder " + shortDate(n)); };
   a.setAttribute("aria-label", "Clear the reminder for " + f.name); b.setAttribute("aria-label", "Remind me again next month about " + f.name);
   acts.append(a, b);
-  const c = el("div", "strip"), t = el("div", "t");
+  const c = el("div", "strip" + (acts.childNodes.length > 2 ? " tall" : "")), t = el("div", "t");
   t.append(whoLine(f.name, withAmount ? friendStats(f.name).bal : 0), el("small", "due", when));
   c.append(avatar(f.name), t, acts);
   return c;
@@ -2179,7 +2192,7 @@ function openFriend(f) {
       const row = el("div", "btnrow"); row.append(sh);
       if (s.bal > 0) {
         const rm = el("button", "btn", "Remind " + f.name); rm.type = "button"; rm.id = "fsNudge";
-        rm.onclick = () => shareText("Hi " + f.name + ", just a friendly reminder that " + fmt(friendStats(f.name).bal) + " is still pending from what I lent you. Thanks!");
+        rm.onclick = () => shareText(nudgeText(f));
         row.append(rm);
       }
       sum.append(row);
@@ -2532,6 +2545,20 @@ function renderQuick() {
   const same = (t, q) => t.amount === q.amount && t.cat === q.cat && (t.note || "") === (q.note || "");
   const picks = quickPicks().filter((q) => !templates.some((t) => same(t, q))), row = $("quickRow"); row.innerHTML = "";
   row.hidden = false;
+  // Repeat last: the newest payment, logged again now with one tap (Undo in the toast)
+  const last = VIEWER ? null : expenses.find((e) => e.ts <= Date.now() + 60e3);
+  if (last) {
+    const name = last.note || catLabel(last.cat) || UNCAT, b = el("button", "chip repeat"); b.type = "button"; b.id = "repeatBtn";
+    b.append(ico("repeat"), el("b", "", fmt(last.amount)), el("span", "", name));
+    b.title = "Log " + fmt(last.amount) + " · " + name + " again now";
+    b.setAttribute("aria-label", "Repeat last payment: " + fmt(last.amount) + " " + name);
+    b.onclick = () => {
+      const e = { id: newId("e"), amount: last.amount, cat: last.cat, note: last.note || "", ts: Date.now() };
+      putExpense(e);
+      showToast("Logged again · " + fmt(e.amount) + " " + name, () => { delExpense(e.id); showToast("Removed"); });
+    };
+    row.appendChild(b);
+  }
   // Home shows only your templates (hold one to edit it) and "+ Template";
   // repeats the app noticed appear inside the "What is the amount?" prompt instead
   templates.forEach((t) => {
@@ -2623,7 +2650,7 @@ function recurCard(q) {
 }
 function renderLogCards() {
   const box = $("logCards"); box.innerHTML = "";
-  lendingDue().forEach((f) => box.appendChild(dueCard(f)));
+  lendingDue().forEach((f) => box.appendChild(dueCard(f, true)));
   recurringDue().forEach((q) => box.appendChild(recurCard(q)));
   const d = weekDigest(); if (d) box.appendChild(d);
 }
@@ -3331,12 +3358,31 @@ function periodRange(p) {
   if (p === "all") return [0, Infinity];
   const r = monthRange(0); return [r.start, r.end];
 }
+// A search like "500" or "₹1,200" also finds that exact amount
+function searchNum(q) { return /^[₹\d,.\s]+$/.test(q) ? Number(q.replace(/[₹,\s]/g, "")) || 0 : 0; }
 function filtered(f = filt) {
-  const [a, b] = periodRange(f.period), q = (f.q || "").trim().toLowerCase();
+  const [a, b] = periodRange(f.period), q = (f.q || "").trim().toLowerCase(), n = searchNum(q);
   const out = expenses.filter((e) => e.ts >= a && e.ts < b && (!f.cat || mainOf(e.cat) === f.cat) && e.amount >= (f.min || 0) &&
-    (!q || (e.note || "").toLowerCase().includes(q) || String(e.cat || "").toLowerCase().includes(q)));
+    (!q || (e.note || "").toLowerCase().includes(q) || String(e.cat || "").toLowerCase().includes(q) || (n > 0 && e.amount === n)));
   const by = { new: (x, y) => y.ts - x.ts, old: (x, y) => x.ts - y.ts, high: (x, y) => y.amount - x.amount || y.ts - x.ts, low: (x, y) => x.amount - y.amount || y.ts - x.ts };
   return out.sort(by[f.sort] || by.new);
+}
+// While searching, lending entries that match a friend's name, a note or an exact amount (same period)
+function filteredLoans(f = filt) {
+  const q = (f.q || "").trim().toLowerCase(), n = searchNum(q);
+  if (VIEWER || !q) return [];
+  const [a, b] = periodRange(f.period);
+  return loans.filter((l) => l.ts >= a && l.ts < b && ((l.friend || "").toLowerCase().includes(q) || (l.note || "").toLowerCase().includes(q) || (n > 0 && l.amount === n)))
+    .sort((x, y) => y.ts - x.ts);
+}
+function loanResultRow(l) {
+  const it = el("button", "row"); it.type = "button";
+  const kind = l.type === "lent" ? "Lent to " : l.type === "borrowed" ? "Borrowed from " : "Paid back by ";
+  const t = el("div", "t"), dt = new Date(l.ts);
+  t.append(el("div", "", kind + l.friend), el("small", "", dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: dt.getFullYear() === new Date().getFullYear() ? undefined : "numeric" }) + (l.note ? " · " + l.note : "")));
+  it.append(avatar(l.friend), t, el("span", "amt", (l.type === "lent" ? "" : "+") + fmt(l.amount)));
+  it.onclick = () => openLoan(l);
+  return it;
 }
 const sameFilter = (a, b) => ["period", "cat", "min", "sort", "q"].every((k) => (a[k] || "") === (b[k] || ""));
 function setFilter(patch) { filt = { ...filt, ...patch }; keep(K.filt, filt); renderListView(); }
@@ -3382,11 +3428,22 @@ function renderListView() {
     const s = el("button", "fchip save"); s.type = "button"; s.append(ico("plus"), el("span", "", "Save view")); s.onclick = saveViewPrompt; chips.append(s);
   }
   // results
-  const items = filtered();
+  const items = filtered(), lns = filteredLoans();
   $("resultSum").innerHTML = "";
-  $("resultSum").append(el("span", "", items.length + (items.length === 1 ? " payment" : " payments")), el("b", "", fmt(items.reduce((s, e) => s + e.amount, 0))));
+  if (!items.length && lns.length) $("resultSum").append(el("span", "", "No payments · " + lns.length + (lns.length === 1 ? " lending entry" : " lending entries")));
+  else $("resultSum").append(el("span", "", items.length + (items.length === 1 ? " payment" : " payments")), el("b", "", fmt(items.reduce((s, e) => s + e.amount, 0))));
   const box = $("resultList"); box.innerHTML = "";
-  if (!items.length) { const c = el("div", "card"); c.append(emptyState("tab-pie", "No matching payments", "Try a different period, category or search.")); box.append(c); return; }
+  const addLoans = () => {
+    if (!lns.length) return;
+    const wrap = el("div"); wrap.id = "loanResults"; wrap.style.cssText = "display:flex;flex-direction:column;gap:14px";
+    const head = el("div", "day"); head.append(el("span", "", "Lending"), el("span", "", lns.length + (lns.length === 1 ? " entry" : " entries")));
+    const card = el("div", "card flush"); lns.slice(0, 200).forEach((l) => card.append(loanResultRow(l)));
+    wrap.append(head, card); box.append(wrap);
+  };
+  if (!items.length) {
+    if (!lns.length) { const c = el("div", "card"); c.append(emptyState("tab-pie", "Nothing matches", "Try a different period, category or search.")); box.append(c); }
+    addLoans(); return;
+  }
   if (filt.sort === "new" || filt.sort === "old") {   // grouped by day, like the rest of the app
     const groups = [];
     items.slice(0, 400).forEach((e) => { const k = dayKey(e.ts); let g = groups[groups.length - 1]; if (!g || g.k !== k) groups.push((g = { k, ts: e.ts, items: [] })); g.items.push(e); });
@@ -3401,6 +3458,7 @@ function renderListView() {
   } else {
     const card = el("div", "card flush"); items.slice(0, 400).forEach((e) => card.append(payRow(e, "date"))); box.append(card);
   }
+  addLoans();
 }
 let searchTimer;
 $("searchBox").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => setFilter({ q: $("searchBox").value }), 200); });
