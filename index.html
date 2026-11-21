@@ -1102,6 +1102,127 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 :root[data-style="meridian"] .rv { opacity: 0; transform: translateY(26px) scale(.985); }
 :root[data-style="meridian"] .rv.in { opacity: 1; transform: none; transition: opacity .6s ease, transform .7s cubic-bezier(.2, .8, .2, 1); }
 @media (prefers-reduced-motion: reduce) { :root[data-style="meridian"] .rv { opacity: 1; transform: none; } }
+
+/* ---------- Meridian atlas: map cards, legends, scale bars, frames, globe, folds, lettering ---------- */
+:root:not([data-style="meridian"]) .meronly { display: none !important; }
+:root[data-style="meridian"] {
+  --font: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --h0: #B5CF9E; --h1: #DCDDA2; --h2: #E6C98F; --h3: #C99A68; --h4: #9C6A47; --snow: #F1F5F6; --sea: #CFE2E8; --temp: #C0573B;
+}
+:root[data-style="meridian"][data-theme="dark"] { --h0: #4E7A58; --h1: #7E8C55; --h2: #9C8655; --h3: #8E6646; --h4: #6B4A35; --snow: #E9E4D6; --sea: #1D3A46; --temp: #E28A6E; }
+@media (prefers-color-scheme: dark) { :root[data-style="meridian"]:not([data-theme="light"]) { --h0: #4E7A58; --h1: #7E8C55; --h2: #9C8655; --h3: #8E6646; --h4: #6B4A35; --snow: #E9E4D6; --sea: #1D3A46; --temp: #E28A6E; } }
+:root[data-style="meridian"] .water { font-style: italic; }
+:root[data-style="meridian"] .sechead > span:first-child { letter-spacing: .02em; }
+/* map key (legend) */
+.mapkey { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--fg2); align-items: center; padding: 8px 10px; border: 1px solid var(--sep); border-radius: 4px; }
+.mapkey:empty { display: none; }
+.mapkey .mk { display: inline-flex; align-items: center; gap: 5px; }
+.mapkey i { width: 12px; height: 9px; border: .5px solid color-mix(in srgb, var(--fg) 30%, transparent); }
+.mapkey .mknote { flex-basis: 100%; font-style: italic; }
+.mapkey .h0, .topo .h0 { background: var(--h0); fill: var(--h0); } .mapkey .h1, .topo .h1 { background: var(--h1); fill: var(--h1); }
+.mapkey .h2, .topo .h2 { background: var(--h2); fill: var(--h2); } .mapkey .h3, .topo .h3 { background: var(--h3); fill: var(--h3); }
+.mapkey .h4, .topo .h4 { background: var(--h4); fill: var(--h4); } .mapkey .snow { background: var(--snow); }
+.mapkey .lv1 { background: var(--h0); } .mapkey .lv2 { background: var(--h2); } .mapkey .lv3 { background: var(--h3); } .mapkey .lv4 { background: var(--h4); }
+.mapkey .rainsw { background: var(--water); } .mapkey .tempsw { height: 2px; border: 0; background: var(--temp); }
+.mapkey .citysw { width: 6px; height: 6px; border-radius: 50%; background: var(--fg); border: 0; } .mapkey .bordersw { height: 0; border: 0; border-top: 1.5px dashed var(--contour); }
+.mapkey .routesw { height: 0; border: 0; border-top: 2px dashed var(--contour); } .mapkey .walkedsw { height: 0; border: 0; border-top: 2.5px solid var(--accent); }
+.mapkey .flagsw { width: 0; height: 10px; border: 0; border-left: 2px solid var(--accent); }
+/* terrain */
+.terrain { touch-action: pan-y; }
+.terrain .s-h0 { stop-color: var(--h0); } .terrain .s-h1 { stop-color: var(--h1); } .terrain .s-h2 { stop-color: var(--h2); } .terrain .s-h3 { stop-color: var(--h3); } .terrain .s-snow { stop-color: var(--snow); }
+.terrain .ridge { fill: none; stroke: var(--h4); stroke-width: 1.2; }
+.terrain .iso { stroke: var(--h4); stroke-width: .6; opacity: .45; }
+.terrain .snowline { stroke: var(--water); stroke-width: 1; stroke-dasharray: 5 3; }
+:root .chart.terrain text.snowlab { fill: var(--water); font-style: italic; font-size: 10.5px; }
+.chart .summit { fill: var(--fg); }
+:root .chart text.spot { fill: var(--fg); font-size: 10.5px; font-weight: 600; }
+/* reservoir */
+.reservoir .bank { fill: none; stroke: var(--h4); stroke-width: 2.2; stroke-linecap: round; }
+.reservoir .res { fill: var(--water); opacity: .5; }
+.reservoir .wave { fill: none; stroke: var(--water); stroke-width: 1.4; animation: waveDrift 6s linear infinite; }
+@keyframes waveDrift { to { transform: translateX(40px); } }
+.reservoir .crack { fill: none; stroke: var(--h3); stroke-width: 1.2; }
+.reservoir .should { stroke: var(--fg2); stroke-width: 1; stroke-dasharray: 2 3; }
+:root .chart.reservoir text.shouldlab { fill: var(--fg2); font-size: 10px; font-style: italic; }
+.reservoir .staff { stroke: var(--fg); stroke-width: 1.2; } .reservoir .tickg { stroke: var(--fg); stroke-width: 1; }
+.resinfo { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.resbig { display: flex; align-items: baseline; gap: 10px; } .resbig b { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; } .resbig span { color: var(--water); }
+@media (prefers-reduced-motion: reduce) { .reservoir .wave { animation: none; } }
+/* climograph */
+.clim { touch-action: pan-y; }
+.clim .rain { fill: var(--water); opacity: .55; } .clim .rain.on { opacity: 1; }
+.clim .templine { fill: none; stroke: var(--temp); stroke-width: 2; } .clim .tempdot { fill: var(--card); stroke: var(--temp); stroke-width: 1.5; }
+:root .chart.clim text.temp { fill: var(--temp); }
+.clim .tgrid, .tides .tgrid { stroke: var(--sep); stroke-width: .75; stroke-dasharray: 3 4; }
+/* calendar as a shaded map */
+:root[data-style="meridian"] .calday.lv1 { background: var(--h0); color: var(--fg); } :root[data-style="meridian"] .calday.lv2 { background: var(--h2); color: var(--fg); }
+:root[data-style="meridian"] .calday.lv3 { background: var(--h3); color: #fff; } :root[data-style="meridian"] .calday.lv4 { background: var(--h4); color: #fff; }
+:root[data-style="meridian"] .callegend .lv1 { background: var(--h0); } :root[data-style="meridian"] .callegend .lv2 { background: var(--h2); }
+:root[data-style="meridian"] .callegend .lv3 { background: var(--h3); } :root[data-style="meridian"] .callegend .lv4 { background: var(--h4); }
+#calKey { margin-top: 10px; }
+/* topography */
+.topo .iso { fill: none; stroke: var(--h4); stroke-width: .8; opacity: .65; }
+.topo .frame { fill: none; stroke: var(--fg); stroke-width: 1; }
+.topo { cursor: crosshair; }
+/* territories */
+.terr .sea { fill: var(--sea); }
+.terr .ripple { fill: none; stroke: var(--water); stroke-width: .8; } .terr .ripple.r0 { opacity: .25; } .terr .ripple.r1 { opacity: .4; } .terr .ripple.r2 { opacity: .6; }
+.terr .terr { fill: color-mix(in srgb, var(--cc) 26%, #F6F0E0); cursor: pointer; transition: opacity .2s; }
+:root[data-theme="dark"] .terr .terr { fill: color-mix(in srgb, var(--cc) 30%, #1C2B2E); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .terr .terr { fill: color-mix(in srgb, var(--cc) 30%, #1C2B2E); } }
+.terr .terr.on { fill: color-mix(in srgb, var(--cc) 55%, #F6F0E0); } .terr .terr.dim { opacity: .45; }
+.terr .border { fill: none; stroke: var(--contour); stroke-width: 1.2; stroke-dasharray: 6 2 1 2; pointer-events: none; }
+.terr .coast { fill: none; stroke: var(--h4); stroke-width: 1.6; }
+.terr .city { fill: var(--fg); }
+:root .chart.terr text.tname { fill: var(--fg); font-weight: 600; letter-spacing: .12em; }
+:root .chart.terr text.tval { fill: var(--fg2); font-style: italic; font-size: 10px; }
+.terr .rose path { fill: var(--fg); } .terr .rose .ew { fill: var(--fg2); }
+/* wind rose */
+.clock .rosering { fill: none; stroke: var(--sep); stroke-width: .8; stroke-dasharray: 2 3; }
+:root[data-style="meridian"] .clock .hb.petal { stroke: var(--card); stroke-width: 1; fill: var(--water); fill-opacity: .45; }
+:root[data-style="meridian"] .clock .hb.petal.on { fill: var(--accent); fill-opacity: 1; }
+/* lending routes */
+.routes .trailbg { fill: transparent; }
+.routes .route { fill: none; stroke: var(--contour); stroke-dasharray: 2 5; stroke-linecap: round; }
+.routes .walked { fill: none; stroke: var(--accent); stroke-linecap: round; }
+.routes .wp { cursor: pointer; } .routes .hitwp { fill: transparent; }
+.routes .pin { fill: var(--card); stroke: var(--accent); stroke-width: 2; }
+:root .chart.routes text.pinl { fill: var(--accent); font-weight: 700; font-size: 10px; }
+:root .chart.routes text.wpn { fill: var(--fg); font-weight: 600; font-size: 11.5px; } :root .chart.routes text.wpv { fill: var(--fg2); font-style: italic; font-size: 10px; }
+.routes .flag { fill: var(--accent); stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; }
+.routes .homemk path { fill: var(--fg); } :root .chart.routes .homemk text { fill: var(--fg); font-weight: 700; }
+/* scale bar */
+.scalebar .sbar { width: 100%; max-width: 236px; height: auto; display: block; overflow: visible; }
+.scalebar .b { fill: var(--fg); } .scalebar .w { fill: var(--card); } .scalebar .o { fill: none; stroke: var(--fg); stroke-width: 1; }
+.scalebar text { font-size: 9.5px; fill: var(--fg2); font-variant-numeric: tabular-nums; font-family: var(--font); } .scalebar .u { font-style: italic; }
+.scalebar .m { fill: var(--accent); }
+/* map frame: the striped, graduated border of a survey sheet */
+:root[data-style="meridian"] .maphero { border-radius: 3px; }
+:root[data-style="meridian"] .maphero::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background:
+    repeating-linear-gradient(90deg, var(--fg) 0 18px, var(--card) 18px 36px) top / 100% 4px no-repeat,
+    repeating-linear-gradient(90deg, var(--fg) 0 18px, var(--card) 18px 36px) bottom / 100% 4px no-repeat,
+    repeating-linear-gradient(180deg, var(--fg) 0 18px, var(--card) 18px 36px) left / 4px 100% no-repeat,
+    repeating-linear-gradient(180deg, var(--fg) 0 18px, var(--card) 18px 36px) right / 4px 100% no-repeat;
+  border: 1px solid var(--fg); outline: 1px solid var(--fg); outline-offset: -6px; }
+/* the dotted globe */
+:root[data-style="meridian"] .globe { opacity: .85; }
+:root[data-style="meridian"] .globe .sea { fill: color-mix(in srgb, var(--sea) 70%, transparent); stroke: none; }
+:root[data-style="meridian"] .globe .grat { fill: none; stroke: var(--water); stroke-width: .5; opacity: .5; }
+:root[data-style="meridian"] .globe .landdots { fill: none; stroke: var(--h4); stroke-width: 2.1; stroke-linecap: round; }
+:root[data-style="meridian"] .globe .rim { fill: none; stroke: var(--water); stroke-width: 1.2; }
+:root[data-style="meridian"] .globe .here { fill: var(--temp); stroke: none; }
+:root[data-style="meridian"] .globe .here-ring { fill: none; stroke: var(--temp); stroke-width: 1.2; animation: herePulse 2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes herePulse { from { transform: scale(.5); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+/* paper folds: an unfolded map */
+:root[data-style="meridian"] body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 6px), rgba(80, 60, 30, .05) calc(50% - 1px), rgba(255, 255, 255, .28) 50%, transparent calc(50% + 6px)),
+    linear-gradient(180deg, transparent calc(33.3% - 6px), rgba(80, 60, 30, .05) calc(33.3% - 1px), rgba(255, 255, 255, .28) 33.3%, transparent calc(33.3% + 6px)),
+    linear-gradient(180deg, transparent calc(66.6% - 6px), rgba(80, 60, 30, .05) calc(66.6% - 1px), rgba(255, 255, 255, .28) 66.6%, transparent calc(66.6% + 6px)); }
+:root[data-style="meridian"][data-theme="dark"] body::after { opacity: .12; }
+@media (prefers-color-scheme: dark) { :root[data-style="meridian"]:not([data-theme="light"]) body::after { opacity: .12; } }
+@media (prefers-reduced-motion: reduce) { :root[data-style="meridian"] .globe .here-ring { animation: none; } }
 </style>
 </head>
 <body>
@@ -1166,6 +1287,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
           <div class="calhead"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
           <div class="calgrid" id="calGrid"></div>
           <div class="callegend"><span>Less</span><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i><span>More</span></div>
+          <div class="mapkey meronly" id="calKey"></div>
         </div>
         <div class="sechead"><span id="calDayTitle">Today</span><span id="calDayTotal"></span></div>
         <div class="card flush" id="calDayList"></div>
@@ -1185,6 +1307,12 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
             <svg class="chart orbit" id="orbSvg" viewBox="0 0 340 340" role="img" aria-label="Categories as planets: bigger and closer means more spent"></svg>
             <div class="orbinfo" id="orbInfo"></div>
           </div>
+          <div class="card meronly" id="topoCard"><div class="sechead"><span>Spending topography</span><span id="topoCap"></span></div>
+            <svg class="chart topo" id="topoSvg" viewBox="0 0 340 212" role="img" aria-label="Contour map of spending by hour and weekday"></svg>
+            <div class="mapkey" id="topoKey"></div></div>
+          <div class="card meronly" id="terrCard"><div class="sechead"><span>Category territories</span><span id="terrCap"></span></div>
+            <svg class="chart terr" id="terrSvg" viewBox="0 0 340 236" role="img" aria-label="Your categories as countries on an island, sized by spending"></svg>
+            <div class="mapkey" id="terrKey"></div></div>
           <div class="card"><div class="sechead"><span>Time of day</span><span id="clkCap"></span></div>
             <svg class="chart clock" id="clkSvg" viewBox="0 0 300 300" role="img" aria-label="Spending by hour of the day"></svg></div>
           <div class="card"><div class="sechead"><span>Your week</span><span id="wkCap"></span></div>
@@ -1216,12 +1344,21 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
           <div class="legendlist" id="donutLegend"></div>
         </div>
       </div>
+      <div class="card meronly" id="terrainCard"><div class="sechead"><span>Spending terrain</span><span id="terrainCap"></span></div>
+        <svg class="chart terrain" id="terrainSvg" viewBox="0 0 340 196" role="img" aria-label="Your month as a mountain range: each day's height is what you spent"></svg>
+        <div class="mapkey" id="terrainKey"></div></div>
+      <div class="card meronly" id="resCard"><div class="sechead"><span class="water">Budget reservoir</span><span id="resCap"></span></div>
+        <svg class="chart reservoir" id="resSvg" viewBox="0 0 340 150" role="img" aria-label="What is left of this month's budget, as water in a reservoir"></svg>
+        <div class="resinfo" id="resInfo"></div></div>
       <div class="card week" id="weekCard"></div>
       <div id="budgetBlock" class="card">
         <div class="sechead"><span>Budget</span><button type="button" id="budgetEdit">Edit</button></div>
         <div class="budgets" id="budgetList"></div>
       </div>
       <div class="card"><div class="sechead"><span>Last 6 months</span></div><svg class="chart" id="trend" viewBox="0 0 340 150" role="img" aria-label="Spending per month for the last 6 months"></svg></div>
+      <div class="card meronly" id="climCard"><div class="sechead"><span>Climate of your spending</span><span id="climCap"></span></div>
+        <svg class="chart clim" id="climSvg" viewBox="0 0 340 176" role="img" aria-label="Twelve months: spending as bars and number of payments as a line"></svg>
+        <div class="mapkey" id="climKey"></div></div>
       <div class="card">
         <div class="sechead"><span id="cmpTitle">By category</span></div>
         <div class="legend" id="cmpLegend"></div>
@@ -1247,6 +1384,9 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
         <div class="sub" id="lentSub"></div>
         <div class="owes" id="youOwe" hidden></div>
       </div>
+      <div class="card meronly" id="routeCard" hidden><div class="sechead"><span>Lending routes</span><span id="routeCap"></span></div>
+        <svg class="chart routes" id="routeSvg" viewBox="0 0 340 250" role="img" aria-label="Friends as waypoints: dashed routes are money lent, solid is what came back"></svg>
+        <div class="mapkey" id="routeKey"></div></div>
       <div id="lentCards" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="sechead"><span>Friends</span><span style="text-transform:none">Tap for profile &amp; history</span></div>
       <div class="card flush" id="friendList"></div>
@@ -3126,7 +3266,7 @@ function renderSpending() {
     if (budgets.total > 0) { const cap = budgetRow("", budgets.total, "").allowed; if (est > cap) fc.append(" · ", el("b", "", fmt(est - cap) + " over budget")); else fc.append(" · within budget"); }
   }
   renderWeek(); renderBudgets(); renderTrend(); renderCompare(r);   // (the donut is left out of the monochrome design)
-  renderCalendar(r); renderListView(); renderOrbit();
+  renderCalendar(r); renderListView(); renderOrbit(); renderAtlasSpending(r, total);
 
   const list = $("list"); list.innerHTML = "";
   if (!inMonth.length) { const c = el("div", "card"); c.append(emptyState("tab-log", "No payments here yet", VIEWER ? "Nothing was spent in this month." : "Go to Log, type the amount and tap a category. It shows up here right away.")); list.append(c); }
@@ -3206,7 +3346,7 @@ function renderHeader() {
   if (budgets.total > 0) { const b = budgetRow("", budgets.total, ""); d.textContent = b.left < 0 ? fmt(-b.left) + " over budget" : fmt(b.left) + " left this month"; d.classList.toggle("up", b.left < 0); }
 }
 function renderChanged() { rollNumbers = true; try { renderAll(); } finally { rollNumbers = false; } }
-function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); if (typeof renderSheets === "function") renderSheets(); }
+function renderAll() { renderHeader(); renderRecent(); renderSpending(); renderLoans(); renderQuick(); renderLogCards(); updateSyncUI(); writeState(); if (typeof renderSheets === "function") renderSheets(); if (typeof drawRoutes === "function") drawRoutes(); }
 
 /* ======================================================================
    Quick entry: every detail on one screen
@@ -3411,9 +3551,16 @@ function applyTheme() {
   document.querySelectorAll("#accentRow .swatch").forEach((b) => b.setAttribute("aria-pressed", b.dataset.accent === a));
   const style = VIEWER ? "classic" : load(K.style, "classic");   // the shared read-only view keeps the classic look
   if (style === "nothing") { loadNothingFonts(); document.documentElement.dataset.style = "nothing"; }
-  else if (style === "meridian") document.documentElement.dataset.style = "meridian";   // the map style
+  else if (style === "meridian") { loadMeridianFonts(); document.documentElement.dataset.style = "meridian"; }   // the map style
   else document.documentElement.removeAttribute("data-style");
   document.querySelectorAll("#styleSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.styleChoice === style));
+}
+// Meridian's atlas typeface, loaded only once that style is picked (kept offline after that)
+function loadMeridianFonts() {
+  if (document.getElementById("meridianFonts")) return;
+  const l = document.createElement("link"); l.id = "meridianFonts"; l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap";
+  document.head.append(l);
 }
 // Nothing's typefaces load only once that style is picked (the offline cache keeps them after that)
 function loadNothingFonts() {
@@ -3491,7 +3638,7 @@ function renderOrbit() {
     $("orbEmpty").innerHTML = ""; $("orbEmpty").append(emptyState("tab-pie", "Nothing in orbit for this period", "Payments in this period show up here as planets. Try a longer range above."));
     return;
   }
-  drawPlanets(d); drawClock(d); drawWeekdays(d); drawTides(d);
+  drawPlanets(d); drawClock(d); drawWeekdays(d); drawTides(d); renderAtlasOrbit(d);
 }
 function orbSetFocus(k) { buzz(); orbFocus = orbFocus === k ? null : k; renderOrbit(); }
 $("orbRange").querySelectorAll("button").forEach((b) => (b.onclick = () => { orbN = Number(b.dataset.n); orbSpin = true; renderOrbit(); }));
@@ -3573,9 +3720,15 @@ function drawClock(d) {
   const max = Math.max(...v, 1), C = 150, r0 = 62, r1 = 120;
   clkPeak = v.indexOf(Math.max(...v));
   let s = '<circle class="face" cx="' + C + '" cy="' + C + '" r="' + (r0 - 10) + '"/>';
+  if (MERI()) [0.25, 0.5, 0.75, 1].forEach((k) => (s += '<circle class="rosering" cx="' + C + '" cy="' + C + '" r="' + (r0 + (r1 - r0) * k).toFixed(1) + '"/>'));
   v.forEach((x, h) => {
     const a = (((h + 0.5) * 15 - 90) * Math.PI) / 180, len = x ? Math.max(5, ((r1 - r0) * x) / max) : 0;
     const p = (r) => (C + r * Math.cos(a)).toFixed(1) + "," + (C + r * Math.sin(a)).toFixed(1);
+    if (len && MERI()) {   // wind rose petal
+      const a0 = (((h * 15 - 90 + 1.2) * Math.PI) / 180), a1 = ((((h + 1) * 15 - 90 - 1.2) * Math.PI) / 180), rr = r0 + len, q = (r, an) => (C + r * Math.cos(an)).toFixed(1) + "," + (C + r * Math.sin(an)).toFixed(1);
+      s += '<path class="hb petal' + (h === clkPeak ? " on" : "") + '" data-h="' + h + '" d="M' + q(r0, a0) + " L" + q(rr, a0) + " A" + rr.toFixed(1) + "," + rr.toFixed(1) + " 0 0 1 " + q(rr, a1) + " L" + q(r0, a1) + " A" + r0 + "," + r0 + " 0 0 0 " + q(r0, a0) + ' Z"/>';
+      return;
+    }
     s += len ? '<path class="hb' + (h === clkPeak ? " on" : "") + '" data-h="' + h + '" d="M' + p(r0) + " L" + p(r0 + len) + '"/>' : '<circle class="tick" cx="' + p(r0).split(",")[0] + '" cy="' + p(r0).split(",")[1] + '" r="1.5"/>';
   });
   [[0, "12 am"], [6, "6 am"], [12, "12 pm"], [18, "6 pm"]].forEach(([h, t]) => {
@@ -3691,6 +3844,352 @@ scrubbable($("tideSvg"), (e) => {
   const g = $("tideScrub"), x = (m.n === 1 ? 170 : m.X(i)).toFixed(1); g.querySelector("line").setAttribute("x1", x); g.querySelector("line").setAttribute("x2", x); g.removeAttribute("display");
   tideKeys(i);
 }, () => { tideLast = -1; const g = $("tideScrub"); if (g) g.setAttribute("display", "none"); if (tideModel) tideKeys(-1); });
+
+/* ======================================================================
+   Meridian atlas: real geography charts drawn from your own payments.
+   Only drawn while the Meridian style is on; nothing here is stored or synced.
+   ====================================================================== */
+const MERI = () => document.documentElement.dataset.style === "meridian";
+const niceUp = (v) => { if (v <= 0) return 100; const p = 10 ** Math.floor(Math.log10(v)), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; };
+const smoothPath = (pts, back) => {   // smooth line through points that never overshoots
+  const idx = pts.map((_, i) => i); if (back) idx.reverse();
+  let p = "";
+  idx.forEach((i, j) => {
+    const [x, y] = pts[i];
+    if (!j) { p += (back ? " L" : "M") + x.toFixed(1) + "," + y.toFixed(1); return; }
+    const [px, py] = pts[idx[j - 1]], mx = ((px + x) / 2).toFixed(1);
+    p += " C" + mx + "," + py.toFixed(1) + " " + mx + "," + y.toFixed(1) + " " + x.toFixed(1) + "," + y.toFixed(1);
+  });
+  return p;
+};
+// A small map key: swatches with labels
+function mapKey(box, items, note) {
+  box.innerHTML = "";
+  items.forEach(([cls, label, style]) => { const k = el("span", "mk"), i = el("i", cls || ""); if (style) i.style.cssText = style; k.append(i, el("span", "", label)); box.append(k); });
+  if (note) box.append(el("span", "mknote", note));
+}
+// A cartographer's scale bar: alternating black and white blocks, with a marker at the value
+function scaleBar(host, id, value, unit) {
+  let n = $(id);
+  if (!n) { n = el("div", "scalebar meronly"); n.id = id; n.setAttribute("aria-hidden", "true"); host.append(n); }
+  const top = niceUp(value * 1.05), W = 220, seg = W / 4;
+  let s = '<svg viewBox="-6 0 ' + (W + 70) + ' 30" class="sbar">';
+  for (let i = 0; i < 4; i++) s += '<rect x="' + i * seg + '" y="12" width="' + seg + '" height="5" class="' + (i % 2 ? "w" : "b") + '"/>';
+  s += '<rect x="0" y="12" width="' + W + '" height="5" class="o"/>';
+  [0, 2, 4].forEach((i) => (s += '<text x="' + i * seg + '" y="28" text-anchor="' + (i ? (i === 4 ? "end" : "middle") : "start") + '">' + (i ? fmtShort((top * i) / 4) : "0") + "</text>"));
+  const mx = Math.min(W, (W * value) / top);
+  s += '<path class="m" d="M' + mx.toFixed(1) + ' 11 l-4 -7 h8 Z"/><text class="u" x="' + (W + 8) + '" y="17">' + xesc(unit) + "</text></svg>";
+  n.innerHTML = s;
+}
+
+/* 1. Spending terrain: the month as a mountain range; the snow line is your daily budget (or average) */
+var terrainPts = [];
+function drawTerrain(r) {
+  const svg = $("terrainSvg"), W = 340, H = 196, top = 30, base = H - 22, ch = base - top;
+  const n = Math.round((r.end - r.start) / DAY), upto = Math.max(1, Math.min(n, monthOffset === 0 ? r.days : n));
+  const vals = []; for (let i = 0; i < upto; i++) vals.push(sumIn(expenses, r.start + i * DAY, r.start + (i + 1) * DAY));
+  const budgetDay = budgets.total > 0 && monthOffset === 0 ? Math.round(budgetRow("", budgets.total, "").allowed / n) : 0;
+  const avg = Math.round(vals.reduce((a, b) => a + b, 0) / upto), snow = Math.max(1, budgetDay || avg);
+  const max = Math.max(...vals, snow * 1.2, 1), X = (i) => (n === 1 ? W / 2 : (i * W) / (n - 1)), Y = (v) => base - (ch * v) / max;
+  terrainPts = vals.map((v, i) => ({ x: X(i), v, t: r.start + i * DAY }));
+  const pts = vals.map((v, i) => [X(i), Y(v)]), ridge = smoothPath(pts) + " L" + X(upto - 1).toFixed(1) + "," + base + " L0," + base + " Z";
+  const o = (v) => Math.min(1, v / max).toFixed(4), band = [[0, "h0"], [snow * 0.3, "h1"], [snow * 0.6, "h2"], [snow * 0.85, "h3"], [snow, "snow"]];
+  let g = '<defs><linearGradient id="hypso" gradientUnits="userSpaceOnUse" x1="0" y1="' + base + '" x2="0" y2="' + (base - ch * 1) + '">';
+  band.forEach(([v, c], i) => { const nx = band[i + 1] ? band[i + 1][0] : max; g += '<stop offset="' + o(v) + '" class="s-' + c + '"/><stop offset="' + o(nx) + '" class="s-' + c + '"/>'; });
+  g += '</linearGradient><clipPath id="landclip"><path d="' + ridge + '"/></clipPath></defs>';
+  let s = g + '<path class="land" d="' + ridge + '" fill="url(#hypso)"/>';
+  [0.3, 0.6, 0.85].forEach((f) => (s += '<line class="iso" clip-path="url(#landclip)" x1="0" x2="' + W + '" y1="' + Y(snow * f).toFixed(1) + '" y2="' + Y(snow * f).toFixed(1) + '"/>'));
+  s += '<path class="ridge" d="' + smoothPath(pts) + '"/>';
+  s += '<line class="snowline" x1="0" x2="' + W + '" y1="' + Y(snow).toFixed(1) + '" y2="' + Y(snow).toFixed(1) + '"/>';
+  s += '<text class="snowlab" x="' + W + '" y="' + (Y(snow) - 5).toFixed(1) + '" text-anchor="end">Snow line · ' + fmtShort(snow) + "/day</text>";
+  const pk = vals.indexOf(Math.max(...vals));
+  if (vals[pk] > 0) {
+    const px = X(pk), py = Y(vals[pk]);
+    s += '<path class="summit" d="M' + px.toFixed(1) + "," + (py - 3).toFixed(1) + " l-5,-8 h10 Z" + '"/>';
+    s += '<text class="spot" x="' + Math.max(30, Math.min(W - 30, px)).toFixed(1) + '" y="' + Math.max(10, py - 15).toFixed(1) + '" text-anchor="middle">' + fmtShort(vals[pk]) + " · " + dayMon(r.start + pk * DAY) + "</text>";
+  }
+  [0, 7, 14, 21, n - 1].forEach((i) => { if (i < n) s += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + (i === 0 ? "start" : i === n - 1 ? "end" : "middle") + '">' + (i + 1) + "</text>"; });
+  s += '<line class="base" x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '"/><g id="terrScrub" display="none"><line class="scrubline" y1="' + top + '" y2="' + base + '"/></g>';
+  svg.innerHTML = s;
+  const peaks = vals.filter((v) => v > snow).length;
+  $("terrainCap").textContent = peaks ? peaks + (peaks === 1 ? " peak" : " peaks") + " above the snow line" : "No peaks above the snow line";
+  mapKey($("terrainKey"), [["h0", "Valleys"], ["h1", "Hills"], ["h2", "Uplands"], ["h3", "Mountains"], ["snow", "Snow: above your " + (budgetDay ? "daily budget" : "daily average")]]);
+}
+scrubbable($("terrainSvg"), (e) => {
+  if (!terrainPts.length) return;
+  const p = svgPoint($("terrainSvg"), e, 340, 196);
+  const t = terrainPts.reduce((a, b) => (Math.abs(b.x - p.x) < Math.abs(a.x - p.x) ? b : a));
+  const g = $("terrScrub"); g.querySelector("line").setAttribute("x1", t.x); g.querySelector("line").setAttribute("x2", t.x); g.removeAttribute("display");
+  $("terrainCap").textContent = dayMon(t.t) + " · " + fmt(t.v);
+}, () => { const g = $("terrScrub"); if (g) g.setAttribute("display", "none"); if (MERI() && spendView === "overview") drawTerrain(monthRange(monthOffset)); });
+
+/* 7. Reservoir: what is left of this month's budget, as water behind a dam */
+function drawReservoir() {
+  const card = $("resCard"); card.hidden = VIEWER || monthOffset !== 0;
+  if (card.hidden) return;
+  const svg = $("resSvg"), info = $("resInfo"); info.innerHTML = "";
+  const W = 340, H = 150, floor = 128, rim = 26;
+  const basin = "M0," + rim + " C40," + rim + " 50," + floor + " 95," + floor + " H245 C290," + floor + " 300," + rim + " 340," + rim + " V" + H + " H0 Z";
+  const bank = "M0," + rim + " C40," + rim + " 50," + floor + " 95," + floor + " H245 C290," + floor + " 300," + rim + " 340," + rim;
+  if (!(budgets.total > 0)) {
+    svg.innerHTML = '<path class="bank" d="' + bank + '"/><path class="crack" d="M110,' + (floor - 2) + " l10,-6 l8,5 l12,-7 l9,6 l14,-5 l10,6 l12,-6 l10,5 l14,-6 l9,6" + '"/>';
+    info.append(el("div", "orbhint water", "Set a monthly budget and this reservoir fills with it, then drains as you spend."));
+    const b = el("button", "pill", "Set a budget"); b.type = "button"; b.onclick = () => openBudget(); info.append(b);
+    $("resCap").textContent = "No budget yet";
+    return;
+  }
+  const row = budgetRow("", budgets.total, ""), frac = Math.max(0, Math.min(1, row.left / row.allowed)), should = Math.max(0, 1 - row.today / 100);
+  const lvl = (f) => floor - (floor - rim - 6) * f, wy = lvl(frac);
+  let s = '<defs><clipPath id="basinclip"><path d="M0,' + rim + " C40," + rim + " 50," + floor + " 95," + floor + " H245 C290," + floor + " 300," + rim + " 340," + rim + ' Z"/></clipPath></defs>';
+  if (frac > 0) {
+    s += '<g clip-path="url(#basinclip)"><rect class="res" x="0" y="' + wy.toFixed(1) + '" width="' + W + '" height="' + (H - wy).toFixed(1) + '"/>';
+    s += '<path class="wave" d="M-40,' + wy.toFixed(1) + " q10,-3 20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0" + '"/></g>';
+  } else s += '<path class="crack" d="M110,' + (floor - 2) + " l10,-6 l8,5 l12,-7 l9,6 l14,-5 l10,6 l12,-6 l10,5 l14,-6 l9,6" + '"/>';
+  s += '<line class="should" x1="60" x2="280" y1="' + lvl(should).toFixed(1) + '" y2="' + lvl(should).toFixed(1) + '"/><text class="shouldlab" x="64" y="' + (lvl(should) - 4).toFixed(1) + '">Level for today</text>';
+  s += '<path class="bank" d="' + bank + '"/>';
+  // the depth gauge, like a tide staff
+  s += '<line class="staff" x1="318" x2="318" y1="' + lvl(1) + '" y2="' + floor + '"/>';
+  for (let k = 0; k <= 10; k++) { const y = lvl(k / 10); s += '<line class="tickg" x1="' + (k % 5 ? 314 : 310) + '" x2="318" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>'; if (!(k % 5)) s += '<text x="306" y="' + (y + 3).toFixed(1) + '" text-anchor="end">' + k * 10 + "%</text>"; }
+  svg.innerHTML = s;
+  const big = el("div", "resbig"); big.append(el("b", "", row.left >= 0 ? fmt(Math.round(row.left)) + " left" : fmt(Math.round(-row.left)) + " over"), el("span", "water", row.left >= 0 ? Math.round(frac * 100) + "% full" : "the reservoir is dry"));
+  info.append(big, el("div", "orbhint", frac >= should ? "Above today's level: you're on track." : "Below today's level: spending is running ahead of the month."));
+  $("resCap").textContent = "Budget " + fmt(row.allowed);
+}
+
+/* 4. Climograph: twelve months, spending as rainfall bars and payments as a temperature line */
+var climModel = null;
+function drawClimograph() {
+  const svg = $("climSvg"), W = 340, H = 176, left = 30, right = 26, top = 16, base = H - 22, ch = base - top, months = [];
+  for (let o = monthOffset - 11; o <= monthOffset; o++) { const r = monthRange(o), list = expenses.filter((e) => e.ts >= r.start && e.ts < r.end); months.push({ r, v: list.reduce((s, e) => s + e.amount, 0), c: list.length }); }
+  const vmax = niceUp(Math.max(...months.map((m) => m.v), 1)), cmax = Math.max(5, Math.ceil(Math.max(...months.map((m) => m.c), 1) / 5) * 5);
+  const slot = (W - left - right) / 12, X = (i) => left + slot * i + slot / 2;
+  let s = "";
+  [0, 0.5, 1].forEach((f) => { const y = base - ch * f; s += '<line class="tgrid" x1="' + left + '" x2="' + (W - right) + '" y1="' + y + '" y2="' + y + '"/><text x="' + (left - 4) + '" y="' + (y + 3) + '" text-anchor="end">' + fmtShort(vmax * f) + '</text><text class="temp" x="' + (W - right + 4) + '" y="' + (y + 3) + '">' + Math.round(cmax * f) + "</text>"; });
+  months.forEach((m, i) => { const h = (ch * m.v) / vmax; if (h > 0) s += '<rect class="rain' + (i === 11 ? " on" : "") + '" x="' + (X(i) - slot * 0.32).toFixed(1) + '" y="' + (base - h).toFixed(1) + '" width="' + (slot * 0.64).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2"/>'; });
+  const pts = months.map((m, i) => [X(i), base - (ch * m.c) / cmax]);
+  s += '<path class="templine" d="' + smoothPath(pts) + '"/>';
+  pts.forEach(([x, y]) => (s += '<circle class="tempdot" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.6"/>'));
+  months.forEach((m, i) => (s += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle"' + (i === 11 ? ' class="on"' : "") + ">" + m.r.short.charAt(0) + "</text>"));
+  s += '<line class="base" x1="' + left + '" x2="' + (W - right) + '" y1="' + base + '" y2="' + base + '"/><g id="climScrub" display="none"><line class="scrubline" y1="' + top + '" y2="' + base + '"/></g>';
+  svg.innerHTML = s;
+  climModel = { months, X };
+  $("climCap").textContent = months[0].r.short + " – " + months[11].r.short;
+  mapKey($("climKey"), [["rainsw", "Spent (bars, like rainfall)"], ["tempsw", "Payments (line, like temperature)"]]);
+}
+scrubbable($("climSvg"), (e) => {
+  if (!climModel) return;
+  const p = svgPoint($("climSvg"), e, 340, 176), i = Math.max(0, Math.min(11, Math.floor(((p.x - 30) / (340 - 56)) * 12))), m = climModel.months[i];
+  const g = $("climScrub"); g.querySelector("line").setAttribute("x1", climModel.X(i)); g.querySelector("line").setAttribute("x2", climModel.X(i)); g.removeAttribute("display");
+  $("climCap").textContent = m.r.label + " · " + fmt(m.v) + " · " + m.c + (m.c === 1 ? " payment" : " payments");
+}, () => { const g = $("climScrub"); if (g) g.setAttribute("display", "none"); if (climModel) $("climCap").textContent = climModel.months[0].r.short + " – " + climModel.months[11].r.short; });
+
+/* 11. Calendar as a shaded map: a key with each band's range */
+function drawCalendarKey(r) {
+  const n = Math.round((r.end - r.start) / DAY), vals = [];
+  for (let d = 0; d < n; d++) vals.push(sumIn(expenses, r.start + d * DAY, r.start + (d + 1) * DAY));
+  const max = Math.max(...vals, 0), box = $("calKey");
+  if (!max) { mapKey(box, [], "No spending to shade this month"); return; }
+  const q = (k) => fmtShort(Math.round((max * k) / 4));
+  mapKey(box, [["lv1", "up to " + q(1)], ["lv2", q(1) + "–" + q(2)], ["lv3", q(2) + "–" + q(3)], ["lv4", q(3) + "–" + q(4)]], "Shaded by what you spent each day");
+}
+
+function renderAtlasSpending(r, total) {
+  if (!MERI()) return;
+  drawTerrain(r); drawReservoir(); drawClimograph(); drawCalendarKey(r);
+  scaleBar($("sumHero"), "sumScale", total, "this month");
+}
+
+/* 2. Spending topography: a contour map of when you spend, by hour and weekday */
+var topoCells = null;
+function drawTopography(d) {
+  const svg = $("topoSvg"), W = 340, H = 212, L = 22, T = 18, PW = W - L - 4, PH = H - T - 6;
+  const g = Array.from({ length: 7 }, () => Array(24).fill(0));
+  d.list.forEach((e) => { const t = new Date(e.ts); g[(t.getDay() + 6) % 7][t.getHours()] += e.amount; });
+  topoCells = g;
+  // soften: a little spread to neighbouring hours and days (wrapping round the clock and the week)
+  const sm = g.map((row, y) => row.map((_, x) => {
+    let s = 0, w = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -2; dx <= 2; dx++) { const k = (dy ? 0.5 : 1) * (dx ? 1 / (1 + Math.abs(dx)) : 1); s += k * g[(y + dy + 7) % 7][(x + dx + 24) % 24]; w += k; }
+    return s / w;
+  }));
+  const max = Math.max(...sm.flat(), 1e-9), FX = 96, FY = 42;   // finer grid by blending neighbours
+  const at = (fx, fy) => {
+    const x = (fx / FX) * 24 - 0.5, y = (fy / FY) * 7 - 0.5, x0 = Math.floor(x), y0 = Math.floor(y), tx = x - x0, ty = y - y0;
+    const v = (yy, xx) => sm[(yy + 7) % 7][(xx + 24) % 24];
+    return ((v(y0, x0) * (1 - tx) + v(y0, x0 + 1) * tx) * (1 - ty) + (v(y0 + 1, x0) * (1 - tx) + v(y0 + 1, x0 + 1) * tx) * ty) / max;
+  };
+  const F = []; for (let j = 0; j <= FY; j++) { F.push([]); for (let i = 0; i <= FX; i++) F[j].push(at(i, j)); }
+  const lv = [0.15, 0.35, 0.55, 0.75], cls = (v) => (v < lv[0] ? "h0" : v < lv[1] ? "h1" : v < lv[2] ? "h2" : v < lv[3] ? "h3" : "h4");
+  const cw = PW / FX, chh = PH / FY;
+  let s = "";
+  for (let j = 0; j < FY; j++) {   // shaded bands, merged along each row
+    let i = 0;
+    while (i < FX) { const c = cls(F[j][i]); let k = i + 1; while (k < FX && cls(F[j][k]) === c) k++; s += '<rect class="' + c + '" x="' + (L + i * cw).toFixed(1) + '" y="' + (T + j * chh).toFixed(1) + '" width="' + ((k - i) * cw + 0.4).toFixed(1) + '" height="' + (chh + 0.4).toFixed(1) + '"/>'; i = k; }
+  }
+  let iso = "";   // contour lines (marching squares)
+  lv.forEach((l) => {
+    for (let j = 0; j < FY; j++) for (let i = 0; i < FX; i++) {
+      const a = F[j][i], b = F[j][i + 1], c = F[j + 1][i + 1], e = F[j + 1][i], x = L + i * cw, y = T + j * chh, t = (p, q) => (l - p) / (q - p), P = [];
+      if ((a < l) !== (b < l)) P.push([x + cw * t(a, b), y]);
+      if ((b < l) !== (c < l)) P.push([x + cw, y + chh * t(b, c)]);
+      if ((e < l) !== (c < l)) P.push([x + cw * t(e, c), y + chh]);
+      if ((a < l) !== (e < l)) P.push([x, y + chh * t(a, e)]);
+      for (let k = 0; k + 1 < P.length; k += 2) iso += "M" + P[k][0].toFixed(1) + " " + P[k][1].toFixed(1) + "L" + P[k + 1][0].toFixed(1) + " " + P[k + 1][1].toFixed(1);
+    }
+  });
+  s += '<path class="iso" d="' + iso + '"/>';
+  // the summit: the busiest hour of the week
+  let best = [0, 0], bv = -1; g.forEach((row, y) => row.forEach((v, x) => { if (v > bv) { bv = v; best = [y, x]; } }));
+  if (bv > 0) {
+    const sx = L + ((best[1] + 0.5) / 24) * PW, sy = T + ((best[0] + 0.5) / 7) * PH;
+    s += '<path class="summit" d="M' + sx.toFixed(1) + "," + (sy - 6).toFixed(1) + " l-5,8 h10 Z" + '"/>';
+    s += '<text class="spot" x="' + Math.max(L + 40, Math.min(W - 40, sx)).toFixed(1) + '" y="' + (sy < T + 24 ? sy + 20 : sy - 10).toFixed(1) + '" text-anchor="middle">' + WEEKDAYS[best[0]].slice(0, 3) + " " + hourName(best[1]) + " · " + fmtShort(bv) + "</text>";
+  }
+  "MTWTFSS".split("").forEach((c, y) => (s += '<text x="' + (L - 8) + '" y="' + (T + ((y + 0.5) / 7) * PH + 4).toFixed(1) + '" text-anchor="middle">' + c + "</text>"));
+  [[0, "12a"], [6, "6a"], [12, "12p"], [18, "6p"]].forEach(([h, t]) => (s += '<text x="' + (L + (h / 24) * PW).toFixed(1) + '" y="' + (T - 6) + '">' + t + "</text>"));
+  s += '<rect class="frame" x="' + L + '" y="' + T + '" width="' + PW + '" height="' + PH + '"/>';
+  svg.innerHTML = s;
+  $("topoCap").textContent = bv > 0 ? "Summit: " + WEEKDAYS[best[0]].slice(0, 3) + " " + hourName(best[1]) : "Flat land so far";
+  mapKey($("topoKey"), [["h0", "Lowland"], ["h1", ""], ["h2", ""], ["h3", ""], ["h4", "Highland"]], "Higher ground = more spent at that hour. Tap to read a spot.");
+}
+$("topoSvg").addEventListener("click", (e) => {
+  if (!topoCells) return;
+  const p = svgPoint($("topoSvg"), e, 340, 212), x = Math.floor(((p.x - 22) / 314) * 24), y = Math.floor(((p.y - 18) / 188) * 7);
+  if (x < 0 || x > 23 || y < 0 || y > 6) return;
+  buzz(); $("topoCap").textContent = WEEKDAYS[y].slice(0, 3) + " " + hourName(x) + " – " + hourName((x + 1) % 24) + " · " + fmt(topoCells[y][x]);
+});
+
+/* 3. Category territories: your categories as countries on an island, sized by spend */
+function squarify(items, x, y, w, h) {
+  const out = [], total = items.reduce((s, i) => s + i.v, 0); if (!total) return out;
+  let rest = items.map((i) => ({ ...i, a: (i.v / total) * w * h }));
+  while (rest.length) {
+    const short = Math.min(w, h); let row = [rest[0]], worst = Infinity;
+    const score = (r) => { const s = r.reduce((t, i) => t + i.a, 0), mx = Math.max(...r.map((i) => i.a)), mn = Math.min(...r.map((i) => i.a)); return Math.max((short * short * mx) / (s * s), (s * s) / (short * short * mn)); };
+    worst = score(row);
+    for (let k = 1; k < rest.length; k++) { const nr = row.concat(rest[k]), sc = score(nr); if (sc > worst) break; row = nr; worst = sc; }
+    const sum = row.reduce((t, i) => t + i.a, 0), thick = sum / short;
+    let off = 0;
+    row.forEach((i) => { const len = i.a / thick; out.push(w >= h ? { ...i, x, y: y + off, w: thick, h: len } : { ...i, x: x + off, y, w: len, h: thick }); off += len; });
+    if (w >= h) { x += thick; w -= thick; } else { y += thick; h -= thick; }
+    rest = rest.slice(row.length);
+  }
+  return out;
+}
+function drawTerritories(d) {
+  const svg = $("terrSvg"), W = 340, H = 236, M = 22, cats = d.cats.slice(0, 8);
+  const tiles = squarify(cats, M, M, W - 2 * M, H - 2 * M);
+  // a wobbly coastline around the island
+  const coast = [], per = 2 * (W - 2 * M + H - 2 * M), step = 9;
+  for (let t = 0; t < per; t += step) {
+    let x, y, nx = 0, ny = 0, a = t;
+    if (a < W - 2 * M) { x = M + a; y = M; ny = -1; } else if ((a -= W - 2 * M) < H - 2 * M) { x = W - M; y = M + a; nx = 1; } else if ((a -= H - 2 * M) < W - 2 * M) { x = W - M - a; y = H - M; ny = 1; } else { a -= W - 2 * M; x = M; y = H - M - a; nx = -1; }
+    const wob = 4 * Math.sin(t / 23) + 3 * Math.sin(t / 7.3 + 1) + 2;
+    coast.push([x + nx * wob, y + ny * wob]);
+  }
+  const cp = "M" + coast.map(([x, y]) => x.toFixed(1) + "," + y.toFixed(1)).join(" L") + " Z";
+  let s = '<defs><clipPath id="isle"><path d="' + cp + '"/></clipPath></defs><rect class="sea" x="0" y="0" width="' + W + '" height="' + H + '"/>';
+  [10, 6, 3].forEach((k, i) => (s += '<path class="ripple r' + i + '" d="' + cp + '" transform="translate(' + (W / 2) + " " + (H / 2) + ") scale(" + (1 + k / 90) + ") translate(" + (-W / 2) + " " + (-H / 2) + ')"/>'));
+  s += '<g clip-path="url(#isle)">';
+  tiles.forEach((t) => (s += '<rect class="terr' + (orbFocus === t.k ? " on" : orbFocus ? " dim" : "") + '" data-k="' + xesc(t.k) + '" x="' + t.x.toFixed(1) + '" y="' + t.y.toFixed(1) + '" width="' + t.w.toFixed(1) + '" height="' + t.h.toFixed(1) + '" style="--cc:' + catColor(t.k) + '"/>'));
+  tiles.forEach((t) => (s += '<rect class="border" x="' + t.x.toFixed(1) + '" y="' + t.y.toFixed(1) + '" width="' + t.w.toFixed(1) + '" height="' + t.h.toFixed(1) + '"/>'));
+  s += "</g>";
+  s += '<path class="coast" d="' + cp + '"/>';
+  tiles.forEach((t) => {
+    const cx = t.x + t.w / 2, cy = t.y + t.h / 2, fs = Math.max(8, Math.min(13, Math.sqrt(t.w * t.h) / 7));
+    if (t.w < 34 || t.h < 22) return;
+    s += '<g class="tlabel" pointer-events="none"><circle class="city" cx="' + cx.toFixed(1) + '" cy="' + (cy - fs - 2).toFixed(1) + '" r="2.2"/>';
+    s += '<text class="tname" x="' + cx.toFixed(1) + '" y="' + (cy + 2).toFixed(1) + '" text-anchor="middle" style="font-size:' + fs.toFixed(1) + 'px">' + xesc(String(t.k).toUpperCase()) + "</text>";
+    if (t.h > 38) s += '<text class="tval" x="' + cx.toFixed(1) + '" y="' + (cy + fs + 4).toFixed(1) + '" text-anchor="middle">' + fmtShort(t.v) + "</text>";
+    s += "</g>";
+  });
+  // a small compass rose out at sea
+  s += '<g class="rose" transform="translate(' + (W - 11) + " " + 11 + ') scale(.8)"><path d="M0,-10 L2.5,0 L0,10 L-2.5,0 Z"/><path d="M-10,0 L0,2.5 L10,0 L0,-2.5 Z" class="ew"/></g>';
+  svg.innerHTML = s;
+  svg.querySelectorAll(".terr").forEach((r) => (r.onclick = () => orbSetFocus(r.dataset.k)));
+  $("terrCap").textContent = cats.length + (cats.length === 1 ? " territory" : " territories");
+  mapKey($("terrKey"), [["", "Area = share of spending"], ["citysw", "Capital"], ["bordersw", "Border"]], "Tap a territory to follow it.");
+}
+function renderAtlasOrbit(d) { if (!MERI()) return; drawTopography(d); drawTerritories(d); }
+
+/* 6. Lending routes: friends as waypoints; dashed = lent out, solid = walked back home */
+function drawRoutes() {
+  if (!MERI()) return;
+  const card = $("routeCard"), svg = $("routeSvg"), W = 340, H = 250, hx = 38, hy = H / 2;
+  const people = allFriends().map((f) => {
+    const it = loans.filter((l) => l.friend === f.name), out = it.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0), back = it.filter((l) => l.type === "repaid").reduce((t, l) => t + l.amount, 0);
+    return { f, out, back, bal: friendStats(f.name).bal };
+  }).filter((p) => p.out > 0).sort((a, b) => b.out - a.out).slice(0, 7);
+  card.hidden = !people.length;
+  if (!people.length) return;
+  const maxOut = Math.max(...people.map((p) => p.out));
+  let s = '<rect class="trailbg" x="0" y="0" width="' + W + '" height="' + H + '"/>';
+  const spots = people.map((p, i) => {
+    const n = people.length, a = n === 1 ? 0 : (-62 + (124 * i) / (n - 1)) * (Math.PI / 180), dist = 200 + (i % 2 ? -46 : 34);
+    return { ...p, x: Math.min(W - 40, hx + dist * Math.cos(a)), y: Math.max(26, Math.min(H - 30, hy + dist * Math.sin(a) * 0.62)) };
+  });
+  spots.forEach((p, i) => {
+    const mx = (hx + p.x) / 2 + (i % 2 ? 18 : -18), my = (hy + p.y) / 2 + (i % 2 ? -26 : 26), w = 1.4 + 3.6 * Math.sqrt(p.out / maxOut);
+    const there = "M" + hx + "," + hy + " Q" + mx.toFixed(1) + "," + my.toFixed(1) + " " + p.x.toFixed(1) + "," + p.y.toFixed(1);
+    const home = "M" + p.x.toFixed(1) + "," + p.y.toFixed(1) + " Q" + mx.toFixed(1) + "," + my.toFixed(1) + " " + hx + "," + hy;
+    const walked = Math.max(0, Math.min(1, p.back / p.out));
+    s += '<path class="route" d="' + there + '" style="stroke-width:' + w.toFixed(1) + '"/>';
+    if (walked > 0) s += '<path class="walked" d="' + home + '" pathLength="1" stroke-dasharray="' + walked.toFixed(3) + ' 1" style="stroke-width:' + (w + 0.6).toFixed(1) + '"/>';
+  });
+  spots.forEach((p) => {
+    const done = p.bal <= 0;
+    s += '<g class="wp' + (done ? " done" : "") + '" data-name="' + xesc(p.f.name) + '" role="button">';
+    s += '<circle class="hitwp" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="22"/>';
+    if (done) s += '<path class="flag" d="M' + (p.x - 4).toFixed(1) + "," + (p.y + 9).toFixed(1) + " v-20 l12,5 l-12,5" + '"/>';
+    else s += '<circle class="pin" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="9"/><text class="pinl" x="' + p.x.toFixed(1) + '" y="' + (p.y + 4).toFixed(1) + '" text-anchor="middle">' + xesc(p.f.name.charAt(0).toUpperCase()) + "</text>";
+    const right = p.x < W - 96, lx = (p.x + (right ? 15 : -15)).toFixed(1), anc = right ? "start" : "end";   // names sit beside the pin, clear of the route
+    s += '<text class="wpn" x="' + lx + '" y="' + (p.y - 1).toFixed(1) + '" text-anchor="' + anc + '">' + xesc(p.f.name) + '</text><text class="wpv" x="' + lx + '" y="' + (p.y + 12).toFixed(1) + '" text-anchor="' + anc + '">' + (done ? "journey complete" : "owes " + fmtShort(p.bal)) + "</text></g>";
+  });
+  s += '<g class="homemk"><path d="M' + (hx - 9) + "," + (hy + 2) + " l9,-9 l9,9 v9 h-18 Z" + '"/><text x="' + hx + '" y="' + (hy + 26) + '" text-anchor="middle">You</text></g>';
+  svg.innerHTML = s;
+  svg.querySelectorAll(".wp").forEach((g) => (g.onclick = () => { const f = allFriends().find((x) => x.name === g.dataset.name); if (f) openFriend(f); }));
+  const settled = spots.filter((p) => p.bal <= 0).length;
+  $("routeCap").textContent = spots.length + (spots.length === 1 ? " route" : " routes") + (settled ? " · " + settled + " complete" : "");
+  mapKey($("routeKey"), [["routesw", "Lent out"], ["walkedsw", "Paid back"], ["flagsw", "Journey complete"]]);
+  const owed = people.reduce((t, p) => t + Math.max(0, p.bal), 0);
+  scaleBar($("lentHero"), "lentScale", owed, "still owed");
+}
+
+/* 10. A dotted globe with the land drawn in, turning gently around India */
+const LAND = [
+  [[-168,66],[-162,70],[-140,70],[-125,72],[-95,72],[-80,73],[-62,66],[-55,52],[-66,45],[-75,35],[-81,25],[-81,31],[-90,30],[-97,26],[-97,21],[-87,21],[-88,16],[-83,10],[-79,8],[-86,13],[-92,15],[-105,20],[-110,23],[-115,30],[-118,34],[-124,40],[-124,48],[-135,58],[-150,60],[-165,62]],
+  [[-55,60],[-43,60],[-20,70],[-18,77],[-30,83],[-60,82],[-70,77],[-58,70]],
+  [[-80,9],[-75,11],[-62,11],[-50,0],[-35,-5],[-39,-15],[-48,-26],[-58,-34],[-65,-42],[-68,-52],[-74,-52],[-73,-40],[-71,-30],[-70,-18],[-76,-14],[-81,-5],[-80,0]],
+  [[-10,36],[-9,43],[-2,44],[-5,48],[0,50],[5,53],[8,57],[5,62],[12,66],[20,70],[30,71],[40,68],[45,62],[40,55],[40,46],[30,45],[28,41],[22,37],[15,38],[12,44],[8,44],[3,43],[-1,37]],
+  [[-6,50],[1,51],[2,53],[-2,57],[-5,59],[-6,56],[-5,54]],
+  [[-17,21],[-16,13],[-12,8],[-8,4],[4,6],[9,4],[10,-2],[13,-10],[12,-18],[15,-27],[18,-34],[25,-34],[33,-26],[35,-18],[40,-10],[40,-2],[51,11],[43,12],[38,18],[33,28],[32,31],[25,32],[20,31],[10,34],[10,37],[-2,35],[-6,36],[-10,30],[-14,26]],
+  [[43,-12],[50,-15],[48,-25],[44,-24]],
+  [[26,40],[36,36],[35,33],[43,13],[52,16],[57,22],[58,25],[62,25],[67,24],[70,21],[73,16],[77,8],[80,13],[80,16],[87,21],[91,22],[94,17],[98,10],[101,3],[104,1],[103,9],[106,10],[109,13],[107,21],[111,21],[117,24],[122,30],[121,37],[124,40],[129,35],[130,43],[140,48],[141,53],[135,55],[143,59],[156,57],[163,60],[180,65],[180,72],[160,71],[140,72],[113,74],[100,77],[80,73],[70,73],[60,70],[50,68],[40,66],[40,55],[45,45],[50,45],[47,40],[40,41],[30,41]],
+  [[80,10],[82,7],[80,6]],
+  [[130,31],[135,34],[141,36],[142,43],[145,44],[141,45],[139,38],[132,35]],
+  [[95,5],[106,-6],[104,-6],[98,1]], [[109,1],[117,7],[119,1],[116,-4],[110,-3]], [[105,-6],[114,-7],[114,-9],[106,-7]],
+  [[131,-1],[141,-3],[150,-10],[141,-9],[137,-5]], [[120,18],[122,18],[126,7],[122,7]],
+  [[114,-22],[114,-34],[118,-35],[129,-32],[137,-35],[140,-38],[150,-38],[153,-28],[153,-25],[146,-19],[142,-11],[136,-12],[130,-12],[126,-14],[122,-17]],
+  [[172,-34],[178,-38],[174,-41],[171,-45],[167,-46],[172,-41]],
+];
+const LAND_DOTS = (() => {
+  const inPoly = (x, y, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c; } return c; };
+  const out = [];
+  for (let lat = -56; lat <= 82; lat += 3.2) for (let lon = -180; lon < 180; lon += 3.2 / Math.max(0.35, Math.cos((lat * Math.PI) / 180))) if (LAND.some((p) => inPoly(lon, lat, p))) out.push([(lon * Math.PI) / 180, (lat * Math.PI) / 180]);
+  return out;
+})();
+function drawDotGlobe(svg, centerLon) {
+  const R = 52, tilt = (18 * Math.PI) / 180, l0 = (centerLon * Math.PI) / 180, st = Math.sin(tilt), ct = Math.cos(tilt);
+  const proj = (lon, lat) => { const cl = Math.cos(lat), x = R * cl * Math.sin(lon - l0), z = cl * Math.cos(lon - l0), y = -R * (ct * Math.sin(lat) - st * cl * Math.cos(lon - l0)); return [x, y, st * Math.sin(lat) + ct * z]; };
+  let d = "";
+  LAND_DOTS.forEach(([lon, lat]) => { const [x, y, v] = proj(lon, lat); if (v > 0.05) d += "M" + x.toFixed(1) + " " + y.toFixed(1) + "h0"; });
+  let grat = "";
+  for (let la = -60; la <= 60; la += 30) { let p = ""; for (let lo = -180; lo <= 180; lo += 10) { const [x, y, v] = proj((lo * Math.PI) / 180, (la * Math.PI) / 180); p += (v > 0 && p ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1); } grat += p; }
+  let s = '<circle r="' + R + '" class="sea"/><path class="grat" d="' + grat + '"/><path class="landdots" d="' + d + '"/><circle r="' + R + '" class="rim"/>';
+  const [ix, iy, iv] = proj((78.9 * Math.PI) / 180, (21 * Math.PI) / 180);
+  if (iv > 0.1) s += '<circle class="here-ring" cx="' + ix.toFixed(1) + '" cy="' + iy.toFixed(1) + '" r="6"/><circle class="here" cx="' + ix.toFixed(1) + '" cy="' + iy.toFixed(1) + '" r="2.6"/>';
+  svg.innerHTML = s;
+}
 
 /* ---------- Calendar: each day of the month, shaded by how much you spent ---------- */
 function renderCalendar(r) {
@@ -4022,17 +4521,10 @@ const SHEETS = [["gMonth", "01", "Home"], ["sumHero", "02", "Insights"], ["lentH
   let gBase = '<circle r="' + R + '" class="rim"/>';
   lats.forEach((p) => { const y = -R * Math.sin((p * Math.PI) / 180), w = R * Math.cos((p * Math.PI) / 180); gBase += '<line x1="' + (-w).toFixed(1) + '" x2="' + w.toFixed(1) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>'; });
   let spin = 0, lastT = 0;
-  const drawGlobe = () => {
-    let s = gBase;
-    for (let m = 0; m < 180; m += 30) {
-      const l = ((m + spin) * Math.PI) / 180, rx = Math.abs(R * Math.sin(l));
-      s += '<ellipse rx="' + rx.toFixed(1) + '" ry="' + R + '"/>';
-    }
-    globe.innerHTML = s;
-  };
+  const drawGlobe = (t = 0) => drawDotGlobe(globe, 78 + 55 * Math.sin(t / 9000));   // swings gently either side of India
   drawGlobe();
   const turn = (t) => {
-    if (!document.hidden && !$("logScreen").hidden && !REDUCED() && document.documentElement.dataset.style === "meridian" && t - lastT > 50) { spin = (spin + 0.6) % 30; lastT = t; drawGlobe(); }
+    if (!document.hidden && !$("logScreen").hidden && !REDUCED() && document.documentElement.dataset.style === "meridian" && t - lastT > 100) { lastT = t; drawGlobe(t); }
     requestAnimationFrame(turn);
   };
   requestAnimationFrame(turn);
