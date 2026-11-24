@@ -1034,79 +1034,10 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 .roundfold[open] > summary small::after { content: "  ⌄"; }
 .roundfold .day { padding: 6px 16px 2px; }
 .roundfold .item { background: none; }
-/* ======================================================================
-   Meridian: the map style. Survey-sheet paper and ink, one contour map
-   under the whole app with a latitude/longitude grid, earth-tone
-   categories, water-blue tides, a turning globe, compasses, map-sheet
-   labels, crosshair headings, and cards that slide in as you scroll.
-   ====================================================================== */
-:root[data-style="meridian"] {
-  --bg: #ECE5D5; --card: rgba(250, 247, 239, .9); --card2: #EFE8D8; --fg: #1E2A2C; --fg2: #6C675A; --fg3: #B5AC97; --sep: #D6CCB6;
-  --fill: #E6DECB; --prev: #CBC1AA; --bar: rgba(236, 229, 213, 1); --sheet: #ECE5D5; --sheetcard: rgba(250, 247, 239, .92); --tilebg: #E9E2D1;
-  --accent: #2E6B66; --accent-ink: #F8F5EC; --contour: #9B7B52; --water: #3F7E9C; --grid: rgba(110, 96, 70, .09); --round: 16px; --floatdot: transparent;
-  --c-food: #C0773B; --c-groc: #5E8C4A; --c-trans: #4F7896; --c-shop: #A2574F; --c-bills: #7A6A9B; --c-fun: #3E8E8A; --c-health: #B5483D; --c-other: #8A8170;
-  --topo-ink: var(--topo-l); --xhair: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2210%22%20r%3D%225.5%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M10%200v6M10%2014v6M0%2010h6M14%2010h6%22%20stroke%3D%22%23000%22%20stroke-width%3D%222%22%2F%3E%3C%2Fsvg%3E");
-}
-:root[data-style="meridian"][data-theme="dark"] {
-  --bg: #0E1719; --card: rgba(22, 35, 38, .9); --card2: #1C2B2E; --fg: #E8E3D5; --fg2: #98A29B; --fg3: #4D5C59; --sep: #2A3B3D;
-  --fill: #1F2F32; --prev: #33484B; --bar: rgba(14, 23, 25, 1); --sheet: #122024; --sheetcard: rgba(26, 41, 44, .92); --tilebg: #1F2F32;
-  --accent: #7CC1B4; --accent-ink: #0E1719; --contour: #7FA39A; --water: #6FA9C6; --grid: rgba(160, 190, 180, .07);
-  --c-food: #E0995E; --c-groc: #8BBB72; --c-trans: #7FA8C6; --c-shop: #D0857C; --c-bills: #A796C8; --c-fun: #6EC0BA; --c-health: #E0746A; --c-other: #A79E8C;
-  --topo-ink: var(--topo-d);
-}
-@media (prefers-color-scheme: dark) { :root[data-style="meridian"]:not([data-theme="light"]) {
-  --bg: #0E1719; --card: rgba(22, 35, 38, .9); --card2: #1C2B2E; --fg: #E8E3D5; --fg2: #98A29B; --fg3: #4D5C59; --sep: #2A3B3D;
-  --fill: #1F2F32; --prev: #33484B; --bar: rgba(14, 23, 25, 1); --sheet: #122024; --sheetcard: rgba(26, 41, 44, .92); --tilebg: #1F2F32;
-  --accent: #7CC1B4; --accent-ink: #0E1719; --contour: #7FA39A; --water: #6FA9C6; --grid: rgba(160, 190, 180, .07);
-  --c-food: #E0995E; --c-groc: #8BBB72; --c-trans: #7FA8C6; --c-shop: #D0857C; --c-bills: #A796C8; --c-fun: #6EC0BA; --c-health: #E0746A; --c-other: #A79E8C;
-  --topo-ink: var(--topo-d);
-} }
-/* one map under everything: a graticule grid and contour lines that drift as you scroll */
-:root[data-style="meridian"] body { background-color: var(--bg); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 64px 64px; }
-:root[data-style="meridian"] body::before { content: ""; position: fixed; inset: -140px 0; z-index: -1; pointer-events: none; background: var(--contour); opacity: .3;
-  -webkit-mask: var(--topo) 0 0 / 380px 380px repeat; mask: var(--topo) 0 0 / 380px 380px repeat; transform: translateY(calc(var(--gpar, 0px) * -1)); }
-:root[data-style="meridian"] body::after { content: none; }
-:root[data-style="meridian"] dialog { background-image: var(--topo-ink); background-size: 380px 380px; }
-/* the top card of each screen: stronger contours, a globe or a compass */
-:root[data-style="meridian"] .maphero { position: relative; isolation: isolate; overflow: hidden; }
-:root[data-style="meridian"] .maphero::before { content: ""; position: absolute; inset: -60px -20px; z-index: -1; pointer-events: none; background: var(--contour); opacity: .45;
-  -webkit-mask: var(--topo) -40px -30px / 300px 300px repeat; mask: var(--topo) -40px -30px / 300px 300px repeat; transform: translateY(calc(var(--par, 0px) * -1)); }
-:root[data-style="meridian"] .globe { display: block; position: absolute; right: -34px; top: -26px; width: 150px; height: 150px; z-index: -1; pointer-events: none; opacity: .5; }
-:root[data-style="meridian"] .globe :is(circle, line, ellipse) { fill: none; stroke: var(--accent); stroke-width: 1; }
-:root[data-style="meridian"] .globe .rim { stroke-width: 1.6; }
-:root[data-style="meridian"] .compass { display: block; position: absolute; right: -16px; bottom: -16px; width: 104px; height: 104px; z-index: -1; pointer-events: none; opacity: .55; }
-:root[data-style="meridian"] .compass .rim { fill: none; stroke: var(--contour); stroke-width: 1; }
-:root[data-style="meridian"] .compass line { stroke: var(--contour); stroke-width: 1; }
-:root[data-style="meridian"] .compass .n { fill: none; stroke: var(--accent); stroke-width: 1.3; stroke-linejoin: round; }
-:root[data-style="meridian"] .compass .nn { fill: var(--accent); } :root[data-style="meridian"] .compass .ns { fill: var(--fg3); } :root[data-style="meridian"] .compass .hub { fill: var(--bg); }
-/* map-sheet labels and crosshair headings */
-:root[data-style="meridian"] .mapsheet { display: flex; align-items: center; gap: 10px; margin: 2px 2px -4px; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--contour); font-variant-numeric: tabular-nums; }
-:root[data-style="meridian"] .mapsheet i { border-top: 1px dashed var(--contour); opacity: .6; }
-:root[data-style="meridian"] .sechead > span:first-child::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 7px; vertical-align: -1px; background: var(--accent);
-  -webkit-mask: var(--xhair) center / contain no-repeat; mask: var(--xhair) center / contain no-repeat; }
-:root[data-style="meridian"] .large { letter-spacing: -.02em; }
-/* earth-tone categories, like a map legend */
-:root[data-style="meridian"] .tile { background: color-mix(in srgb, var(--cc, var(--c-other)) 16%, var(--card2)); color: var(--cc, var(--c-other)); }
-/* tab bar: the open tab gets a compass diamond */
-:root[data-style="meridian"] .tab[aria-selected="true"] { color: var(--accent); position: relative; }
-:root[data-style="meridian"] .tab[aria-selected="true"]::after { content: ""; position: absolute; top: -4px; width: 6px; height: 6px; background: var(--accent); transform: rotate(45deg); }
-/* Orbit: a compass bezel, earth-coloured planets and water-blue tides */
-:root[data-style="meridian"] .orbit :is(.bez, .bezn) { display: inline; }
-:root[data-style="meridian"] .orbit .bez { stroke: var(--contour); stroke-width: 1; opacity: .6; }
-:root[data-style="meridian"] .orbit .bez.major { stroke: var(--accent); stroke-width: 1.6; opacity: 1; }
-:root[data-style="meridian"] .orbit .bezn { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-linejoin: round; }
-:root[data-style="meridian"] .orbit .orbring { stroke: var(--contour); stroke-dasharray: 2 4; opacity: .55; }
-:root[data-style="meridian"] .orbit .planet .p { fill: var(--accent); }
-:root[data-style="meridian"] .tides .tide, :root[data-style="meridian"] .tidekey i { fill: var(--water); background: var(--water); }
-/* cards slide in as they come into view, like a website */
-:root[data-style="meridian"] .rv { opacity: 0; transform: translateY(26px) scale(.985); }
-:root[data-style="meridian"] .rv.in { opacity: 1; transform: none; transition: opacity .6s ease, transform .7s cubic-bezier(.2, .8, .2, 1); }
-@media (prefers-reduced-motion: reduce) { :root[data-style="meridian"] .rv { opacity: 1; transform: none; } }
-
 /* ---------- Meridian atlas: map cards, legends, scale bars, frames, globe, folds, lettering ---------- */
 :root:not([data-style="meridian"]) .meronly { display: none !important; }
 :root[data-style="meridian"] {
-  --font: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --font: "Plus Jakarta Sans", system-ui, sans-serif;
   --h0: #B5CF9E; --h1: #DCDDA2; --h2: #E6C98F; --h3: #C99A68; --h4: #9C6A47; --snow: #F1F5F6; --sea: #CFE2E8; --temp: #C0573B;
 }
 :root[data-style="meridian"][data-theme="dark"] { --h0: #4E7A58; --h1: #7E8C55; --h2: #9C8655; --h3: #8E6646; --h4: #6B4A35; --snow: #E9E4D6; --sea: #1D3A46; --temp: #E28A6E; }
@@ -1196,33 +1127,190 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 .scalebar .b { fill: var(--fg); } .scalebar .w { fill: var(--card); } .scalebar .o { fill: none; stroke: var(--fg); stroke-width: 1; }
 .scalebar text { font-size: 9.5px; fill: var(--fg2); font-variant-numeric: tabular-nums; font-family: var(--font); } .scalebar .u { font-style: italic; }
 .scalebar .m { fill: var(--accent); }
-/* map frame: the striped, graduated border of a survey sheet */
-:root[data-style="meridian"] .maphero { border-radius: 3px; }
-:root[data-style="meridian"] .maphero::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
-  background:
-    repeating-linear-gradient(90deg, var(--fg) 0 18px, var(--card) 18px 36px) top / 100% 4px no-repeat,
-    repeating-linear-gradient(90deg, var(--fg) 0 18px, var(--card) 18px 36px) bottom / 100% 4px no-repeat,
-    repeating-linear-gradient(180deg, var(--fg) 0 18px, var(--card) 18px 36px) left / 4px 100% no-repeat,
-    repeating-linear-gradient(180deg, var(--fg) 0 18px, var(--card) 18px 36px) right / 4px 100% no-repeat;
-  border: 1px solid var(--fg); outline: 1px solid var(--fg); outline-offset: -6px; }
-/* the dotted globe */
-:root[data-style="meridian"] .globe { opacity: .85; }
-:root[data-style="meridian"] .globe .sea { fill: color-mix(in srgb, var(--sea) 70%, transparent); stroke: none; }
-:root[data-style="meridian"] .globe .grat { fill: none; stroke: var(--water); stroke-width: .5; opacity: .5; }
-:root[data-style="meridian"] .globe .landdots { fill: none; stroke: var(--h4); stroke-width: 2.1; stroke-linecap: round; }
-:root[data-style="meridian"] .globe .rim { fill: none; stroke: var(--water); stroke-width: 1.2; }
-:root[data-style="meridian"] .globe .here { fill: var(--temp); stroke: none; }
-:root[data-style="meridian"] .globe .here-ring { fill: none; stroke: var(--temp); stroke-width: 1.2; animation: herePulse 2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
-@keyframes herePulse { from { transform: scale(.5); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
-/* paper folds: an unfolded map */
-:root[data-style="meridian"] body::after { content: ""; position: fixed; inset: 0; z-index: 2; pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent calc(50% - 6px), rgba(80, 60, 30, .05) calc(50% - 1px), rgba(255, 255, 255, .28) 50%, transparent calc(50% + 6px)),
-    linear-gradient(180deg, transparent calc(33.3% - 6px), rgba(80, 60, 30, .05) calc(33.3% - 1px), rgba(255, 255, 255, .28) 33.3%, transparent calc(33.3% + 6px)),
-    linear-gradient(180deg, transparent calc(66.6% - 6px), rgba(80, 60, 30, .05) calc(66.6% - 1px), rgba(255, 255, 255, .28) 66.6%, transparent calc(66.6% + 6px)); }
-:root[data-style="meridian"][data-theme="dark"] body::after { opacity: .12; }
-@media (prefers-color-scheme: dark) { :root[data-style="meridian"]:not([data-theme="light"]) body::after { opacity: .12; } }
-@media (prefers-reduced-motion: reduce) { :root[data-style="meridian"] .globe .here-ring { animation: none; } }
+
+/* ======================================================================
+   Meridian: modern motion style. Flat vector shapes and vivid colours
+   on a deep sky (bright sky in light mode), glowing gradient top cards
+   with layered hills that move at different speeds, a lit planet with a
+   moon, twinkling stars, springy entrances and small looping animations.
+   ====================================================================== */
+:root[data-style="meridian"] {
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --bg: #EEF2FF; --card: #FFFFFF; --card2: #F2F4FF; --fg: #16224A; --fg2: #5E6A92; --fg3: #B3BCD8; --sep: #E1E6F5;
+  --fill: #E8ECFA; --prev: #D4DAF0; --bar: rgba(244, 246, 255, 1); --sheet: #EEF2FF; --sheetcard: #FFFFFF; --tilebg: #EEF1FD;
+  --accent: #5B4BFF; --accent-ink: #FFFFFF; --contour: #9AA6D6; --water: #2F9BF0; --round: 22px; --floatdot: transparent;
+  --c-food: #FF8A3D; --c-groc: #1FBF83; --c-trans: #2F9BF0; --c-shop: #FF4F8B; --c-bills: #8B5CF6; --c-fun: #12BDB5; --c-health: #FF5A5A; --c-other: #8C97B8;
+  --h0: #1FBF83; --h1: #8FD444; --h2: #FFC23D; --h3: #FF8A3D; --h4: #E8466E; --snow: #D9D2FF; --sea: #D3E8FF; --temp: #FF4F8B;
+  --sky1: #DCE5FF; --sky2: #F7EEFF; --star: rgba(91, 75, 255, .22); --shadow: 0 10px 30px rgba(40, 50, 120, .10);
+  --hero: linear-gradient(125deg, #5B4BFF 0%, #8B5CF6 45%, #FF4F8B 100%);
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+:root[data-style="meridian"][data-theme="dark"] {
+  --bg: #0A1030; --card: #141D48; --card2: #1A2556; --fg: #F2F4FF; --fg2: #A3AEDA; --fg3: #4B5788; --sep: #233168;
+  --fill: #1E2A5C; --prev: #2C3A72; --bar: rgba(10, 16, 48, 1); --sheet: #10183F; --sheetcard: #17214E; --tilebg: #1E2A5C;
+  --accent: #FFC83D; --accent-ink: #1A1300; --contour: #5D6BB0; --water: #4CC9F0;
+  --c-food: #FF9F43; --c-groc: #2EE6A6; --c-trans: #4CC9F0; --c-shop: #FF5C9A; --c-bills: #A78BFA; --c-fun: #22E3D6; --c-health: #FF6B6B; --c-other: #8E9AC8;
+  --h0: #18B58C; --h1: #7ED957; --h2: #FFC83D; --h3: #FF8A3D; --h4: #F0507A; --snow: #FFFFFF; --sea: #132C66; --temp: #FF5C9A;
+  --sky1: #0A1030; --sky2: #241556; --star: rgba(255, 255, 255, .85); --shadow: 0 12px 34px rgba(0, 0, 0, .35);
+  --hero: linear-gradient(125deg, #2B2C9C 0%, #5A2EA6 50%, #C1366F 100%);
+}
+@media (prefers-color-scheme: dark) { :root[data-style="meridian"]:not([data-theme="light"]) {
+  --bg: #0A1030; --card: #141D48; --card2: #1A2556; --fg: #F2F4FF; --fg2: #A3AEDA; --fg3: #4B5788; --sep: #233168;
+  --fill: #1E2A5C; --prev: #2C3A72; --bar: rgba(10, 16, 48, 1); --sheet: #10183F; --sheetcard: #17214E; --tilebg: #1E2A5C;
+  --accent: #FFC83D; --accent-ink: #1A1300; --contour: #5D6BB0; --water: #4CC9F0;
+  --c-food: #FF9F43; --c-groc: #2EE6A6; --c-trans: #4CC9F0; --c-shop: #FF5C9A; --c-bills: #A78BFA; --c-fun: #22E3D6; --c-health: #FF6B6B; --c-other: #8E9AC8;
+  --h0: #18B58C; --h1: #7ED957; --h2: #FFC83D; --h3: #FF8A3D; --h4: #F0507A; --snow: #FFFFFF; --sea: #132C66; --temp: #FF5C9A;
+  --sky1: #0A1030; --sky2: #241556; --star: rgba(255, 255, 255, .85); --shadow: 0 12px 34px rgba(0, 0, 0, .35);
+  --hero: linear-gradient(125deg, #2B2C9C 0%, #5A2EA6 50%, #C1366F 100%);
+} }
+/* the sky: a soft glow, and two layers of twinkling stars */
+:root[data-style="meridian"] body { background: radial-gradient(900px 520px at 85% -8%, var(--sky2), transparent 62%), linear-gradient(180deg, var(--sky1), var(--bg) 60%); background-attachment: fixed; }
+:root[data-style="meridian"] body::before, :root[data-style="meridian"] body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(1.3px 1.3px at 22px 34px, var(--star) 60%, transparent 62%), radial-gradient(1px 1px at 96px 128px, var(--star) 60%, transparent 62%),
+    radial-gradient(1.7px 1.7px at 168px 62px, var(--star) 60%, transparent 62%), radial-gradient(1px 1px at 214px 182px, var(--star) 60%, transparent 62%), radial-gradient(1.2px 1.2px at 58px 206px, var(--star) 60%, transparent 62%);
+  background-size: 240px 240px; animation: twinkle 3.6s ease-in-out infinite alternate; }
+:root[data-style="meridian"] body::after { background-size: 330px 330px; background-position: 120px 70px; animation-duration: 5.2s; animation-delay: -2s; }
+@keyframes twinkle { from { opacity: .25; } to { opacity: 1; } }
+:root[data-style="meridian"] .water { font-style: normal; }
+/* cards: rounded, soft coloured shadows */
+:root[data-style="meridian"] .card { border-radius: 22px; box-shadow: var(--shadow); border: 1px solid color-mix(in srgb, var(--fg) 5%, transparent); }
+:root[data-style="meridian"] .large { letter-spacing: -.035em; font-weight: 800; }
+:root[data-style="meridian"] .sechead > span:first-child { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--fg); }
+:root[data-style="meridian"] .sechead > span:first-child::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+:root[data-style="meridian"] .tile { background: color-mix(in srgb, var(--cc, var(--c-other)) 16%, var(--card)); color: var(--cc, var(--c-other)); border-radius: 12px; }
+:root[data-style="meridian"] .tab[aria-selected="true"] { color: var(--accent); position: relative; }
+:root[data-style="meridian"] .tab[aria-selected="true"]::after { content: ""; position: absolute; top: -5px; width: 18px; height: 4px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+/* chapter labels above each screen's top card */
+:root[data-style="meridian"] .mapsheet { display: flex; align-items: center; gap: 10px; margin: 2px 2px -4px; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-variant-numeric: tabular-nums; }
+:root[data-style="meridian"] .mapsheet i { border-top: 2px solid; border-image: linear-gradient(90deg, var(--accent), transparent) 1; opacity: .6; }
+:root[data-style="meridian"] .mapsheet .sheetr { color: var(--fg2); }
+/* the top card of each screen: a glowing gradient scene with layered hills */
+:root[data-style="meridian"] .maphero { position: relative; isolation: isolate; overflow: hidden; background: var(--hero); background-size: 180% 180%; animation: heroShift 14s ease-in-out infinite alternate; border: 0;
+  --fg: #FFFFFF; --fg2: rgba(255, 255, 255, .8); --fg3: rgba(255, 255, 255, .45); --sep: rgba(255, 255, 255, .25); --fill: rgba(255, 255, 255, .22); --red: #FFD0DA; --green: #B8FFD9; --accent: #FFE16B; --accent-ink: #1A1300; --card: rgba(255, 255, 255, .14); color: #fff;
+  box-shadow: 0 18px 40px -12px rgba(91, 75, 255, .55); }
+@keyframes heroShift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
+:root[data-style="meridian"] .maphero::before, :root[data-style="meridian"] .maphero::after { content: ""; position: absolute; left: -12%; right: -12%; z-index: -1; pointer-events: none; background-repeat: no-repeat; background-size: 100% 100%; }
+:root[data-style="meridian"] .maphero::before { bottom: -4px; height: 62%; background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%20120%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M0%2062C60%2034%20110%2056%20160%2040C220%2020%20270%2052%20330%2033C360%2025%20385%2036%20400%2030V120H0Z%22%20fill%3D%22rgba(255%2C255%2C255%2C.10)%22%2F%3E%3Cpath%20d%3D%22M0%2086C50%2066%2090%2082%20140%2069C200%2052%20250%2086%20310%2067C350%2057%20380%2069%20400%2063V120H0Z%22%20fill%3D%22rgba(255%2C255%2C255%2C.14)%22%2F%3E%3C%2Fsvg%3E"); transform: translateY(calc(var(--par, 0px) * .25)); }
+:root[data-style="meridian"] .maphero::after { bottom: -2px; height: 30%; background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20400%2060%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M0%2040C70%2022%20120%2036%20190%2028C260%2020%20320%2040%20400%2026V60H0Z%22%20fill%3D%22rgba(10%2C10%2C40%2C.16)%22%2F%3E%3C%2Fsvg%3E"); transform: translateY(calc(var(--par, 0px) * .5)); }
+:root[data-style="meridian"] .compass { display: block; position: absolute; right: -14px; bottom: -14px; width: 104px; height: 104px; z-index: -1; pointer-events: none; opacity: .42; }
+:root[data-style="meridian"] .compass :is(.rim, line) { fill: none; stroke: #fff; stroke-width: 1; }
+:root[data-style="meridian"] .compass .n { fill: none; stroke: #FFE16B; stroke-width: 1.4; }
+:root[data-style="meridian"] .compass .nn { fill: #FFE16B; } :root[data-style="meridian"] .compass .ns { fill: rgba(255, 255, 255, .55); } :root[data-style="meridian"] .compass .hub { fill: #fff; }
+/* the planet: lit ocean, glowing land, a shadowed night side, a moon and stars */
+:root[data-style="meridian"] .globe { display: block; position: absolute; right: -22px; top: -18px; width: 168px; height: 168px; z-index: -1; pointer-events: none; overflow: visible; }
+:root[data-style="meridian"] .globe .atmo { fill: rgba(255, 255, 255, .16); }
+:root[data-style="meridian"] .globe .grat { fill: none; stroke: rgba(255, 255, 255, .22); stroke-width: .6; }
+:root[data-style="meridian"] .globe .landdots { fill: none; stroke: #7CF5C8; stroke-width: 2.4; stroke-linecap: round; }
+:root[data-style="meridian"] .globe .rim { fill: none; stroke: rgba(255, 255, 255, .7); stroke-width: 1.2; }
+:root[data-style="meridian"] .globe .here { fill: #FFE16B; } :root[data-style="meridian"] .globe .here-ring { fill: none; stroke: #FFE16B; stroke-width: 1.4; animation: herePulse 2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes herePulse { from { transform: scale(.5); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
+:root[data-style="meridian"] .globe .orbitpath { fill: none; stroke: rgba(255, 255, 255, .28); stroke-width: .8; stroke-dasharray: 2 4; }
+:root[data-style="meridian"] .globe .moon { fill: #FFF4D6; }
+:root[data-style="meridian"] .globe .gstar { fill: #fff; animation: twinkle 2.4s ease-in-out infinite alternate; }
+:root[data-style="meridian"] .globe .gstar:nth-of-type(2n) { animation-duration: 3.3s; animation-delay: -1s; }
+/* Orbit: planets in category colours that gently bob */
+:root[data-style="meridian"] .orbit :is(.bez, .bezn) { display: inline; }
+:root[data-style="meridian"] .orbit .bez { stroke: var(--fg3); stroke-width: 1; } :root[data-style="meridian"] .orbit .bez.major { stroke: var(--accent); stroke-width: 2; }
+:root[data-style="meridian"] .orbit .bezn { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+:root[data-style="meridian"] .orbit .orbring { stroke: var(--sep); stroke-dasharray: none; }
+:root[data-style="meridian"] .orbit .sun circle { fill: url(#sunGrad); filter: drop-shadow(0 0 14px var(--accent)); }
+:root[data-style="meridian"] .orbit .planet .p { fill: var(--cc, var(--accent)); fill-opacity: 1; transform-box: fill-box; transform-origin: center; animation: bob 3.6s ease-in-out infinite alternate; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .18)); }
+:root[data-style="meridian"] .orbit .planet:nth-of-type(2n) .p { animation-duration: 4.4s; animation-delay: -1.2s; }
+:root[data-style="meridian"] .orbit .planet:nth-of-type(3n) .p { animation-duration: 3.1s; animation-delay: -2s; }
+@keyframes bob { from { transform: translateY(-2.5px); } to { transform: translateY(2.5px); } }
+:root[data-style="meridian"] .tides .tide { fill: var(--cc, var(--water)); fill-opacity: .92; stroke: var(--card); stroke-width: 1.5; }
+:root[data-style="meridian"] .tidekey i { background: var(--cc, var(--water)); opacity: 1; border-radius: 4px; }
+:root[data-style="meridian"] .clock .hb.petal { stroke: var(--card); stroke-width: 1.5; fill: var(--water); fill-opacity: .55; }
+:root[data-style="meridian"] .clock .hb.petal.on { fill: var(--accent); fill-opacity: 1; filter: drop-shadow(0 0 8px var(--accent)); }
+:root[data-style="meridian"] .clock .face { fill: var(--fill); }
+/* charts: vivid, soft and rounded */
+:root[data-style="meridian"] .mapkey { border: 0; background: var(--fill); border-radius: 14px; }
+:root[data-style="meridian"] .mapkey i { border: 0; border-radius: 4px; }
+:root[data-style="meridian"] .mapkey .mknote { font-style: normal; }
+:root[data-style="meridian"] .mapkey i:not([class]) { display: none; }
+:root[data-style="meridian"] .mapkey :is(.routesw, .walkedsw, .bordersw, .tempsw) { height: 3px; border-radius: 3px; }
+:root[data-style="meridian"] .mapkey .routesw { background: var(--fg3); } :root[data-style="meridian"] .mapkey .walkedsw { background: var(--accent); }
+:root[data-style="meridian"] .mapkey .bordersw { background: #fff; box-shadow: 0 0 0 1px var(--fg3); } :root[data-style="meridian"] .mapkey .flagsw { width: 3px; height: 11px; background: var(--accent); }
+:root[data-style="meridian"] .mapkey .snow { box-shadow: 0 0 0 1px var(--fg3); }
+:root[data-style="meridian"] .terrain .ridge { stroke: color-mix(in srgb, var(--fg) 35%, transparent); stroke-width: 1.5; }
+:root[data-style="meridian"] .terrain .iso { stroke: #fff; opacity: .5; }
+:root[data-style="meridian"] .terrain .snowline { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 4; }
+:root[data-style="meridian"] .chart.terrain text.snowlab { fill: var(--accent); font-style: normal; font-weight: 700; }
+:root[data-style="meridian"] .chart .summit { fill: var(--accent); }
+:root[data-style="meridian"] .reservoir .bank { stroke: var(--fg3); stroke-width: 4; }
+:root[data-style="meridian"] .reservoir .res { fill: url(#waterGrad); opacity: 1; }
+:root[data-style="meridian"] .reservoir .wave { stroke: #fff; opacity: .7; stroke-width: 2; }
+:root[data-style="meridian"] .reservoir .bubble { fill: rgba(255, 255, 255, .75); animation: rise 3.2s ease-in infinite; transform-box: fill-box; }
+@keyframes rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-70px); opacity: 0; } }
+:root[data-style="meridian"] .resbig span { color: var(--water); font-weight: 700; }
+:root[data-style="meridian"] .clim .rain { fill: url(#rainGrad); opacity: .75; } :root[data-style="meridian"] .clim .rain.on { opacity: 1; }
+:root[data-style="meridian"] .clim .templine { stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--temp)); }
+:root[data-style="meridian"] .topo .iso { stroke: #fff; opacity: .55; }
+:root[data-style="meridian"] .topo .frame { stroke: none; }
+:root[data-style="meridian"] .terr .sea { fill: url(#seaGrad); }
+:root[data-style="meridian"] .terr .ripple { stroke: #fff; } :root[data-style="meridian"] .terr .ripple.r0 { opacity: .2; } :root[data-style="meridian"] .terr .ripple.r1 { opacity: .35; } :root[data-style="meridian"] .terr .ripple.r2 { opacity: .55; }
+:root[data-style="meridian"] .terr .terr { fill: var(--cc); }
+:root[data-style="meridian"] .terr .terr.on { fill: var(--cc); filter: brightness(1.12); } :root[data-style="meridian"] .terr .terr.dim { opacity: .35; }
+:root[data-style="meridian"] .terr .border { stroke: var(--card); stroke-width: 3; stroke-dasharray: none; }
+:root[data-style="meridian"] .terr .coast { stroke: #fff; stroke-width: 3; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .22)); }
+:root[data-style="meridian"] .terr .city { fill: #fff; }
+:root[data-style="meridian"] .chart.terr text.tname { fill: #fff; font-weight: 800; letter-spacing: .08em; }
+:root[data-style="meridian"] .chart.terr text.tval { fill: rgba(255, 255, 255, .88); font-style: normal; font-weight: 600; }
+:root[data-style="meridian"] .terr .rose path { fill: #fff; }
+:root[data-style="meridian"] .routes .route { stroke: var(--fg3); stroke-dasharray: .1 7; stroke-linecap: round; }
+:root[data-style="meridian"] .routes .walked { stroke: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+:root[data-style="meridian"] .routes .walker { fill: #fff; stroke: var(--accent); stroke-width: 2; }
+:root[data-style="meridian"] .routes .pin { fill: var(--card); stroke: var(--accent); stroke-width: 2.5; filter: drop-shadow(0 0 8px var(--accent)); }
+:root[data-style="meridian"] .chart.routes text.wpv { font-style: normal; }
+:root[data-style="meridian"] .routes .homemk path { fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent)); }
+:root[data-style="meridian"] .scalebar .b { fill: #fff; } :root[data-style="meridian"] .scalebar .w { fill: rgba(255, 255, 255, .25); } :root[data-style="meridian"] .scalebar .o { stroke: none; }
+:root[data-style="meridian"] .scalebar .m { fill: #FFE16B; } :root[data-style="meridian"] .scalebar .u { font-style: normal; }
+:root[data-style="meridian"] .scalebar rect { rx: 2.5px; }
+/* springy reveals as cards scroll into view, and screens that glide in */
+:root[data-style="meridian"] .rv { opacity: 0; transform: translateY(40px) scale(.94); }
+:root[data-style="meridian"] .rv.in { opacity: 1; transform: none; transition: opacity .5s ease, transform .85s var(--spring); }
+:root[data-style="meridian"] .screen:not([hidden]) { animation: screenIn .5s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes screenIn { from { opacity: 0; transform: translateY(14px); } }
+/* chart entrances: played once when a chart comes into view */
+:root[data-style="meridian"] .play :is(.terrain .land, .terrain .ridge, .terrain .iso) { transform-box: view-box; transform-origin: 50% 174px; animation: growUp .9s var(--spring) both; }
+:root[data-style="meridian"] .play .clim .rain { transform-box: fill-box; transform-origin: bottom; animation: growUp .7s var(--spring) both; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(1) { animation-delay: 0ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(2) { animation-delay: 45ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(3) { animation-delay: 90ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(4) { animation-delay: 135ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(5) { animation-delay: 180ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(6) { animation-delay: 225ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(7) { animation-delay: 270ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(8) { animation-delay: 315ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(9) { animation-delay: 360ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(10) { animation-delay: 405ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(11) { animation-delay: 450ms; }
+:root[data-style="meridian"] .play .clim .rain:nth-of-type(12) { animation-delay: 495ms; }
+:root[data-style="meridian"] .play .clim .templine { stroke-dasharray: 1; animation: drawLine 1.2s .35s ease-out both; }
+:root[data-style="meridian"] .play .terr .terr, :root[data-style="meridian"] .play .terr .tlabel { transform-box: fill-box; transform-origin: center; animation: popIn .7s var(--spring) both; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(1) { animation-delay: 0ms; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(2) { animation-delay: 70ms; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(3) { animation-delay: 140ms; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(4) { animation-delay: 210ms; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(5) { animation-delay: 280ms; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(6) { animation-delay: 350ms; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(7) { animation-delay: 420ms; }
+:root[data-style="meridian"] .play .terr .terr:nth-of-type(8) { animation-delay: 490ms; }
+:root[data-style="meridian"] .play .topo { animation: fadeZoom .8s var(--spring) both; }
+:root[data-style="meridian"] .play .reservoir .res { transform-box: view-box; animation: fillUp 1.1s var(--spring) both; }
+:root[data-style="meridian"] .play .clock .petal { transform-box: view-box; transform-origin: 150px 150px; animation: popIn .7s var(--spring) both; }
+:root[data-style="meridian"] .play .routes .wp, :root[data-style="meridian"] .play .routes .homemk { transform-box: fill-box; transform-origin: center; animation: popIn .6s var(--spring) both; }
+:root[data-style="meridian"] .play .mapkey .mk { animation: fadeUp .5s ease-out both; }
+@keyframes growUp { from { transform: scaleY(0); } }
+@keyframes popIn { from { transform: scale(0); opacity: 0; } }
+@keyframes fadeZoom { from { transform: scale(.92); opacity: 0; } }
+@keyframes fillUp { from { transform: translateY(110px); } }
+@keyframes drawLine { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fadeUp { from { transform: translateY(6px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-style="meridian"] *, :root[data-style="meridian"] *::before, :root[data-style="meridian"] *::after { animation: none !important; }
+  :root[data-style="meridian"] .rv { opacity: 1; transform: none; }
+}
 </style>
 </head>
 <body>
@@ -3555,11 +3643,11 @@ function applyTheme() {
   else document.documentElement.removeAttribute("data-style");
   document.querySelectorAll("#styleSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.styleChoice === style));
 }
-// Meridian's atlas typeface, loaded only once that style is picked (kept offline after that)
+// Meridian's typeface, loaded only once that style is picked (kept offline after that)
 function loadMeridianFonts() {
   if (document.getElementById("meridianFonts")) return;
   const l = document.createElement("link"); l.id = "meridianFonts"; l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap";
+  l.href = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap";
   document.head.append(l);
 }
 // Nothing's typefaces load only once that style is picked (the offline cache keeps them after that)
@@ -3664,12 +3752,13 @@ function drawPlanets(d) {
     s += '<line class="bez' + (deg % 90 ? "" : " major") + '" x1="' + (C + sx * r1).toFixed(1) + '" y1="' + (C + cy * r1).toFixed(1) + '" x2="' + (C + sx * 170).toFixed(1) + '" y2="' + (C + cy * 170).toFixed(1) + '"/>';
   }
   s += '<path class="bezn" d="M' + (C - 3) + ' -4V-12L' + (C + 3) + ' -4V-12"/>';
+  s += '<defs><radialGradient id="sunGrad" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#FFE48A"/><stop offset="1" stop-color="var(--accent)"/></radialGradient></defs>';
   s += '<g class="sun"><circle cx="' + C + '" cy="' + C + '" r="46"/>' +
     '<text class="v" x="' + C + '" y="' + (C + 2) + '" text-anchor="middle">' + fmtShort(f ? f.v : d.total) + "</text>" +
     '<text class="s" x="' + C + '" y="' + (C + 20) + '" text-anchor="middle">' + xesc(f ? Math.round((100 * f.v) / d.total) + "% of all" : orbN === 1 ? "this month" : orbN + " months") + "</text></g>";
   d.cats.forEach((c, i) => {
     const lb = labelAt(c);
-    s += '<g class="planet' + (orbFocus === c.k ? " on" : orbFocus ? " dim" : "") + '" data-k="' + xesc(c.k) + '" style="--d:' + i * 70 + 'ms" role="button" aria-label="' + xesc(c.k + ", " + fmt(c.v)) + '">' +
+    s += '<g class="planet' + (orbFocus === c.k ? " on" : orbFocus ? " dim" : "") + '" data-k="' + xesc(c.k) + '" style="--d:' + i * 70 + 'ms;--cc:' + catColor(c.k) + '" role="button" aria-label="' + xesc(c.k + ", " + fmt(c.v)) + '">' +
       '<circle class="hit" cx="' + c.x + '" cy="' + c.y + '" r="' + Math.max(c.size + 6, 20) + '"/>' +
       '<circle class="p" cx="' + c.x + '" cy="' + c.y + '" r="' + c.size + '" style="--o:' + (0.2 + (0.55 * c.v) / max).toFixed(2) + '"/>' +
       '<text x="' + lb.x + '" y="' + lb.y + '" text-anchor="' + lb.anchor + '">' + xesc(c.k) + "</text></g>";
@@ -3806,7 +3895,7 @@ function drawTides(d) {
   [0.5, 1].forEach((f) => (s += '<line class="tgrid" x1="0" x2="' + W + '" y1="' + Y(max * f).toFixed(1) + '" y2="' + Y(max * f).toFixed(1) + '"/>'));
   layers.forEach((l, li) => {
     const lo = below.map((b) => Y(b)), upV = below.map((b, i) => b + (buckets.length > 1 ? l.vals[i] : l.vals[0])), hi = upV.map((v) => Y(v));
-    s += '<path class="tide l' + li + '" d="' + curve(hi) + curve(lo, true) + ' Z"/>';
+    s += '<path class="tide l' + li + '" style="--cc:' + (l.rest ? "var(--c-other)" : catColor(l.k)) + '" d="' + curve(hi) + curve(lo, true) + ' Z"/>';
     below = upV;
   });
   const step = Math.max(1, Math.ceil(buckets.length / 5));
@@ -3827,7 +3916,7 @@ function tideKeys(i) {
   const m = tideModel, box = $("tideKeys"); box.innerHTML = "";
   if (i >= 0) { const t = el("div", "tidewhen", m.buckets[i].long + " · " + fmt(m.layers.reduce((s, l) => s + l.vals[i], 0))); box.append(t); }
   m.layers.forEach((l, li) => {
-    const b = el(l.rest ? "span" : "button", "tidekey" + (orbFocus === l.k ? " on" : "")), sw = el("i", "l" + li);
+    const b = el(l.rest ? "span" : "button", "tidekey" + (orbFocus === l.k ? " on" : "")), sw = el("i", "l" + li); sw.style.setProperty("--cc", l.rest ? "var(--c-other)" : catColor(l.k));
     const v = i >= 0 ? l.vals[i] : l.vals.reduce((s, x) => s + x, 0);
     b.append(sw, el("span", "", l.k), el("b", "", fmtShort(v)));
     if (!l.rest) { b.type = "button"; b.onclick = () => orbSetFocus(l.k); }
@@ -3940,10 +4029,11 @@ function drawReservoir() {
   }
   const row = budgetRow("", budgets.total, ""), frac = Math.max(0, Math.min(1, row.left / row.allowed)), should = Math.max(0, 1 - row.today / 100);
   const lvl = (f) => floor - (floor - rim - 6) * f, wy = lvl(frac);
-  let s = '<defs><clipPath id="basinclip"><path d="M0,' + rim + " C40," + rim + " 50," + floor + " 95," + floor + " H245 C290," + floor + " 300," + rim + " 340," + rim + ' Z"/></clipPath></defs>';
+  let s = '<defs><linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--water)"/><stop offset="1" stop-color="var(--accent)" stop-opacity=".8"/></linearGradient><clipPath id="basinclip"><path d="M0,' + rim + " C40," + rim + " 50," + floor + " 95," + floor + " H245 C290," + floor + " 300," + rim + " 340," + rim + ' Z"/></clipPath></defs>';
   if (frac > 0) {
     s += '<g clip-path="url(#basinclip)"><rect class="res" x="0" y="' + wy.toFixed(1) + '" width="' + W + '" height="' + (H - wy).toFixed(1) + '"/>';
-    s += '<path class="wave" d="M-40,' + wy.toFixed(1) + " q10,-3 20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0" + '"/></g>';
+    s += '<path class="wave" d="M-40,' + wy.toFixed(1) + " q10,-3 20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0 t20,0" + '"/>' +
+      [[120, 0], [165, 1.1], [205, 2.2], [240, .6], [150, 2.7]].map(([x, dl]) => '<circle class="bubble" cx="' + x + '" cy="' + (floor - 6) + '" r="2.4" style="animation-delay:' + dl + 's"/>').join("") + "</g>";
   } else s += '<path class="crack" d="M110,' + (floor - 2) + " l10,-6 l8,5 l12,-7 l9,6 l14,-5 l10,6 l12,-6 l10,5 l14,-6 l9,6" + '"/>';
   s += '<line class="should" x1="60" x2="280" y1="' + lvl(should).toFixed(1) + '" y2="' + lvl(should).toFixed(1) + '"/><text class="shouldlab" x="64" y="' + (lvl(should) - 4).toFixed(1) + '">Level for today</text>';
   s += '<path class="bank" d="' + bank + '"/>';
@@ -3967,7 +4057,8 @@ function drawClimograph() {
   [0, 0.5, 1].forEach((f) => { const y = base - ch * f; s += '<line class="tgrid" x1="' + left + '" x2="' + (W - right) + '" y1="' + y + '" y2="' + y + '"/><text x="' + (left - 4) + '" y="' + (y + 3) + '" text-anchor="end">' + fmtShort(vmax * f) + '</text><text class="temp" x="' + (W - right + 4) + '" y="' + (y + 3) + '">' + Math.round(cmax * f) + "</text>"; });
   months.forEach((m, i) => { const h = (ch * m.v) / vmax; if (h > 0) s += '<rect class="rain' + (i === 11 ? " on" : "") + '" x="' + (X(i) - slot * 0.32).toFixed(1) + '" y="' + (base - h).toFixed(1) + '" width="' + (slot * 0.64).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2"/>'; });
   const pts = months.map((m, i) => [X(i), base - (ch * m.c) / cmax]);
-  s += '<path class="templine" d="' + smoothPath(pts) + '"/>';
+  s = '<defs><linearGradient id="rainGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--water)"/><stop offset="1" stop-color="var(--accent)" stop-opacity=".55"/></linearGradient></defs>' + s;
+  s += '<path class="templine" pathLength="1" d="' + smoothPath(pts) + '"/>';
   pts.forEach(([x, y]) => (s += '<circle class="tempdot" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.6"/>'));
   months.forEach((m, i) => (s += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle"' + (i === 11 ? ' class="on"' : "") + ">" + m.r.short.charAt(0) + "</text>"));
   s += '<line class="base" x1="' + left + '" x2="' + (W - right) + '" y1="' + base + '" y2="' + base + '"/><g id="climScrub" display="none"><line class="scrubline" y1="' + top + '" y2="' + base + '"/></g>';
@@ -4088,7 +4179,7 @@ function drawTerritories(d) {
     coast.push([x + nx * wob, y + ny * wob]);
   }
   const cp = "M" + coast.map(([x, y]) => x.toFixed(1) + "," + y.toFixed(1)).join(" L") + " Z";
-  let s = '<defs><clipPath id="isle"><path d="' + cp + '"/></clipPath></defs><rect class="sea" x="0" y="0" width="' + W + '" height="' + H + '"/>';
+  let s = '<defs><linearGradient id="seaGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--sea)"/><stop offset="1" stop-color="var(--water)" stop-opacity=".55"/></linearGradient><clipPath id="isle"><path d="' + cp + '"/></clipPath></defs><rect class="sea" x="0" y="0" width="' + W + '" height="' + H + '"/>';
   [10, 6, 3].forEach((k, i) => (s += '<path class="ripple r' + i + '" d="' + cp + '" transform="translate(' + (W / 2) + " " + (H / 2) + ") scale(" + (1 + k / 90) + ") translate(" + (-W / 2) + " " + (-H / 2) + ')"/>'));
   s += '<g clip-path="url(#isle)">';
   tiles.forEach((t) => (s += '<rect class="terr' + (orbFocus === t.k ? " on" : orbFocus ? " dim" : "") + '" data-k="' + xesc(t.k) + '" x="' + t.x.toFixed(1) + '" y="' + t.y.toFixed(1) + '" width="' + t.w.toFixed(1) + '" height="' + t.h.toFixed(1) + '" style="--cc:' + catColor(t.k) + '"/>'));
@@ -4134,7 +4225,10 @@ function drawRoutes() {
     const home = "M" + p.x.toFixed(1) + "," + p.y.toFixed(1) + " Q" + mx.toFixed(1) + "," + my.toFixed(1) + " " + hx + "," + hy;
     const walked = Math.max(0, Math.min(1, p.back / p.out));
     s += '<path class="route" d="' + there + '" style="stroke-width:' + w.toFixed(1) + '"/>';
-    if (walked > 0) s += '<path class="walked" d="' + home + '" pathLength="1" stroke-dasharray="' + walked.toFixed(3) + ' 1" style="stroke-width:' + (w + 0.6).toFixed(1) + '"/>';
+    if (walked > 0) {
+      s += '<path class="walked" d="' + home + '" pathLength="1" stroke-dasharray="' + walked.toFixed(3) + ' 1" style="stroke-width:' + (w + 0.6).toFixed(1) + '"/>';
+      if (!REDUCED() && walked < 1) s += '<circle class="walker" r="3.5"><animateMotion dur="' + (2.2 + i * 0.4).toFixed(1) + 's" repeatCount="indefinite" keyPoints="0;' + walked.toFixed(3) + '" keyTimes="0;1" calcMode="linear" path="' + home + '"/></circle>';
+    }
   });
   spots.forEach((p) => {
     const done = p.bal <= 0;
@@ -4185,10 +4279,20 @@ function drawDotGlobe(svg, centerLon) {
   LAND_DOTS.forEach(([lon, lat]) => { const [x, y, v] = proj(lon, lat); if (v > 0.05) d += "M" + x.toFixed(1) + " " + y.toFixed(1) + "h0"; });
   let grat = "";
   for (let la = -60; la <= 60; la += 30) { let p = ""; for (let lo = -180; lo <= 180; lo += 10) { const [x, y, v] = proj((lo * Math.PI) / 180, (la * Math.PI) / 180); p += (v > 0 && p ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1); } grat += p; }
-  let s = '<circle r="' + R + '" class="sea"/><path class="grat" d="' + grat + '"/><path class="landdots" d="' + d + '"/><circle r="' + R + '" class="rim"/>';
+  let dyn = svg.querySelector(".gdyn");
+  if (!dyn) {   // the parts that never change: glow, ocean, night-side shadow, rim, a moon on its orbit, and stars
+    svg.innerHTML = '<defs><radialGradient id="gOcean" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#5BC0FF"/><stop offset="1" stop-color="#1D3FB8"/></radialGradient>' +
+      '<radialGradient id="gShade" cx="30%" cy="25%" r="85%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#0A0830" stop-opacity=".55"/></radialGradient></defs>' +
+      '<circle class="atmo" r="' + (R + 8) + '"/><circle r="' + R + '" fill="url(#gOcean)"/><g class="gdyn"></g><circle r="' + R + '" fill="url(#gShade)"/><circle r="' + R + '" class="rim"/>' +
+      '<ellipse class="orbitpath" rx="74" ry="20" transform="rotate(-18)"/>' +
+      (REDUCED() ? "" : '<circle class="moon" r="5"><animateMotion dur="9s" repeatCount="indefinite" path="M74,0 A74,20 0 1,1 -74,0 A74,20 0 1,1 74,0" rotate="0"/></circle>').replace('<circle class="moon"', '<g transform="rotate(-18)"><circle class="moon"').replace("</circle>", "</circle></g>") +
+      [[-70, -46, 1.6], [62, -58, 1.2], [-58, 52, 1.1], [80, 30, 1.4], [20, -66, 1]].map(([x, y, r]) => '<circle class="gstar" cx="' + x + '" cy="' + y + '" r="' + r + '"/>').join("");
+    dyn = svg.querySelector(".gdyn");
+  }
+  let s = '<path class="grat" d="' + grat + '"/><path class="landdots" d="' + d + '"/>';
   const [ix, iy, iv] = proj((78.9 * Math.PI) / 180, (21 * Math.PI) / 180);
   if (iv > 0.1) s += '<circle class="here-ring" cx="' + ix.toFixed(1) + '" cy="' + iy.toFixed(1) + '" r="6"/><circle class="here" cx="' + ix.toFixed(1) + '" cy="' + iy.toFixed(1) + '" r="2.6"/>';
-  svg.innerHTML = s;
+  dyn.innerHTML = s;
 }
 
 /* ---------- Calendar: each day of the month, shaded by how much you spent ---------- */
@@ -4515,7 +4619,7 @@ const SHEETS = [["gMonth", "01", "Home"], ["sumHero", "02", "Insights"], ["lentH
   });
 
   // A wire globe on Home that turns slowly while Home is on screen
-  const globe = document.createElementNS(NS, "svg"); globe.setAttribute("viewBox", "-60 -60 120 120"); globe.setAttribute("class", "globe"); globe.setAttribute("aria-hidden", "true");
+  const globe = document.createElementNS(NS, "svg"); globe.setAttribute("viewBox", "-84 -84 168 168"); globe.setAttribute("class", "globe"); globe.setAttribute("aria-hidden", "true");
   $("gMonth").append(globe);
   const R = 52, lats = [-60, -30, 0, 30, 60];
   let gBase = '<circle r="' + R + '" class="rim"/>';
@@ -4563,6 +4667,21 @@ const SHEETS = [["gMonth", "01", "Home"], ["sumHero", "02", "Insights"], ["lentH
   };
   new MutationObserver(() => requestAnimationFrame(watch)).observe($("main"), { childList: true, subtree: true });
   watch();
+})();
+// In Meridian, each chart plays its entrance once when it comes into view (again after switching tabs)
+(() => {
+  if (!("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver((list) => list.forEach((en) => {
+    if (!en.isIntersecting) return;
+    const c = en.target; io.unobserve(c);
+    if (!MERI() || REDUCED()) return;
+    c.classList.add("play"); setTimeout(() => { c.classList.remove("play"); c.classList.add("played"); }, 1600);
+  }), { threshold: 0.25 });
+  const arm = () => document.querySelectorAll("main .card").forEach((c) => { if (c.querySelector("svg.chart") && !c.classList.contains("played") && c.offsetParent) io.observe(c); });
+  const replay = () => { document.querySelectorAll("main .card.played, main .card.play").forEach((c) => c.classList.remove("played", "play")); requestAnimationFrame(arm); };
+  document.addEventListener("click", (e) => { if (e.target.closest(".tab, #viewSeg button, #orbRange button, #styleSeg button")) setTimeout(replay, 60); }, true);
+  $("main").addEventListener("scroll", () => requestAnimationFrame(arm), { passive: true });
+  setTimeout(arm, 400);
 })();
 // The right-hand side of each map-sheet label: a small live fact
 function renderSheets() {
