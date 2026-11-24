@@ -1236,6 +1236,7 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
 :root[data-style="meridian"] .terrain .iso { stroke: #fff; opacity: .5; }
 :root[data-style="meridian"] .terrain .snowline { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 4; }
 :root[data-style="meridian"] .chart.terrain text.snowlab { fill: var(--accent); font-style: normal; font-weight: 700; }
+:root .chart.terrain text.snowlab, :root .chart text.spot { paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
 :root[data-style="meridian"] .chart .summit { fill: var(--accent); }
 :root[data-style="meridian"] .reservoir .bank { stroke: var(--fg3); stroke-width: 4; }
 :root[data-style="meridian"] .reservoir .res { fill: url(#waterGrad); opacity: 1; }
@@ -1311,6 +1312,46 @@ dialog.prompt .pclear { background: var(--fg2); color: var(--pr-card); opacity: 
   :root[data-style="meridian"] *, :root[data-style="meridian"] *::before, :root[data-style="meridian"] *::after { animation: none !important; }
   :root[data-style="meridian"] .rv { opacity: 1; transform: none; }
 }
+
+/* ---------- Design review fixes ---------- */
+/* 1. Meridian: the amount pop-up and number pad use Meridian's colours */
+:root[data-style="meridian"] { --pr-card: #FFFFFF; --pr-inner: #F0F2FF; --pr-ring: rgba(91, 75, 255, .14); --kbd: #E2E7FA; --key: #FFFFFF; --keyshadow: rgba(40, 50, 120, .18); --sunA: #A99DFF; --sunB: #5B4BFF; }
+:root[data-style="meridian"][data-theme="dark"] { --pr-card: #17214E; --pr-inner: #22306A; --pr-ring: rgba(255, 255, 255, .12); --kbd: #0D1437; --key: #1F2B5E; --keyshadow: rgba(0, 0, 0, .5); --sunA: #FFE48A; --sunB: #FFC23D; }
+@media (prefers-color-scheme: dark) { :root[data-style="meridian"]:not([data-theme="light"]) { --pr-card: #17214E; --pr-inner: #22306A; --pr-ring: rgba(255, 255, 255, .12); --kbd: #0D1437; --key: #1F2B5E; --keyshadow: rgba(0, 0, 0, .5); --sunA: #FFE48A; --sunB: #FFC23D; } }
+:root[data-style="meridian"] dialog.prompt .pcard { border-radius: 24px; }
+:root[data-style="meridian"] .ptitle.sm { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--fg2); }
+/* 2 & 6. Meridian: no compasses or map-sheet leftovers; readable scale bars */
+:root[data-style="meridian"] .compass, :root[data-style="meridian"] .orbit .bezn { display: none !important; }
+:root[data-style="meridian"] .scalebar .sbar { max-width: 290px; }
+:root[data-style="meridian"] .scalebar text { font-size: 11px; font-weight: 600; fill: rgba(255, 255, 255, .85); }
+/* 3. Meridian: switches show the chosen option in Meridian's colours */
+:root[data-style="meridian"] .seg { background: var(--fill); }
+:root[data-style="meridian"] .seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); box-shadow: 0 4px 12px rgba(40, 50, 120, .16); }
+:root[data-style="meridian"][data-theme="dark"] .seg button[aria-pressed="true"] { background: #33407E; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
+@media (prefers-color-scheme: dark) { :root[data-style="meridian"]:not([data-theme="light"]) .seg button[aria-pressed="true"] { background: #33407E; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); } }
+/* 5. Meridian: the planet sits higher, and the card's arrow stays visible */
+:root[data-style="meridian"] .globe { top: -36px; right: -26px; width: 158px; height: 158px; }
+:root[data-style="meridian"] .maphero .schev { color: #fff; background: rgba(10, 10, 50, .38); border-radius: 50%; width: 26px; height: 26px; padding: 5px; box-sizing: border-box; top: 12px; right: 12px; }
+/* 7. Meridian: no repeats; the climograph replaces "Last 6 months" and the reservoir shows the overall budget */
+:root[data-style="meridian"] .card:has(> #trend) { display: none; }
+:root[data-style="meridian"] #budgetList .brow.total { display: none; }
+:root[data-style="meridian"] #budgetBlock:not(:has(.brow:not(.total))) { display: none; }
+:root[data-style="meridian"] .resinfo .pill { margin-top: 2px; }
+/* 10. Nothing: Orbit in dot-matrix, with red for the thing you're looking at */
+.dotp { fill: var(--fg); }
+:root[data-style="nothing"] .orbit .planet .p { fill: url(#dotfill); stroke: var(--fg); stroke-width: 1; fill-opacity: 1; }
+:root[data-style="nothing"] .orbit .planet.on .p { fill: var(--nred); stroke: var(--nred); }
+:root[data-style="nothing"] .tides .tide { fill: url(#dotfill); stroke: var(--fg); stroke-width: .6; stroke-opacity: .35; }
+:root[data-style="nothing"] .tidekey i { background: radial-gradient(circle, var(--fg) 1px, transparent 1.4px) 0 0 / 4px 4px; opacity: var(--o); }
+:root[data-style="nothing"] .clock .hb { stroke-dasharray: 0 6.5; stroke-linecap: round; stroke-width: 5.5; stroke: var(--fg2); }
+:root[data-style="nothing"] .clock .hb.on { stroke: var(--nred); }
+:root[data-style="nothing"] .clock .face { fill: none; stroke: var(--fg3); stroke-width: 1; stroke-dasharray: 0 5; stroke-linecap: round; }
+/* 11. both: category icons in the amount pop-up are a proper size */
+:root:is([data-style="nothing"], [data-style="meridian"]) .qcats .tile.sm { width: 34px; height: 34px; font-size: 19px; border-radius: 10px; }
+/* 12. both: the "Remind me on" date box matches the rest of the sheet */
+:root:is([data-style="nothing"], [data-style="meridian"]) #fsRemind { background: var(--fill); color: var(--fg); border-radius: 12px; font-weight: 600; min-width: 10.5em; padding: 0 12px; }
+:root:is([data-style="nothing"], [data-style="meridian"])[data-theme="dark"] #fsRemind { color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root:is([data-style="nothing"], [data-style="meridian"]):not([data-theme="light"]) #fsRemind { color-scheme: dark; } }
 </style>
 </head>
 <body>
@@ -3174,7 +3215,7 @@ function renderBudgets() {
   $("budgetEdit").hidden = !rows.length;
   if (!rows.length) { const b = el("button", "setrow tap", "Set a monthly budget"); b.type = "button"; b.style.padding = "0"; b.onclick = openBudget; box.append(b); return; }
   rows.forEach((b) => {
-    const row = el("div", "brow"), top = el("div", "top");
+    const row = el("div", "brow" + (budgets.total > 0 && b === rows[0] ? " total" : "")), top = el("div", "top");
     top.append(el("span", "", b.name), el("span", "left" + (b.left < 0 ? " over" : ""), b.left < 0 ? fmt(-b.left) + " over" : fmt(b.left) + " left"));
     row.append(top, budgetBar(b), el("small", "", fmt(b.used) + " of " + fmt(b.allowed) + (b.carried ? " · " + fmt(b.carried) + " carried over" : "")));
     box.append(row);
@@ -3752,7 +3793,7 @@ function drawPlanets(d) {
     s += '<line class="bez' + (deg % 90 ? "" : " major") + '" x1="' + (C + sx * r1).toFixed(1) + '" y1="' + (C + cy * r1).toFixed(1) + '" x2="' + (C + sx * 170).toFixed(1) + '" y2="' + (C + cy * 170).toFixed(1) + '"/>';
   }
   s += '<path class="bezn" d="M' + (C - 3) + ' -4V-12L' + (C + 3) + ' -4V-12"/>';
-  s += '<defs><radialGradient id="sunGrad" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#FFE48A"/><stop offset="1" stop-color="var(--accent)"/></radialGradient></defs>';
+  s += '<defs><radialGradient id="sunGrad" cx="40%" cy="35%" r="70%"><stop offset="0" style="stop-color:var(--sunA)"/><stop offset="1" style="stop-color:var(--sunB)"/></radialGradient><pattern id="dotfill" width="5" height="5" patternUnits="userSpaceOnUse"><circle class="dotp" cx="2.5" cy="2.5" r="1.25"/></pattern></defs>';
   s += '<g class="sun"><circle cx="' + C + '" cy="' + C + '" r="46"/>' +
     '<text class="v" x="' + C + '" y="' + (C + 2) + '" text-anchor="middle">' + fmtShort(f ? f.v : d.total) + "</text>" +
     '<text class="s" x="' + C + '" y="' + (C + 20) + '" text-anchor="middle">' + xesc(f ? Math.round((100 * f.v) / d.total) + "% of all" : orbN === 1 ? "this month" : orbN + " months") + "</text></g>";
@@ -3981,7 +4022,9 @@ function drawTerrain(r) {
   const avg = Math.round(vals.reduce((a, b) => a + b, 0) / upto), snow = Math.max(1, budgetDay || avg);
   const max = Math.max(...vals, snow * 1.2, 1), X = (i) => (n === 1 ? W / 2 : (i * W) / (n - 1)), Y = (v) => base - (ch * v) / max;
   terrainPts = vals.map((v, i) => ({ x: X(i), v, t: r.start + i * DAY }));
-  const pts = vals.map((v, i) => [X(i), Y(v)]), ridge = smoothPath(pts) + " L" + X(upto - 1).toFixed(1) + "," + base + " L0," + base + " Z";
+  const pts = [];   // each day's spend is a peak at its true height, with slopes reaching about a day either side
+  for (let t = 0; t <= upto - 1 + 1e-9; t += 0.2) { let h = 0; vals.forEach((v, i) => { const k = v * Math.exp(-(((t - i) / 1.15) ** 2)); if (k > h) h = k; }); pts.push([X(t), Y(h)]); }
+  const ridge = smoothPath(pts) + " L" + X(upto - 1).toFixed(1) + "," + base + " L0," + base + " Z";
   const o = (v) => Math.min(1, v / max).toFixed(4), band = [[0, "h0"], [snow * 0.3, "h1"], [snow * 0.6, "h2"], [snow * 0.85, "h3"], [snow, "snow"]];
   let g = '<defs><linearGradient id="hypso" gradientUnits="userSpaceOnUse" x1="0" y1="' + base + '" x2="0" y2="' + (base - ch * 1) + '">';
   band.forEach(([v, c], i) => { const nx = band[i + 1] ? band[i + 1][0] : max; g += '<stop offset="' + o(v) + '" class="s-' + c + '"/><stop offset="' + o(nx) + '" class="s-' + c + '"/>'; });
@@ -4042,7 +4085,8 @@ function drawReservoir() {
   for (let k = 0; k <= 10; k++) { const y = lvl(k / 10); s += '<line class="tickg" x1="' + (k % 5 ? 314 : 310) + '" x2="318" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '"/>'; if (!(k % 5)) s += '<text x="306" y="' + (y + 3).toFixed(1) + '" text-anchor="end">' + k * 10 + "%</text>"; }
   svg.innerHTML = s;
   const big = el("div", "resbig"); big.append(el("b", "", row.left >= 0 ? fmt(Math.round(row.left)) + " left" : fmt(Math.round(-row.left)) + " over"), el("span", "water", row.left >= 0 ? Math.round(frac * 100) + "% full" : "the reservoir is dry"));
-  info.append(big, el("div", "orbhint", frac >= should ? "Above today's level: you're on track." : "Below today's level: spending is running ahead of the month."));
+  const ed = el("button", "pill", "Edit budget"); ed.type = "button"; ed.onclick = () => openBudget();
+  info.append(big, el("div", "orbhint", frac >= should ? "Above today's level: you're on track." : "Below today's level: spending is running ahead of the month."), ed);
   $("resCap").textContent = "Budget " + fmt(row.allowed);
 }
 
@@ -4206,13 +4250,14 @@ function renderAtlasOrbit(d) { if (!MERI()) return; drawTopography(d); drawTerri
 /* 6. Lending routes: friends as waypoints; dashed = lent out, solid = walked back home */
 function drawRoutes() {
   if (!MERI()) return;
-  const card = $("routeCard"), svg = $("routeSvg"), W = 340, H = 250, hx = 38, hy = H / 2;
+  const card = $("routeCard"), svg = $("routeSvg"), W = 340, hx = 38; let H = 250, hy = 125;
   const people = allFriends().map((f) => {
     const it = loans.filter((l) => l.friend === f.name), out = it.filter((l) => l.type === "lent").reduce((t, l) => t + l.amount, 0), back = it.filter((l) => l.type === "repaid").reduce((t, l) => t + l.amount, 0);
     return { f, out, back, bal: friendStats(f.name).bal };
   }).filter((p) => p.out > 0).sort((a, b) => b.out - a.out).slice(0, 7);
   card.hidden = !people.length;
   if (!people.length) return;
+  H = people.length <= 2 ? 170 : people.length <= 4 ? 210 : 250; hy = H / 2; svg.setAttribute("viewBox", "0 0 " + W + " " + H);
   const maxOut = Math.max(...people.map((p) => p.out));
   let s = '<rect class="trailbg" x="0" y="0" width="' + W + '" height="' + H + '"/>';
   const spots = people.map((p, i) => {
@@ -4613,7 +4658,7 @@ const SHEETS = [["gMonth", "01", "Home"], ["sumHero", "02", "Insights"], ["lentH
     const hero = $(id); if (!hero) return;
     hero.classList.add("maphero");
     const lab = el("div", "mapsheet"); lab.id = id + "Sheet"; lab.setAttribute("aria-hidden", "true");
-    lab.append(el("span", "", "N° " + no + " — " + name), el("i"), el("span", "sheetr"));
+    lab.append(el("span", "", name), el("i"), el("span", "sheetr"));
     const at = id === "sumHero" ? $("viewSeg") : hero;
     at.before(lab);
   });
@@ -4687,7 +4732,8 @@ const SHEETS = [["gMonth", "01", "Home"], ["sumHero", "02", "Insights"], ["lentH
 function renderSheets() {
   const set = (id, t) => { const n = $(id + "Sheet"); if (n) n.querySelector(".sheetr").textContent = t; };
   const now = new Date(), doy = Math.floor((now - new Date(now.getFullYear(), 0, 1)) / DAY) + 1;
-  set("gMonth", "Day " + doy + " · Week " + Math.ceil(doy / 7));
+  const mr = monthRange(0), daysLeft = Math.max(0, Math.ceil((mr.end - Date.now()) / DAY) - 1);
+  set("gMonth", daysLeft ? daysLeft + (daysLeft === 1 ? " day" : " days") + " left in " + mr.label : "Last day of " + mr.label);
   set("sumHero", monthRange(monthOffset).label);
   const n = allFriends().length; set("lentHero", n + (n === 1 ? " friend" : " friends"));
 }
